@@ -15,6 +15,7 @@
     "scale": 20
    },
    "example": "export function start() {\nvue.ar.scale(30)\n}\nexport function update(dt: number) {\nif (vue.ar.placed) self.ry += 40 * dt\n}",
+   "choices": {},
    "file": "ar.js",
    "size": 3232
   },
@@ -30,6 +31,7 @@
    "desc": "Structured enemy and NPC brains: sequences, selectors, conditions, actions, waits, repeats, inverters and parallel nodes with a per-entity blackboard. Trees tick every frame and keep running actions across frames.",
    "defaults": {},
    "example": "const B = vue.bt\nexport function start() {\nB.run(self, B.sel(\nB.seq(B.cond(e => vue.dist(e, 'Player') < 200), B.act(e => { e.vx = (vue.find('Player').x - e.x) > 0 ? 160 : -160; return 'running' })),\nB.seq(B.act(e => { e.vx = 0 }), B.wait(1))\n))\n}",
+   "choices": {},
    "file": "behaviortree.js",
    "size": 2930
   },
@@ -45,6 +47,7 @@
    "desc": "Flocking crowds, herds and swarms. Agents keep their distance, move together, flow toward goals and push around obstacles, scaling to thousands with a spatial grid.",
    "defaults": {},
    "example": "export function start() {\nconst flock = vue.crowd.add('sheep', { speed: 90 })\nvue.crowd.flee(flock, 'Dog', 200)\n}",
+   "choices": {},
    "file": "crowd.js",
    "size": 2969
   },
@@ -65,6 +68,7 @@
     "lightTag": "light"
    },
    "example": "export function start() {\nvue.day.setHour(18)\nvue.day.speed(120)\n}\nexport function update(dt: number) {\nvue.hud('Time', Math.floor(vue.day.hour) + ':00')\n}",
+   "choices": {},
    "file": "daynight.js",
    "size": 2821
   },
@@ -83,6 +87,7 @@
     "debris": true
    },
    "example": "export function click() {\nvue.destruct.explode(self.x, self.y, 120)\n}\nexport function collide(other: any) {\nif (other.hasTag('bullet')) vue.destruct.shatter(self, { pieces: 12 })\n}",
+   "choices": {},
    "file": "destruct.js",
    "size": 3415
   },
@@ -103,8 +108,14 @@
     "model": "gpt-4o-mini"
    },
    "example": "export async function click() {\nawait vue.dialogue.say('Mira', 'You made it through the forest!')\nconst pick = await vue.dialogue.ask('Mira', 'Need anything?', ['A map', 'Nothing'])\nconst line = await vue.dialogue.input('You', 'Ask Mira anything')\nawait vue.dialogue.say('Mira', await vue.dialogue.chat('Mira', line, 'You are Mira, a cheerful forest guide.'))\n}",
+   "choices": {
+    "model": [
+     "gpt-4o-mini",
+     "gpt-4o"
+    ]
+   },
    "file": "dialogue.js",
-   "size": 5674
+   "size": 5715
   },
   {
    "id": "director",
@@ -126,6 +137,7 @@
     "max": 100
    },
    "example": "export function start() {\nvue.director.spawner('Zombie', { max: 12, tag: 'zombie', around: 'Player' })\nvue.director.onPhase(p => vue.hud('Threat', p))\n}\nexport function collide(other: any) {\nif (other.hasTag('zombie')) vue.director.stress(15)\n}",
+   "choices": {},
    "file": "director.js",
    "size": 2416
   },
@@ -144,6 +156,7 @@
     "dead": 0.25
    },
    "example": "export function update(dt: number) {\nself.vx = vue.pad.axis('lx') * 240\nif (vue.pad.pressed('a')) self.vy = -600\nif (vue.pad.pressed('x')) vue.pad.vibrate(150, 0.6)\n}",
+   "choices": {},
    "file": "gamepad.js",
    "size": 2476
   },
@@ -164,6 +177,7 @@
     "pinch": 0.025
    },
    "example": "export function update(dt: number) {\nif (vue.hands.pinch('right')) {\nconst p = vue.hands.tip('right', 'index')\nif (p) { self.x = p.x; self.y = p.y; self.z = p.z }\n}\n}",
+   "choices": {},
    "file": "handtracking.js",
    "size": 1476
   },
@@ -185,8 +199,31 @@
     "preload": false
    },
    "example": "export async function click() {\nawait vue.voice.say('Welcome, traveler. The gate opens at dawn.', { voice: 'bm_george', entity: self })\n}",
+   "choices": {
+    "voice": [
+     "af_heart",
+     "af_bella",
+     "af_nicole",
+     "af_sarah",
+     "af_sky",
+     "am_adam",
+     "am_michael",
+     "am_fenrir",
+     "am_puck",
+     "bf_emma",
+     "bf_isabella",
+     "bm_george",
+     "bm_lewis"
+    ],
+    "dtype": [
+     "q8",
+     "q4",
+     "fp16",
+     "fp32"
+    ]
+   },
    "file": "kokorovoice.js",
-   "size": 3010
+   "size": 3206
   },
   {
    "id": "mblur",
@@ -204,6 +241,7 @@
     "trails": 0.35
    },
    "example": "export function start() {\nvue.blur.strength(0.8)\nvue.blur.trails(0.4)\n}",
+   "choices": {},
    "file": "mblur.js",
    "size": 2224
   },
@@ -223,6 +261,7 @@
     "prefix": "vue-"
    },
    "example": "export async function start() {\nconst code = await vue.net.host()\nvue.hud('Room', code)\nvue.net.replicate(self)\nvue.net.on('chat', (msg, from) => vue.log(from, msg))\n}",
+   "choices": {},
    "file": "multiplayer.js",
    "size": 5948
   },
@@ -244,6 +283,7 @@
     "rebuild": 1
    },
    "example": "export function start() {\nvue.every(1, () => vue.nav.go(self, 'Player', 140))\n}",
+   "choices": {},
    "file": "navmesh.js",
    "size": 6464
   },
@@ -261,6 +301,7 @@
     "max": 20000
    },
    "example": "export function start() {\nvue.fx.emitter('fire', { follow: self, oy: -10 })\n}\nexport function click() {\nvue.fx.burst(self.x, self.y, 'explosion')\n}",
+   "choices": {},
    "file": "particles.js",
    "size": 6507
   },
@@ -281,6 +322,7 @@
     "ground": "#4a4038"
    },
    "example": "export function start() {\nvue.pbr.material(self, { metalness: 1, roughness: 0.2 })\nvue.pbr.tag('lava', { emissive: '#ff5a1f', glow: 2 })\n}",
+   "choices": {},
    "file": "pbr.js",
    "size": 2079
   },
@@ -308,6 +350,7 @@
     "tint": ""
    },
    "example": "export function collide(other: any) {\nvue.post.flash('#ff3355', 0.25)\nvue.post.set({ saturation: 0.4, vignette: 0.6 })\nvue.after(1, () => vue.post.set({ saturation: 1.1, vignette: 0.35 }))\n}",
+   "choices": {},
    "file": "postfx.js",
    "size": 3859
   },
@@ -328,6 +371,7 @@
     "pointShadows": true
    },
    "example": "export function start() {\nvue.shadows.range(60)\nvue.shadows.softness(6)\n}",
+   "choices": {},
    "file": "shadows.js",
    "size": 1300
   },
@@ -347,6 +391,7 @@
     "keep": "always"
    },
    "example": "export function start() {\nvue.stream.radius(1800)\n}\nexport function update(dt: number) {\nvue.hud('Awake', vue.stream.active)\n}",
+   "choices": {},
    "file": "streaming.js",
    "size": 1616
   },
@@ -362,6 +407,7 @@
    "desc": "Seeded terrain generation. 2D fills a tilemap with hills, caves, grass, dirt and stone. 3D builds a smooth height-mapped landscape with sand, grass, rock and snow, and keeps every body standing on it.",
    "defaults": {},
    "example": "export function start() {\nvue.terrain.generate('Ground', { width: 200, seed: 7, caves: 0.4 })\n}\n// 3D: vue.terrain.generate3({ size: 200, height: 16, seed: 3 })",
+   "choices": {},
    "file": "terrain.js",
    "size": 3361
   },
@@ -391,8 +437,14 @@
     "size": 1
    },
    "example": "export function start() {\nvue.touch.buttons([{ key: 'space', label: 'Jump' }, { key: 'e', label: 'Use' }])\n}",
+   "choices": {
+    "stickKeys": [
+     "wasd",
+     "arrows"
+    ]
+   },
    "file": "touch.js",
-   "size": 3419
+   "size": 3457
   },
   {
    "id": "voicechat",
@@ -413,6 +465,7 @@
     "volume": 1
    },
    "example": "export async function start() {\nawait vue.vc.start()\n}\nexport function update(dt: number) {\nif (vue.pressed('m')) vue.vc.mute(!vue.vc.talking)\n}",
+   "choices": {},
    "file": "voicechat.js",
    "size": 2577
   },
@@ -435,6 +488,7 @@
     "sunColor": "#fff1d6"
    },
    "example": "export function start() {\nvue.volume.rays(1)\nvue.volume.fog(0.02)\n}",
+   "choices": {},
    "file": "volumetrics.js",
    "size": 3169
   },
@@ -454,6 +508,7 @@
     "moveKeys": true
    },
    "example": "export function start() {\nvue.follow(self, 6, 1.6)\n}\nexport function update(dt: number) {\nconst r = vue.xr.controller(1)\nif (r && r.trigger > 0.5) vue.emit('fire')\n}",
+   "choices": {},
    "file": "vr.js",
    "size": 3707
   },
@@ -476,6 +531,7 @@
     "drag": 2.5
    },
    "example": "// Tag a box or rectangle \"water\" in the Inspector\nexport function update(dt: number) {\nif (self.wet) vue.hud('Status', 'Swimming')\n}",
+   "choices": {},
    "file": "water.js",
    "size": 4524
   },
@@ -497,8 +553,17 @@
     "thunder": true
    },
    "example": "export function start() {\nvue.weather.set('storm', 1)\nvue.weather.wind(0.4)\nvue.after(30, () => vue.weather.set('clear'))\n}",
+   "choices": {
+    "type": [
+     "clear",
+     "rain",
+     "snow",
+     "storm",
+     "fog"
+    ]
+   },
    "file": "weather.js",
-   "size": 4021
+   "size": 4074
   }
  ]
 }

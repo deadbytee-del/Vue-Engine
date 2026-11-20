@@ -1309,7 +1309,7 @@ row('Pixel art',bind(p.settings,'pixelArt','bool',()=>{S.game.pixel=p.settings.p
 row('Start scene',ss),
 row('Engine core',(()=>{const c=h('select');for(const[k,t]of CORES)c.append(h('option',{value:k,text:t}));c.value=CORES.some(x=>x[0]===p.settings.core)?p.settings.core:'vwr';c.addEventListener('change',()=>{snap();p.settings.core=c.value;status();buildInspector()});return c})()),
 h('div',{class:'hint',text:window.VWR&&VWR.exports?(CORE_HINT[p.settings.core]||CORE_HINT.vwr):'WebAssembly is not available here, so the JavaScript core runs physics.'}),
-row('Smooth motion',(()=>{const c=h('input',{type:'checkbox',class:'sw'});c.checked=p.settings.smooth!==false;c.addEventListener('change',()=>{snap();p.settings.smooth=c.checked});return c})()),
+row('Smoothing',(()=>{const c=h('input',{type:'checkbox',class:'sw'});c.checked=p.settings.smooth!==false;c.addEventListener('change',()=>{snap();p.settings.smooth=c.checked});return c})()),
 h('div',{class:'hint',text:'Draws between physics steps so motion stays fluid on 120 and 144 Hz screens.'}),
 row('Extensions',h('div',{class:'xchips'},...(p.extensions||[]).map(id=>{const m=extMeta(id);return h('button',{class:'xchip',title:'Open '+(m?m.name:id),html:ic(m&&m.icon||'puzzle',12)+'<span>'+(m?m.name:id).replace(/[<>&]/g,'')+'</span>',onclick:()=>{showHub('ext');extOpen(id)}})}),h('button',{class:'xchip add',html:ic('plus',12)+'<span>Add</span>',onclick:()=>{X.tab='all';showHub('ext')}}))),
 ]))
@@ -1830,7 +1830,7 @@ const cat=X.cat||[]
 const cats=Array.from(new Set(cat.map(e=>e.cat)))
 const cc=$('#extCat')
 cc.innerHTML=''
-for(const c of['',...cats])cc.append(h('button',{class:'chip'+(X.c===c?' on':''),text:c||'All',onclick:()=>{X.c=c;renderExt()}}))
+for(const c of['',...cats])cc.append(h('button',{class:'hchip'+(X.c===c?' on':''),text:c||'All',onclick:()=>{X.c=c;renderExt()}}))
 for(const b of $$('#extTab button')){b.classList.toggle('on',b.dataset.t===X.tab);if(b.dataset.t==='proj')b.style.display=S.project?'':'none'}
 const q=X.q.toLowerCase(),used=S.project?S.project.extensions||[]:[]
 const list=cat.filter(m=>(!X.c||m.cat===X.c)&&(!q||(m.name+' '+m.desc+' '+m.cat+' '+m.ns).toLowerCase().includes(q))&&(X.tab==='all'||(X.tab==='inst'?X.inst[m.id]:used.includes(m.id))))
@@ -1857,6 +1857,7 @@ const dv=m.defaults[k],cv=cfg[k]!==undefined?cfg[k]:dv
 let el
 if(typeof dv==='boolean'){el=h('input',{type:'checkbox',class:'sw'});el.checked=!!cv;el.onchange=()=>setC(k,el.checked)}
 else if(typeof dv==='number'){el=h('input',{type:'number',step:'any',value:cv});el.onchange=()=>setC(k,+el.value)}
+else if(typeof dv==='string'&&m.choices&&m.choices[k]){el=h('select');for(const o of m.choices[k])el.append(h('option',{value:o,text:o}));el.value=cv;el.onchange=()=>setC(k,el.value)}
 else if(typeof dv==='string'){el=h('input',{type:'text',value:cv});el.onchange=()=>setC(k,el.value)}
 else{el=h('textarea',{rows:3,class:'mono'});el.value=JSON.stringify(cv);el.onchange=()=>{try{setC(k,JSON.parse(el.value));el.classList.remove('bad')}catch(x){el.classList.add('bad')}}}
 if(!p||!used)el.disabled=true
@@ -1923,7 +1924,7 @@ b.innerHTML=''
 b.append(
 h('div',{class:'about'},
 h('img',{src:'logo.png',class:'about-logo'}),
-h('p',{class:'sub',text:'Version '+S.version+(S.platform?' · '+S.platform:'')}),
+h('p',{class:'sub',text:'Version '+S.version+(S.platform&&!String(S.version).includes(S.platform)?' · '+S.platform:'')}),
 h('div',{class:'cores'},
 ...CORES.map(([k,t])=>h('div',{class:'core'+(k==='js'||v?'':' off')},h('span',{class:'ei',html:ic(k==='js'?'code':'cpu',18)}),h('div',null,h('b',{text:t}),h('small',{text:k==='js'?'Always available':v?'WebAssembly ready':'WebAssembly unavailable'})),h('p',{text:CORE_HINT[k]})))),
 h('h3',{text:'Built with'}),
@@ -2237,7 +2238,7 @@ $('#projQ').oninput=renderRecent
 $('#extQ').oninput=()=>{X.q=$('#extQ').value;renderExt()}
 $('#extRefresh').onclick=()=>{X.fresh=false;loadExt(true).then(()=>toast('Extension library is up to date','ok'))}
 for(const b of $$('#extTab button'))b.onclick=()=>{X.tab=b.dataset.t;renderExt()}
-for(const b of $$('#tplF .chip'))b.onclick=()=>{S.tplF=b.dataset.f;for(const x of $$('#tplF .chip'))x.classList.toggle('on',x===b);renderTpl()}
+for(const b of $$('#tplF .hchip'))b.onclick=()=>{S.tplF=b.dataset.f;for(const x of $$('#tplF .hchip'))x.classList.toggle('on',x===b);renderTpl()}
 for(const b of $$('.lk'))b.onclick=()=>hubPane(b.dataset.go)
 for(const b of $$('.qa'))b.onclick=()=>{const q=b.dataset.q;if(q==='ext')return hubPane('ext');const t=VueSample.TEMPLATES.find(t=>t.id===(q==='2d'?'empty2':q==='3d'?'empty3':'kit'))||VueSample.TEMPLATES[0];newFrom(t.make(),t.name)}
 $('#hubBack').onclick=hideHub

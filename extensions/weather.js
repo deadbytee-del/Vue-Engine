@@ -1,4 +1,4 @@
-VueExt.register({id:'weather',name:'Weather System',ns:'weather',cat:'World',icon:'cloud',version:'1.0.0',example:"export function start() {\nvue.weather.set('storm', 1)\nvue.weather.wind(0.4)\nvue.after(30, () => vue.weather.set('clear'))\n}",desc:'Rain, snow, storms with lightning and thunder, and rolling fog, with wind and smooth transitions between states. Works in 2D and 3D and can change on a timer or from scripts.',defaults:{type:'clear',intensity:1,wind:0.2,auto:false,thunder:true},
+VueExt.register({id:'weather',name:'Weather System',ns:'weather',cat:'World',icon:'cloud',version:'1.0.0',example:"export function start() {\nvue.weather.set('storm', 1)\nvue.weather.wind(0.4)\nvue.after(30, () => vue.weather.set('clear'))\n}",desc:'Rain, snow, storms with lightning and thunder, and rolling fog, with wind and smooth transitions between states. Works in 2D and 3D and can change on a timer or from scripts.',choices:{type:['clear','rain','snow','storm','fog']},defaults:{type:'clear',intensity:1,wind:0.2,auto:false,thunder:true},
 api(g,c,s){
 s.k=c.type==='clear'?0:1;s.cur=c.type;s.next=c.type;s.p=[];s.flash=0;s.tt=6
 return{

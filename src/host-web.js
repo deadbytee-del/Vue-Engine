@@ -32,7 +32,7 @@ return new Blob(parts.concat(cen,[new Uint8Array(e.buffer)]),{type:'application/
 }
 window.host={
 web:true,
-version:async()=>'1.4.0-web',
+version:async()=>(window.VUE_VERSION||'')+'-web',
 platform:async()=>'web',
 transpile:async src=>{const ts=await loadTs();const r=ts.transpileModule(String(src),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020},reportDiagnostics:true});return{code:r.outputText,errors:(r.diagnostics||[]).map(d=>ts.flattenDiagnosticMessageText(d.messageText,'\n'))}},
 runtimeSource:async()=>(await Promise.all(['vwr.js','runtime.js','render3d.js'].map(txt))).join('\n;\n'),
