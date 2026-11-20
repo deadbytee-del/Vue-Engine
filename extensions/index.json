@@ -316,15 +316,15 @@
    "requires": [],
    "desc": "Physically based rendering: image-based sky lighting, ACES filmic tone mapping and per-object metalness, roughness and glow. Metals reflect the sky and colors stay natural in bright scenes.",
    "defaults": {
-    "exposure": 1,
-    "envIntensity": 1,
+    "exposure": 0.95,
+    "envIntensity": 0.55,
     "sky": "#9ec9ff",
     "ground": "#4a4038"
    },
    "example": "export function start() {\nvue.pbr.material(self, { metalness: 1, roughness: 0.2 })\nvue.pbr.tag('lava', { emissive: '#ff5a1f', glow: 2 })\n}",
    "choices": {},
    "file": "pbr.js",
-   "size": 2079
+   "size": 2085
   },
   {
    "id": "postfx",
@@ -483,7 +483,7 @@
     "rays": 0.85,
     "decay": 0.965,
     "density": 0.012,
-    "fog": 0.018,
+    "fog": 0.008,
     "samples": 60,
     "sunColor": "#fff1d6"
    },

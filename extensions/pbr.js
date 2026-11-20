@@ -1,4 +1,4 @@
-VueExt.register({id:'pbr',name:'PBR',ns:'pbr',cat:'Rendering',icon:'sparkles',version:'1.0.0',example:"export function start() {\nvue.pbr.material(self, { metalness: 1, roughness: 0.2 })\nvue.pbr.tag('lava', { emissive: '#ff5a1f', glow: 2 })\n}",modes:'3d',desc:'Physically based rendering: image-based sky lighting, ACES filmic tone mapping and per-object metalness, roughness and glow. Metals reflect the sky and colors stay natural in bright scenes.',defaults:{exposure:1,envIntensity:1,sky:'#9ec9ff',ground:'#4a4038'},
+VueExt.register({id:'pbr',name:'PBR',ns:'pbr',cat:'Rendering',icon:'sparkles',version:'1.0.0',example:"export function start() {\nvue.pbr.material(self, { metalness: 1, roughness: 0.2 })\nvue.pbr.tag('lava', { emissive: '#ff5a1f', glow: 2 })\n}",modes:'3d',desc:'Physically based rendering: image-based sky lighting, ACES filmic tone mapping and per-object metalness, roughness and glow. Metals reflect the sky and colors stay natural in bright scenes.',defaults:{exposure:0.95,envIntensity:0.55,sky:'#9ec9ff',ground:'#4a4038'},
 api(g,c,s){
 s.m=new Map()
 const put=(e,o)=>{s.m.set(e,Object.assign(s.m.get(e)||{},o))}
@@ -22,7 +22,7 @@ if(s.env)s.env.dispose()
 s.env=pm.fromScene(sc,0.02).texture
 pm.dispose();geo.dispose();mat.dispose()
 r.scene.environment=s.env
-r.hemi.intensity=0.35
+r.hemi.intensity=0.22
 }
 for(const[e,o]of s.m){
 if(!e.alive){s.m.delete(e);continue}

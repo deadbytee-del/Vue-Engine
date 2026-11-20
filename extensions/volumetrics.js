@@ -1,4 +1,4 @@
-VueExt.register({id:'volumetrics',name:'Volumetrics',ns:'volume',cat:'Rendering',icon:'cloud',version:'1.0.0',example:"export function start() {\nvue.volume.rays(1)\nvue.volume.fog(0.02)\n}",modes:'3d',desc:'Volumetric light scattering: god rays stream around anything that blocks the sun, plus exponential fog that thickens with distance. Rendered on the GPU with a radial scattering pass.',defaults:{rays:0.85,decay:0.965,density:0.012,fog:0.018,samples:60,sunColor:'#fff1d6'},
+VueExt.register({id:'volumetrics',name:'Volumetrics',ns:'volume',cat:'Rendering',icon:'cloud',version:'1.0.0',example:"export function start() {\nvue.volume.rays(1)\nvue.volume.fog(0.02)\n}",modes:'3d',desc:'Volumetric light scattering: god rays stream around anything that blocks the sun, plus exponential fog that thickens with distance. Rendered on the GPU with a radial scattering pass.',defaults:{rays:0.85,decay:0.965,density:0.012,fog:0.008,samples:60,sunColor:'#fff1d6'},
 api(g,c,s){return{rays:v=>{c.rays=+v},fog:v=>{c.fog=+v},density:v=>{c.density=+v}}},
 render3(g,c,s,r){
 const T=r.T
