@@ -143,16 +143,55 @@ this.helper.userData.m=m
 this.scene.add(this.helper)
 }
 }
-render(c,bg){
+env(bg,a){
+const T=this.T,key=bg+'|'+(a?JSON.stringify(a):'')+'|'+this.editor
+if(key===this.envKey||this.skyLock)return
+this.envKey=key
+this.bg=bg
+if(!a){
+this.setSky(null)
+this.scene.background=new T.Color(bg)
+this.scene.fog=this.editor?null:new T.Fog(new T.Color(bg),60,220)
+this.baseSun=null;this.sun.color.set('#ffffff');this.sun.intensity=0.9;this.sun.castShadow=true
+this.hemi.color.set('#ffffff');this.hemi.groundColor.set('#4a5568');this.hemi.intensity=0.75
+return
+}
+const grad=a.gradient!==false,top=a.skyTop||bg,hor=a.skyBottom||bg
+if(grad){this.setSky(top,hor,a.ground||'#2b3140');this.scene.background=new T.Color(hor)}else{this.setSky(null);this.scene.background=new T.Color(bg)}
+const fc=new T.Color(a.fogColor||(grad?hor:bg)),fm=a.fog||'linear'
+this.scene.fog=fm==='exp'?new T.FogExp2(fc,a.fogDensity==null?0.015:+a.fogDensity):fm==='linear'?new T.Fog(fc,a.fogNear==null?60:+a.fogNear,a.fogFar==null?220:+a.fogFar):null
+const el=(a.sunEl==null?55:+a.sunEl)*D,az=(a.sunAz==null?35:+a.sunAz)*D
+this.baseSun=[Math.cos(el)*Math.sin(az)*48,Math.max(0.5,Math.sin(el)*48),Math.cos(el)*Math.cos(az)*48]
+this.sun.color.set(a.sunColor||'#ffffff');this.sun.intensity=a.sunInt==null?0.9:+a.sunInt;this.sun.castShadow=a.shadows!==false
+this.hemi.color.set(a.ambSky||'#ffffff');this.hemi.groundColor.set(a.ambGround||'#4a5568');this.hemi.intensity=a.ambInt==null?0.75:+a.ambInt
+const tm=a.filmic?T.ACESFilmicToneMapping:T.NoToneMapping
+if(this.r.toneMapping!==tm){this.r.toneMapping=tm;this.scene.traverse(o=>{if(o.material)o.material.needsUpdate=true})}
+this.r.toneMappingExposure=a.exposure==null?1:+a.exposure
+}
+setSky(top,hor,gr){
 const T=this.T
-if(bg!==this.bg&&!this.skyLock){this.scene.background=new T.Color(bg);this.scene.fog=this.editor?null:new T.Fog(new T.Color(bg),60,220);this.bg=bg}
+if(!top){if(this.sky)this.sky.visible=false;return}
+if(!this.sky){
+this.sky=new T.Mesh(new T.SphereGeometry(700,32,16),new T.ShaderMaterial({side:T.BackSide,depthWrite:false,fog:false,uniforms:{t:{value:new T.Color()},h:{value:new T.Color()},g:{value:new T.Color()}},vertexShader:'varying vec3 p;void main(){p=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'uniform vec3 t;uniform vec3 h;uniform vec3 g;varying vec3 p;void main(){float y=p.y;vec3 c=y>0.?mix(h,t,pow(smoothstep(0.,.6,y),.8)):mix(h,g,smoothstep(0.,.25,-y));gl_FragColor=vec4(c,1.);}'}))
+this.sky.renderOrder=-10
+this.sky.frustumCulled=false
+this.scene.add(this.sky)
+}
+const u=this.sky.material.uniforms
+u.t.value.set(top);u.h.value.set(hor);u.g.value.set(gr)
+this.sky.visible=true
+}
+render(c,bg,atmo){
+const T=this.T
+this.env(bg,atmo)
 if(this.grid)this.grid.visible=this.editor&&this.gridOn!==false
 const cam=this.cam
 cam.fov=c.fov||70
 cam.position.set(c.x,c.y,c.z)
 cam.lookAt(c.tx,c.ty,c.tz)
 cam.updateProjectionMatrix()
-const sd=this.sunDir||[22,40,14]
+if(this.sky&&this.sky.visible)this.sky.position.copy(cam.position)
+const sd=this.sunDir||this.baseSun||[22,40,14]
 this.sun.position.set(c.tx+sd[0],c.ty+sd[1],c.tz+sd[2])
 this.sun.target.position.set(c.tx,c.ty,c.tz)
 if(this.helper)this.helper.update()

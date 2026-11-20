@@ -17,7 +17,7 @@
    "example": "export function start() {\nvue.ar.scale(30)\n}\nexport function update(dt: number) {\nif (vue.ar.placed) self.ry += 40 * dt\n}",
    "choices": {},
    "file": "ar.js",
-   "size": 3232
+   "size": 3265
   },
   {
    "id": "behaviortree",
@@ -70,7 +70,7 @@
    "example": "export function start() {\nvue.day.setHour(18)\nvue.day.speed(120)\n}\nexport function update(dt: number) {\nvue.hud('Time', Math.floor(vue.day.hour) + ':00')\n}",
    "choices": {},
    "file": "daynight.js",
-   "size": 2821
+   "size": 3055
   },
   {
    "id": "destruct",

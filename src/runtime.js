@@ -1107,7 +1107,9 @@ const c=this.ctx,W=this.w,H=this.h,cam=this.camera,z=cam.zoom
 if(this.zDirty){this.order=this.entities.slice().sort((a,b)=>a.z-b.z);this.zDirty=false}
 c.setTransform(1,0,0,1,0,0)
 c.globalAlpha=1
-c.fillStyle=this.bg
+const at=this.scene.atmo
+if(at&&at.gradient!==false&&at.skyTop){const k=at.skyTop+at.skyBottom+H;if(this._agk!==k){const gr=c.createLinearGradient(0,0,0,H);gr.addColorStop(0,at.skyTop);gr.addColorStop(1,at.skyBottom||this.bg);this._ag=gr;this._agk=k}c.fillStyle=this._ag}
+else c.fillStyle=this.bg
 c.fillRect(0,0,W,H)
 const cx=cam.x+this.shx,cy=cam.y+this.shy
 c.setTransform(z,0,0,z,W/2-cx*z,H/2-cy*z)
@@ -1182,8 +1184,19 @@ c.fillRect(e.x-tw/2,by-12,tw,24)
 c.fillStyle='#111'
 c.fillText(e.sayText,e.x,by)
 }
-if(this.exts.length){this.hk('world',c);c.setTransform(1,0,0,1,0,0);c.globalAlpha=1;this.hk('screen',c);this.hk('post',c)}
+if(this.exts.length)this.hk('world',c)
+if(at)this.atmo2(c,at)
+if(this.exts.length){c.setTransform(1,0,0,1,0,0);c.globalAlpha=1;this.hk('screen',c);this.hk('post',c)}
 this.drawHud(c)
+}
+atmo2(c,a){
+const W=this.w,H=this.h
+c.save()
+c.setTransform(1,0,0,1,0,0)
+if(a.tint&&+a.tintAmt>0){c.globalCompositeOperation='multiply';c.globalAlpha=Math.min(1,+a.tintAmt);c.fillStyle=a.tint;c.fillRect(0,0,W,H)}
+if(a.haze&&+a.hazeAmt>0){c.globalCompositeOperation='source-over';c.globalAlpha=1;const g=c.createLinearGradient(0,H*(1-Math.min(1,+a.hazeAmt)*0.9),0,H);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,a.haze);c.globalAlpha=Math.min(1,+a.hazeAmt);c.fillStyle=g;c.fillRect(0,0,W,H)}
+if(+a.vignette>0){c.globalCompositeOperation='source-over';c.globalAlpha=1;const g=c.createRadialGradient(W/2,H/2,Math.min(W,H)*0.3,W/2,H/2,Math.hypot(W,H)*0.6);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,'+Math.min(1,+a.vignette)+')');c.fillStyle=g;c.fillRect(0,0,W,H)}
+c.restore()
 }
 draw3(){
 const c=this.ctx,r=this.r3
@@ -1194,8 +1207,9 @@ if(!r)return
 r.sync(this)
 const cam=this.camera
 cam.x+=this.shx*0.05;cam.y+=this.shy*0.05
+r.env(this.bg,this.scene.atmo)
 if(this.exts.length)this.hk('render3',r)
-r.render(cam,this.bg)
+r.render(cam,this.bg,this.scene.atmo)
 if(this.exts.length){this.hk('screen',c);this.hk('post',c)}
 cam.x-=this.shx*0.05;cam.y-=this.shy*0.05
 if(!this.editor&&this.scene.mouseLook){c.fillStyle='rgba(255,255,255,0.85)';c.fillRect(this.w/2-1,this.h/2-8,2,16);c.fillRect(this.w/2-8,this.h/2-1,16,2)}

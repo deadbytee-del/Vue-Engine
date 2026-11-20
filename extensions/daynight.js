@@ -23,6 +23,7 @@ const night=new T.Color('#070b1c'),duskc=new T.Color('#f08a5d'),sky=night.clone(
 r.skyLock=true
 if(!r.scene.background||!r.scene.background.isColor)r.scene.background=new T.Color()
 r.scene.background.copy(sky)
+if(r.sky&&r.sky.visible){const u=r.sky.material.uniforms;if(!s.st){s.st=u.t.value.clone();s.sh=u.h.value.clone()}u.t.value.copy(new T.Color('#02040d').lerp(s.st,day));u.h.value.copy(night.clone().lerp(s.sh,day).lerp(duskc,dusk*0.7))}
 if(r.scene.fog)r.scene.fog.color.copy(sky)
 },
 screen(g,c,s,ctx){

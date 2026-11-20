@@ -29,7 +29,7 @@ ss.addEventListener('select',()=>{if(!s.placed)g.vue.ar.place();else{g.vkey('spa
 g.xrLoop=true
 r.r.setAnimationLoop((t,f)=>{s.frame=f;g.loop(t)})
 if(s.btn)s.btn.style.display='none'
-ss.addEventListener('end',()=>{s.sess=null;s.src=null;s.placed=false;g.xrLoop=false;r.r.setAnimationLoop(null);r.skyLock=false;r.bg='';g.raf=requestAnimationFrame(g.loop);if(s.btn)s.btn.style.display=''})
+ss.addEventListener('end',()=>{s.sess=null;s.src=null;s.placed=false;g.xrLoop=false;r.r.setAnimationLoop(null);r.skyLock=false;r.envKey='';g.raf=requestAnimationFrame(g.loop);if(s.btn)s.btn.style.display=''})
 }).catch(e=>g.log('warn','AR could not start: '+(e&&e.message||e)))
 }
 xr.isSessionSupported('immersive-ar').then(ok=>{
@@ -48,6 +48,7 @@ const T=r.T
 if(!s.rig){s.rig=new T.Group();r.scene.add(s.rig);s.rig.add(r.cam);s.ret=new T.Mesh(new T.RingGeometry(0.06,0.08,32).rotateX(-Math.PI/2),new T.MeshBasicMaterial({color:0xffffff}));s.ret.visible=false;r.scene.add(s.ret)}
 if(!s.sess){s.rig.position.set(0,0,0);s.rig.scale.setScalar(1);s.ret.visible=false;return}
 r.skyLock=true
+if(r.sky)r.sky.visible=false
 r.scene.background=null
 r.scene.fog=null
 s.rig.scale.setScalar(c.scale)

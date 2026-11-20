@@ -1298,6 +1298,7 @@ scf.push(row('Camera at',h('div',{class:'vec',style:'grid-template-columns:repea
 scf.push(row('Zoom',bind(sc.camera,'zoom','num')))
 }
 box.append(card('scene','Scene','scene',scf))
+box.append(card('atmo','Atmosphere','sun',atmoUI(sc)))
 const ss=h('select')
 for(const s of p.scenes)ss.append(h('option',{value:s.id,text:s.name}))
 ss.value=p.startScene
@@ -1314,6 +1315,50 @@ h('div',{class:'hint',text:'Draws between physics steps so motion stays fluid on
 row('Extensions',h('div',{class:'xchips'},...(p.extensions||[]).map(id=>{const m=extMeta(id);return h('button',{class:'xchip',title:'Open '+(m?m.name:id),html:ic(m&&m.icon||'puzzle',12)+'<span>'+(m?m.name:id).replace(/[<>&]/g,'')+'</span>',onclick:()=>{showHub('ext');extOpen(id)}})}),h('button',{class:'xchip add',html:ic('plus',12)+'<span>Add</span>',onclick:()=>{X.tab='all';showHub('ext')}}))),
 ]))
 box.append(h('div',{class:'hint',style:'padding:4px',text:'Select an entity to edit it. Shift+A adds one, Ctrl+P finds anything.'}))
+}
+const ATMO3={'Clear day':{gradient:true,skyTop:'#3f86e0',skyBottom:'#cfe6ff',ground:'#3a4250',fog:'linear',fogColor:'#cfe6ff',fogNear:60,fogFar:260,fogDensity:0.015,sunEl:55,sunAz:35,sunColor:'#fff6e8',sunInt:1,shadows:true,ambInt:0.7,ambSky:'#dfeeff',ambGround:'#4a4f3a',filmic:true,exposure:1},
+'Golden hour':{gradient:true,skyTop:'#38406e',skyBottom:'#ffb070',ground:'#3a2a28',fog:'linear',fogColor:'#f2a46a',fogNear:40,fogFar:200,fogDensity:0.015,sunEl:8,sunAz:250,sunColor:'#ffb15c',sunInt:1.3,shadows:true,ambInt:0.45,ambSky:'#ffcf9e',ambGround:'#3b2a3a',filmic:true,exposure:1.1},
+'Overcast':{gradient:true,skyTop:'#8d98a6',skyBottom:'#c5ccd4',ground:'#4a4f55',fog:'exp',fogColor:'#b9c1ca',fogNear:40,fogFar:200,fogDensity:0.02,sunEl:60,sunAz:20,sunColor:'#e8eef5',sunInt:0.35,shadows:false,ambInt:1,ambSky:'#e6ebf0',ambGround:'#5a5f66',filmic:true,exposure:1},
+'Night':{gradient:true,skyTop:'#050813',skyBottom:'#172341',ground:'#05070d',fog:'exp',fogColor:'#0e1630',fogNear:30,fogFar:150,fogDensity:0.025,sunEl:40,sunAz:120,sunColor:'#9db4ff',sunInt:0.3,shadows:true,ambInt:0.3,ambSky:'#3a4f8f',ambGround:'#0b0f1c',filmic:true,exposure:1.2},
+'Alien':{gradient:true,skyTop:'#2b0f4a',skyBottom:'#ff5fa2',ground:'#1a0b2a',fog:'exp',fogColor:'#a3427a',fogNear:40,fogFar:200,fogDensity:0.02,sunEl:30,sunAz:80,sunColor:'#7affd0',sunInt:1.1,shadows:true,ambInt:0.5,ambSky:'#ff8ad8',ambGround:'#2a1040',filmic:true,exposure:1},
+'Underwater':{gradient:true,skyTop:'#0a4a6e',skyBottom:'#0c7b93',ground:'#062a3a',fog:'exp',fogColor:'#0b6c86',fogNear:10,fogFar:80,fogDensity:0.06,sunEl:80,sunAz:0,sunColor:'#9fe8ff',sunInt:0.6,shadows:true,ambInt:0.8,ambSky:'#6fd6ff',ambGround:'#0b3446',filmic:true,exposure:1}}
+const ATMO2={'Day':{gradient:true,skyTop:'#6fb7ff',skyBottom:'#d8eeff',tint:'#ffffff',tintAmt:0,haze:'#ffffff',hazeAmt:0,vignette:0.15},
+'Sunset':{gradient:true,skyTop:'#3b3f7a',skyBottom:'#ffa36b',tint:'#ff9a5c',tintAmt:0.25,haze:'#ffb27a',hazeAmt:0.35,vignette:0.3},
+'Night':{gradient:true,skyTop:'#060a1a',skyBottom:'#1b2850',tint:'#3a4fa0',tintAmt:0.55,haze:'#1b2850',hazeAmt:0.2,vignette:0.5},
+'Cave':{gradient:true,skyTop:'#14110f',skyBottom:'#2a2420',tint:'#6b5a4a',tintAmt:0.45,haze:'#000000',hazeAmt:0.3,vignette:0.65},
+'Dream':{gradient:true,skyTop:'#ffb3e6',skyBottom:'#b3d9ff',tint:'#ffd6f5',tintAmt:0.2,haze:'#ffffff',hazeAmt:0.4,vignette:0.2}}
+function atmoUI(sc){
+const d3=sc.mode==='3d',P=d3?ATMO3:ATMO2,out=[]
+const on=h('input',{type:'checkbox',class:'sw'})
+on.checked=!!sc.atmo
+on.onchange=()=>{snap();if(on.checked)sc.atmo=Object.assign({},P[Object.keys(P)[0]]);else delete sc.atmo;S.game.refresh();redraw();markDirty();buildInspector()}
+out.push(row('Custom sky',on))
+if(!sc.atmo){out.push(h('div',{class:'hint',text:d3?'Turn on to edit the sky gradient, fog, sun, ambient light and exposure.':'Turn on to edit the sky gradient, color grading, haze and vignette.'}));return out}
+const a=sc.atmo
+const ch=h('div',{class:'xchips',style:'margin:2px 0 8px'})
+for(const n in P)ch.append(h('button',{class:'xchip',text:n,onclick:()=>{snap();Object.assign(a,P[n]);S.game.refresh();redraw();markDirty();buildInspector()}}))
+out.push(ch)
+const rng=(k,min,max,st)=>{const w=h('div',{class:'rng'}),i=h('input',{type:'range',min,max,step:st}),v=h('span',{class:'mono'});i.value=a[k]==null?min:a[k];v.textContent=(+i.value).toFixed(st<1?2:0);i.oninput=()=>{if(!S.editing){snap();S.editing=true}a[k]=+i.value;v.textContent=(+i.value).toFixed(st<1?2:0);redraw();markDirty()};i.onchange=()=>{S.editing=false};w.append(i,v);return w}
+const col=k=>field(a,k,'col'),bl=k=>field(a,k,'bool')
+const sub=t=>h('div',{class:'subh',text:t})
+out.push(row('Gradient sky',bl('gradient')),row(d3?'Sky top':'Top',col('skyTop')),row(d3?'Horizon':'Bottom',col('skyBottom')))
+if(d3){
+out.push(row('Below horizon',col('ground')))
+out.push(sub('Fog'))
+const fm=field(a,'fog','sel',[['none','None'],['linear','Distance'],['exp','Dense']]);fm.addEventListener('change',()=>buildInspector())
+out.push(row('Fog',fm))
+if(a.fog!=='none'){out.push(row('Fog color',col('fogColor')));if(a.fog==='exp')out.push(row('Density',rng('fogDensity',0,0.12,0.001)));else out.push(row('Starts at',rng('fogNear',0,300,1)),row('Ends at',rng('fogFar',10,800,1)))}
+out.push(sub('Sun'))
+out.push(row('Height',rng('sunEl',0,90,1)),row('Direction',rng('sunAz',0,360,1)),row('Color',col('sunColor')),row('Strength',rng('sunInt',0,3,0.05)),row('Shadows',bl('shadows')))
+out.push(sub('Ambient light'))
+out.push(row('Strength',rng('ambInt',0,2,0.05)),row('From sky',col('ambSky')),row('From ground',col('ambGround')))
+out.push(sub('Camera'))
+out.push(row('Filmic color',bl('filmic')),row('Exposure',rng('exposure',0.2,2.5,0.05)))
+}else{
+out.push(sub('Grading'))
+out.push(row('Tint',col('tint')),row('Tint amount',rng('tintAmt',0,1,0.01)),row('Haze',col('haze')),row('Haze amount',rng('hazeAmt',0,1,0.01)),row('Vignette',rng('vignette',0,1,0.01)))
+}
+return out
 }
 function axIn(o,k,L){
 const b=h('b',{text:L})
@@ -1733,7 +1778,7 @@ const k=sc.camera3||{}
 Object.assign(g.camera,{x:k.x==null?0:k.x,y:k.y==null?8:k.y,z:k.z==null?14:k.z,tx:k.tx||0,ty:k.ty==null?1:k.ty,tz:k.tz||0,fov:k.fov||70})
 g.r3.gridOn=false
 g.r3.sync(g)
-g.r3.render(g.camera,sc.bg)
+g.r3.render(g.camera,sc.bg,sc.atmo)
 o.drawImage(g.r3.el,0,0,w,hh)
 g.r3.r.dispose()
 g.r3.r.forceContextLoss()
@@ -1960,7 +2005,7 @@ const mini=$('#recentMini'),full=$('#recentGrid')
 mini.innerHTML=''
 full.innerHTML=''
 if(auto&&auto.project&&auto.project.scenes){
-const c=()=>h('button',{class:'card',onclick:()=>{setProject(auto.project,auto.path,!auto.path);hideHub()}},h('div',{class:'th',style:auto.project.thumb?'background-image:url('+auto.project.thumb+')':'background:radial-gradient(circle at 50% 40%,rgba(157,92,255,.35),transparent 70%),#0a0910;display:grid;place-items:center;color:#c9a6ff',html:auto.project.thumb?'':ic('clock',34)}),h('div',{class:'cb'},h('b',{text:'Continue: '+auto.project.name}),h('small',{text:'Your last session, restored'})))
+const c=()=>h('button',{class:'card',onclick:()=>{setProject(auto.project,auto.path,!auto.path);hideHub()}},h('div',{class:'th',style:auto.project.thumb?'background-image:url('+auto.project.thumb+')':'background:var(--bg2);display:grid;place-items:center;color:#a98fd6',html:auto.project.thumb?'':ic('clock',34)}),h('div',{class:'cb'},h('b',{text:'Continue: '+auto.project.name}),h('small',{text:'Your last session, restored'})))
 mini.append(c())
 if(!q||auto.project.name.toLowerCase().includes(q))full.append(c())
 }
