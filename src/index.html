@@ -10,10 +10,12 @@
 <header id="top">
 <div class="brand"><img class="logo" src="logo.png" alt=""><b>Vue Engine</b><span id="pname"></span></div>
 <div class="grp">
-<button id="bNew">New</button>
+<button id="bNew">New 2D</button>
+<button id="bNew3">New 3D</button>
 <button id="bOpen">Open</button>
 <button id="bSave">Save</button>
-<button id="bSample">Sample</button>
+<button id="bSample">Sample 2D</button>
+<button id="bSample3">Sample 3D</button>
 <button id="bExport">Export HTML</button>
 </div>
 <div class="grp">
@@ -38,10 +40,15 @@
 <main id="center">
 <div id="viewScene" class="view">
 <div class="tools">
-<button data-add="rect">+ Rectangle</button>
-<button data-add="circle">+ Circle</button>
-<button data-add="sprite">+ Sprite</button>
-<button data-add="text">+ Text</button>
+<button class="d2" data-add="rect">+ Rectangle</button>
+<button class="d2" data-add="circle">+ Circle</button>
+<button class="d2" data-add="sprite">+ Sprite</button>
+<button class="d2" data-add="text">+ Text</button>
+<button class="d3" data-add="box">+ Box</button>
+<button class="d3" data-add="sphere">+ Sphere</button>
+<button class="d3" data-add="cylinder">+ Cylinder</button>
+<button class="d3" data-add="plane">+ Plane</button>
+<button class="d3" data-add="light">+ Light</button>
 <label><input type="checkbox" id="snap" checked> Snap</label>
 <label><input type="checkbox" id="grid" checked> Grid</label>
 <button id="bFrame">Reset view</button>
@@ -67,7 +74,7 @@
 </div>
 </div>
 <div id="viewGame" class="view">
-<iframe id="frame" sandbox="allow-scripts"></iframe>
+<iframe id="frame" sandbox="allow-scripts allow-pointer-lock"></iframe>
 <div id="fps"></div>
 </div>
 </main>
@@ -80,6 +87,8 @@
 <script src="../node_modules/blockly/javascript_compressed.js"></script>
 <script src="../node_modules/blockly/msg/en.js"></script>
 <script src="../node_modules/monaco-editor/min/vs/loader.js"></script>
+<script src="../node_modules/three/build/three.min.js"></script>
+<script src="render3d.js"></script>
 <script src="runtime.js"></script>
 <script src="nodedefs.js"></script>
 <script src="blocks.js"></script>

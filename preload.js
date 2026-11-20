@@ -5,5 +5,6 @@ saveProject:(data,file)=>ipcRenderer.invoke('project:save',data,file),
 exportHtml:(html,name)=>ipcRenderer.invoke('export:html',html,name),
 importAssets:()=>ipcRenderer.invoke('assets:import'),
 transpile:src=>ipcRenderer.invoke('ts:transpile',src),
-runtimeSource:()=>ipcRenderer.invoke('runtime:source')
+runtimeSource:()=>ipcRenderer.invoke('runtime:source'),
+threeSource:()=>ipcRenderer.invoke('three:source')
 })

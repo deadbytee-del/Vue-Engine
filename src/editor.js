@@ -13,8 +13,9 @@ else e.setAttribute(k,a[k])
 for(const x of c)if(x!=null)e.append(x)
 return e
 }
-const S={project:null,path:null,sceneId:null,sel:null,tab:'scene',undo:[],redo:[],cam:{x:0,y:0,zoom:1},drag:null,space:false,editing:false,inputs:{},game:null,loading:false,ws:null,ne:null,code:null}
+const S={cam3:{tx:0,ty:1,tz:0,yaw:0,pitch:28,dist:20},project:null,path:null,sceneId:null,sel:null,tab:'scene',undo:[],redo:[],cam:{x:0,y:0,zoom:1},drag:null,space:false,editing:false,inputs:{},game:null,loading:false,ws:null,ne:null,code:null}
 const scene=()=>S.project.scenes.find(s=>s.id===S.sceneId)||S.project.scenes[0]
+const is3=()=>scene().mode==='3d'
 const selData=()=>S.sel?scene().entities.find(e=>e.id===S.sel)||null:null
 const clone=o=>JSON.parse(JSON.stringify(o))
 const num=v=>{const n=parseFloat(v);return isNaN(n)?0:n}
@@ -73,6 +74,7 @@ p.name=p.name||'My Game'
 for(const sc of p.scenes){
 sc.camera=sc.camera||{x:0,y:0,zoom:1}
 sc.entities=sc.entities||[]
+sc.mode=sc.mode||'2d'
 if(sc.gravity==null)sc.gravity=1400
 if(!sc.bg)sc.bg='#1b2340'
 }
@@ -107,8 +109,9 @@ g.loadScene(S.sceneId)
 redraw()
 }
 function resetView(){
-const c=scene().camera
-S.cam={x:c.x||0,y:c.y||0,zoom:1}
+const sc=scene()
+if(sc.mode==='3d'){const k=sc.camera3||{};S.cam3={tx:k.tx||0,ty:k.ty==null?1:k.ty,tz:k.tz||0,yaw:0,pitch:28,dist:20}}
+else{const c=sc.camera;S.cam={x:c.x||0,y:c.y||0,zoom:1}}
 redraw()
 }
 let rq=0
@@ -119,6 +122,7 @@ rq=requestAnimationFrame(()=>{rq=0;paint()})
 function paint(){
 const g=S.game
 if(!g||S.tab!=='scene')return
+if(is3()){paint3();return}
 g.camera.x=S.cam.x
 g.camera.y=S.cam.y
 g.camera.zoom=S.cam.zoom
@@ -144,6 +148,67 @@ for(const[hx,hy]of[[0,0],[1,0],[0,1],[1,1]])c.fillRect(x0+hx*w-4,y0+hy*hh-4,8,8)
 }
 $('#zoomLbl').textContent=Math.round(z*100)+'%  ('+Math.round(S.cam.x)+', '+Math.round(S.cam.y)+')'
 }
+function paint3(){
+const g=S.game,o=S.cam3,sc=scene(),c=g.camera,D=Math.PI/180
+const cy=o.yaw*D,cp=o.pitch*D
+c.tx=o.tx;c.ty=o.ty;c.tz=o.tz
+c.x=o.tx+Math.sin(cy)*Math.cos(cp)*o.dist
+c.y=o.ty+Math.sin(cp)*o.dist
+c.z=o.tz+Math.cos(cy)*Math.cos(cp)*o.dist
+c.fov=(sc.camera3&&sc.camera3.fov)||70
+if(g.r3){
+g.r3.sync(g)
+const d=selData()
+g.r3.setSelection(d?g.entities.find(e=>e.src===d):null)
+}
+g.draw()
+$('#zoomLbl').textContent='3D  distance '+o.dist.toFixed(1)
+}
+function rel(e){
+const r=$('#cv').getBoundingClientRect()
+return[e.clientX-r.left,e.clientY-r.top,r.width,r.height]
+}
+function down3(e){
+const o=S.cam3,[px,py,w,h]=rel(e)
+if(e.button===2){S.drag={k:'orbit',sx:e.clientX,sy:e.clientY,yaw:o.yaw,pitch:o.pitch};return}
+if(e.button===1||S.space){S.drag={k:'pan3',sx:e.clientX,sy:e.clientY,tx:o.tx,ty:o.ty,tz:o.tz};return}
+const hit=S.game.r3?S.game.r3.pick(px,py,w,h):null
+if(hit){
+const d=hit.src
+select(d.id)
+snap()
+if(e.shiftKey)S.drag={k:'moveY',d,sy:e.clientY,y0:d.y}
+else{
+const p=S.game.r3.ground(px,py,w,h,d.y)||{x:d.x,z:d.z}
+S.drag={k:'move3',d,ox:d.x-p.x,oz:d.z-p.z}
+}
+}else select(null)
+}
+function move3(e){
+const dr=S.drag
+if(!dr)return
+const o=S.cam3,D=Math.PI/180
+if(dr.k==='orbit'){
+o.yaw=dr.yaw-(e.clientX-dr.sx)*0.4
+o.pitch=Math.max(-89,Math.min(89,dr.pitch+(e.clientY-dr.sy)*0.4))
+}else if(dr.k==='pan3'){
+const k=o.dist*0.0016,dx=e.clientX-dr.sx,dy=e.clientY-dr.sy,cy=o.yaw*D
+o.tx=dr.tx-dx*k*Math.cos(cy)
+o.tz=dr.tz+dx*k*Math.sin(cy)
+o.ty=dr.ty+dy*k
+}else{
+const d=dr.d
+if(dr.k==='move3'){
+const[px,py,w,h]=rel(e),p=S.game.r3.ground(px,py,w,h,d.y)
+if(!p)return
+d.x=gs(p.x+dr.ox)
+d.z=gs(p.z+dr.oz)
+}else d.y=gs(dr.y0-(e.clientY-dr.sy)*o.dist*0.003)
+S.game.refresh()
+syncInspector()
+}
+redraw()
+}
 function toWorld(e){
 const r=$('#cv').getBoundingClientRect(),g=S.game
 return[(e.clientX-r.left-g.w/2)/S.cam.zoom+S.cam.x,(e.clientY-r.top-g.h/2)/S.cam.zoom+S.cam.y]
@@ -165,12 +230,13 @@ if(Math.abs(px-x)<=7&&Math.abs(py-y)<=7)return[hx,hy]
 }
 return null
 }
-const gs=v=>$('#snap').checked?Math.round(v/8)*8:Math.round(v*100)/100
+const gs=v=>$('#snap').checked?(is3()?Math.round(v*2)/2:Math.round(v/8)*8):Math.round(v*100)/100
 function canvasEvents(){
 const cv=$('#cv')
 cv.addEventListener('contextmenu',e=>e.preventDefault())
 cv.addEventListener('pointerdown',e=>{
 cv.setPointerCapture(e.pointerId)
+if(is3()){down3(e);return}
 const[wx,wy]=toWorld(e)
 if(e.button===1||e.button===2||S.space){S.drag={k:'pan',sx:e.clientX,sy:e.clientY,cx:S.cam.x,cy:S.cam.y};return}
 const d=selData()
@@ -186,6 +252,7 @@ S.drag={k:'move',d:hit,ox:wx-hit.x,oy:wy-hit.y}
 }else select(null)
 })
 cv.addEventListener('pointermove',e=>{
+if(is3()){move3(e);return}
 const dr=S.drag
 if(!dr)return
 if(dr.k==='pan'){
@@ -216,6 +283,7 @@ cv.addEventListener('pointerup',end)
 cv.addEventListener('pointercancel',end)
 cv.addEventListener('wheel',e=>{
 e.preventDefault()
+if(is3()){S.cam3.dist=Math.min(400,Math.max(1.5,S.cam3.dist*(e.deltaY<0?1/1.12:1.12)));redraw();return}
 const r=cv.getBoundingClientRect(),g=S.game
 const[wx,wy]=toWorld(e)
 const z=Math.min(8,Math.max(0.05,S.cam.zoom*(e.deltaY<0?1.12:1/1.12)))
@@ -245,10 +313,10 @@ return base+' '+i
 }
 function addEntity(kind){
 snap()
-const d=VueSample.kinds[kind]()
+const d=is3()?VueSample.kinds3[kind]():VueSample.kinds[kind]()
 d.name=uniqueName(d.name)
-d.x=gs(S.cam.x)
-d.y=gs(S.cam.y)
+if(is3()){d.x=gs(S.cam3.tx);d.z=gs(S.cam3.tz);d.y=d.shape==='light'?5:gs(S.cam3.ty)+(d.shape==='plane'?0:d.h/2)}
+else{d.x=gs(S.cam.x);d.y=gs(S.cam.y)}
 scene().entities.push(d)
 S.sel=d.id
 reloadScene()
@@ -281,7 +349,13 @@ reloadScene()
 renderAll()
 scheduleSave()
 }
+function updateToolbar(){
+const t=is3()
+for(const b of $$('.d2'))b.style.display=t?'none':''
+for(const b of $$('.d3'))b.style.display=t?'':'none'
+}
 function renderAll(){
+updateToolbar()
 renderScenes()
 renderHier()
 renderAssets()
@@ -400,14 +474,14 @@ return el
 }
 function row(label,...els){
 const r=h('div',{class:'fld'},h('label',{text:label}))
-if(els.length>1)r.append(h('div',{class:'two'},...els))
+if(els.length>1)r.append(h('div',{class:'two',style:'grid-template-columns:repeat('+els.length+',1fr)'},...els))
 else r.append(els[0])
 return r
 }
 function syncInspector(){
 const d=selData()
 if(!d)return
-for(const k of['x','y','w','h','rot']){
+for(const k of['x','y','z','w','h','d','rot','rx','ry','rz']){
 const el=S.inputs[k]
 if(el&&document.activeElement!==el)el.value=Math.round(d[k]*100)/100
 }
@@ -420,6 +494,7 @@ const d=selData()
 if(!d){sceneSettings(box);return}
 box.append(row('Name',field(d,'name','text')))
 box.append(row('Tags',field(d,'tags','tags')))
+if(is3()){build3(box,d);return}
 box.append(h('div',{class:'sec',text:'Transform'}))
 box.append(row('Position',field(d,'x','num'),field(d,'y','num')))
 box.append(row('Size',field(d,'w','num'),field(d,'h','num')))
@@ -442,6 +517,24 @@ box.append(h('div',{class:'sec',text:'Behavior'}))
 box.append(row('Prefab',field(d,'prefab','bool')))
 box.append(h('button',{text:'Edit script',onclick:()=>setTab('script')}))
 }
+function build3(box,d){
+box.append(h('div',{class:'sec',text:'Transform'}))
+box.append(row('Position',field(d,'x','num'),field(d,'y','num'),field(d,'z','num')))
+box.append(row('Size',field(d,'w','num'),field(d,'h','num'),field(d,'d','num')))
+box.append(row('Rotation',field(d,'rx','num'),field(d,'ry','num'),field(d,'rz','num')))
+box.append(h('div',{class:'sec',text:'Look'}))
+box.append(row('Shape',field(d,'shape','sel',['box','sphere','cylinder','cone','plane','light'])))
+box.append(row('Color',field(d,'color','col')))
+if(d.shape!=='light')box.append(row('Texture',field(d,'image','asset')))
+box.append(row(d.shape==='light'?'Intensity':'Opacity',field(d,'alpha','num')))
+box.append(row('Visible',field(d,'visible','bool')))
+box.append(h('div',{class:'sec',text:'Physics'}))
+box.append(row('Body',field(d,'body','sel',['none','static','dynamic','trigger'])))
+if(d.body==='dynamic')box.append(row('Gravity',field(d,'gravityScale','num')))
+box.append(h('div',{class:'sec',text:'Behavior'}))
+box.append(row('Prefab',field(d,'prefab','bool')))
+box.append(h('button',{text:'Edit script',onclick:()=>setTab('script')}))
+}
 function sceneSettings(box){
 const sc=scene(),p=S.project
 const bind=(o,key,type,after)=>{
@@ -456,10 +549,33 @@ return el
 }
 box.append(h('div',{class:'sec',text:'Scene'}))
 box.append(row('Name',bind(sc,'name','text',renderScenes)))
+const ms=h('select')
+for(const m of['2d','3d'])ms.append(h('option',{value:m,text:m.toUpperCase()}))
+ms.value=sc.mode||'2d'
+ms.addEventListener('change',()=>{
+snap()
+sc.mode=ms.value
+if(sc.mode==='3d'&&!sc.camera3)sc.camera3={x:0,y:8,z:14,tx:0,ty:1,tz:0,fov:70}
+if(sc.mode==='3d'&&sc.gravity>200)sc.gravity=30
+if(sc.mode==='2d'&&sc.gravity<200)sc.gravity=1400
+reloadScene()
+resetView()
+renderAll()
+scheduleSave()
+})
+box.append(row('Mode',ms))
 box.append(row('Background',bind(sc,'bg','col',()=>{S.game.bg=sc.bg})))
 box.append(row('Gravity',bind(sc,'gravity','num',()=>{S.game.gravity=sc.gravity})))
+if(sc.mode==='3d'){
+const k=sc.camera3||(sc.camera3={x:0,y:8,z:14,tx:0,ty:1,tz:0,fov:70})
+box.append(row('Camera',bind(k,'x','num'),bind(k,'y','num'),bind(k,'z','num')))
+box.append(row('Looks at',bind(k,'tx','num'),bind(k,'ty','num'),bind(k,'tz','num')))
+box.append(row('Field of view',bind(k,'fov','num')))
+box.append(row('Mouse look',bind(sc,'mouseLook','bool')))
+}else{
 box.append(row('Start view',bind(sc.camera,'x','num'),bind(sc.camera,'y','num')))
 box.append(row('Start zoom',bind(sc.camera,'zoom','num')))
+}
 box.append(h('div',{class:'sec',text:'Project'}))
 box.append(row('Title',bind(p,'name','text',()=>{$('#pname').textContent=p.name;document.title=p.name+' - Vue Engine'})))
 box.append(row('Resolution',bind(p.settings,'width','num'),bind(p.settings,'height','num')))
@@ -610,7 +726,8 @@ const r=await VueCompiler.compileProject(S.project,compileEnv())
 $('#console').innerHTML=''
 for(const e of r.errors)log('error',e)
 const rt=await host.runtimeSource()
-return{html:VuePlayer.html(S.project,r.scripts,rt,S.project.name),errors:r.errors}
+const three=S.project.scenes.some(s=>s.mode==='3d')?await host.threeSource():''
+return{html:VuePlayer.html(S.project,r.scripts,rt,S.project.name,three),errors:r.errors}
 }
 async function play(){
 stopGame()
@@ -670,10 +787,11 @@ if(d&&k.indexOf('arrow')===0){
 e.preventDefault()
 snap()
 const s=e.shiftKey?8:1
-if(k==='arrowleft')d.x-=s
-if(k==='arrowright')d.x+=s
-if(k==='arrowup')d.y-=s
-if(k==='arrowdown')d.y+=s
+const st=is3()?s*0.5:s
+if(k==='arrowleft')d.x-=st
+if(k==='arrowright')d.x+=st
+if(k==='arrowup'){if(is3())d.z-=st;else d.y-=st}
+if(k==='arrowdown'){if(is3())d.z+=st;else d.y+=st}
 S.game.refresh()
 syncInspector()
 redraw()
@@ -685,6 +803,8 @@ window.addEventListener('keyup',e=>{if(e.key===' ')S.space=false})
 function wire(){
 $('#bNew').onclick=()=>setProject(VueSample.blank(),null)
 $('#bSample').onclick=()=>setProject(VueSample.make(),null)
+$('#bNew3').onclick=()=>setProject(VueSample.blank3(),null)
+$('#bSample3').onclick=()=>setProject(VueSample.make3(),null)
 $('#bOpen').onclick=open
 $('#bSave').onclick=()=>save(false)
 $('#bExport').onclick=exportHtml

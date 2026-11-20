@@ -8,6 +8,7 @@ this.game=game
 this.alive=true
 this.vx=0
 this.vy=0
+this.vz=0
 this.grounded=false
 this.flipX=false
 this.data={}
@@ -29,6 +30,10 @@ this.y=d.y||0
 this.w=d.w==null?32:d.w
 this.h=d.h==null?32:d.h
 this.rot=d.rot||0
+this.d=d.d==null?this.w:d.d
+this.rx=d.rx||0
+this.ry=d.ry||0
+this.rz=d.rz||0
 this.shape=d.shape||'rect'
 this.color=d.color||'#ffffff'
 this.image=d.image||''
@@ -44,17 +49,19 @@ this.prefab=!!d.prefab
 }
 hasTag(t){return this.tags.indexOf(t)>=0}
 say(t,s){this.sayText=String(t);this.sayT=s==null?2:s}
-jump(p){if(this.grounded){this.vy=-p;this.grounded=false}}
+jump(p){if(this.grounded){this.vy=this.game.is3d?p:-p;this.grounded=false}}
+moveLocal(f,s,yaw){const a=yaw*DEG,fx=-Math.sin(a),fz=-Math.cos(a);this.vx=fx*f-fz*s;this.vz=fz*f+fx*s}
 destroy(){this.game.destroy(this)}
-dist(o){return Math.hypot(o.x-this.x,o.y-this.y)}
-overlaps(o){return Math.abs(this.x-o.x)*2<this.w+o.w&&Math.abs(this.y-o.y)*2<this.h+o.h}
+dist(o){return Math.hypot(o.x-this.x,o.y-this.y,this.game.is3d?o.z-this.z:0)}
+overlaps(o){if(this.game.is3d)return Math.abs(this.x-o.x)*2<this.w+o.w&&Math.abs(this.y-o.y)*2<this.h+o.h&&Math.abs(this.z-o.z)*2<this.d+o.d
+return Math.abs(this.x-o.x)*2<this.w+o.w&&Math.abs(this.y-o.y)*2<this.h+o.h}
 touching(tag){return this.game.touching(this,tag)}
 setZ(z){this.z=z;this.game.zDirty=true}
 }
 class Game{
 constructor(o){
 this.canvas=o.canvas
-this.ctx=this.canvas.getContext('2d',{alpha:false})
+this.ctx=this.canvas.getContext('2d')
 this.project=o.project
 this.editor=!!o.editor
 this.scripts=o.scripts||{}
@@ -71,8 +78,11 @@ this.dead=false
 this.vars={}
 this.keys=new Set()
 this.pressedSet=new Set()
-this.mouse={x:0,y:0,sx:0,sy:0,down:false,clicked:false}
-this.camera={x:0,y:0,zoom:1,follow:null,smooth:0.12}
+this.mouse={x:0,y:0,sx:0,sy:0,dx:0,dy:0,down:false,clicked:false}
+this.camera={x:0,y:0,zoom:1,follow:null,smooth:0.12,z:12,tx:0,ty:1,tz:0,fov:70,yaw:0,pitch:20,dist:10,eye:1.5}
+this.is3d=false
+this.cell=CELL
+this.r3=null
 this.timers=[]
 this.frameWaiters=[]
 this.time=0
@@ -110,6 +120,7 @@ this.h=h
 this.canvas.width=w
 this.canvas.height=h
 this.ctx.imageSmoothingEnabled=!this.pixel
+if(this.r3)this.r3.resize(w,h)
 }
 log(level,text){
 if(this.onlog)return this.onlog(level,text)
@@ -143,7 +154,14 @@ loadScene(k){
 const sc=this.findScene(k)
 this.scene=sc
 this.bg=sc.bg||'#1a1c23'
-this.gravity=sc.gravity==null?1400:sc.gravity
+this.is3d=sc.mode==='3d'
+this.cell=this.is3d?8:CELL
+this.gravity=sc.gravity==null?(this.is3d?30:1400):sc.gravity
+if(this.is3d&&!this.r3&&root.THREE&&root.VueRender3D){
+this.r3=new root.VueRender3D(root.THREE,this.canvas.parentNode,this.canvas)
+this.r3.resize(this.w,this.h)
+}
+if(this.r3){this.r3.el.style.display=this.is3d?'block':'none';this.r3.setEditor(this.editor)}
 this.entities=[]
 this.pending=[]
 this.prefabs={}
@@ -153,7 +171,10 @@ this.frameWaiters=[]
 this.pn=0
 this.dead=false
 this.zDirty=true
-if(!this.editor){
+if(!this.editor&&this.is3d){
+const k=sc.camera3||{}
+Object.assign(this.camera,{x:k.x==null?0:k.x,y:k.y==null?8:k.y,z:k.z==null?14:k.z,tx:k.tx||0,ty:k.ty==null?1:k.ty,tz:k.tz||0,fov:k.fov||70,yaw:0,pitch:20,dist:10,eye:1.5,follow:null})
+}else if(!this.editor){
 const c=sc.camera||{}
 this.camera.x=c.x||0
 this.camera.y=c.y||0
@@ -203,12 +224,13 @@ startAll(){
 const es=this.entities.slice()
 for(const e of es)this.fire(e,'start')
 }
-spawn(n,x,y){
+spawn(n,x,y,z){
 const d=this.prefabs[n]
 if(!d)return null
 const e=new Entity(d,this)
 e.prefab=false
 if(x!=null){e.x=x;e.y=y==null?e.y:y}
+if(z!=null)e.z=z
 this.attach(e,d)
 this.pending.push(e)
 return e
@@ -233,10 +255,11 @@ key:k=>g.keys.has(norm(k)),
 pressed:k=>g.pressedSet.has(norm(k)),
 find:n=>{for(const e of g.entities)if(e.alive&&e.name===n)return e;return null},
 all:t=>g.entities.filter(e=>e.alive&&(t==null||e.tags.indexOf(t)>=0)),
-spawn:(n,x,y)=>g.spawn(n,x,y),
+spawn:(n,x,y,z)=>g.spawn(n,x,y,z),
 destroy:e=>g.destroy(e),
 go:s=>{g.nextScene=s},
-follow:e=>{g.camera.follow=e||null},
+follow:(e,dist,eye)=>{g.camera.follow=e||null;if(dist!=null)g.camera.dist=+dist;if(eye!=null)g.camera.eye=+eye},
+lockMouse:()=>{if(g.canvas.requestPointerLock)g.canvas.requestPointerLock()},
 wait:s=>new Promise(r=>g.timers.push({t:+s||0,f:r})),
 after:(s,f)=>{g.timers.push({t:+s||0,f})},
 frame:()=>new Promise(r=>g.frameWaiters.push(r)),
@@ -288,19 +311,16 @@ this.pl[k]=0.4+Math.random()*0.5
 this.pc[k]=c||'#ffffff'
 }
 }
-cellsOf(e,fn){
-const x0=Math.floor((e.x-e.w/2)/CELL),x1=Math.floor((e.x+e.w/2)/CELL),y0=Math.floor((e.y-e.h/2)/CELL),y1=Math.floor((e.y+e.h/2)/CELL)
-for(let cx=x0;cx<=x1;cx++)for(let cy=y0;cy<=y1;cy++)fn((cx+OFF)*65536+(cy+OFF))
-}
 buildGrid(onlyStatic){
-const grid=this.grid,pool=this.gridPool
+const grid=this.grid,pool=this.gridPool,d3=this.is3d,C=this.cell
 for(const a of grid.values()){a.length=0;pool.push(a)}
 grid.clear()
 const es=this.entities
 for(let i=0;i<es.length;i++){
 const e=es[i]
 if(!e.alive||e.body==='none'||(onlyStatic&&e.body!=='static'))continue
-const x0=Math.floor((e.x-e.w/2)/CELL),x1=Math.floor((e.x+e.w/2)/CELL),y0=Math.floor((e.y-e.h/2)/CELL),y1=Math.floor((e.y+e.h/2)/CELL)
+const pb=d3?e.z:e.y,wb=d3?e.d:e.h
+const x0=Math.floor((e.x-e.w/2)/C),x1=Math.floor((e.x+e.w/2)/C),y0=Math.floor((pb-wb/2)/C),y1=Math.floor((pb+wb/2)/C)
 for(let cx=x0;cx<=x1;cx++)for(let cy=y0;cy<=y1;cy++){
 const k=(cx+OFF)*65536+(cy+OFF)
 let a=grid.get(k)
@@ -309,10 +329,11 @@ a.push(e)
 }
 }
 }
-query(x0,y0,x1,y1,out){
+query(e,out){
 out.length=0
-const st=++this.stamp,grid=this.grid
-const a0=Math.floor(x0/CELL),a1=Math.floor(x1/CELL),b0=Math.floor(y0/CELL),b1=Math.floor(y1/CELL)
+const st=++this.stamp,grid=this.grid,d3=this.is3d,C=this.cell
+const pb=d3?e.z:e.y,wb=d3?e.d:e.h
+const a0=Math.floor((e.x-e.w/2)/C),a1=Math.floor((e.x+e.w/2)/C),b0=Math.floor((pb-wb/2)/C),b1=Math.floor((pb+wb/2)/C)
 for(let cx=a0;cx<=a1;cx++)for(let cy=b0;cy<=b1;cy++){
 const a=grid.get((cx+OFF)*65536+(cy+OFF))
 if(!a)continue
@@ -324,7 +345,7 @@ if(e._q!==st){e._q=st;out.push(e)}
 return out
 }
 touching(e,tag){
-const q=this.query(e.x-e.w/2,e.y-e.h/2,e.x+e.w/2,e.y+e.h/2,this.qt)
+const q=this.query(e,this.qt)
 for(let i=0;i<q.length;i++){
 const o=q[i]
 if(o!==e&&o.alive&&(tag==null||tag===''||o.tags.indexOf(tag)>=0)&&e.overlaps(o))return true
@@ -332,7 +353,7 @@ if(o!==e&&o.alive&&(tag==null||tag===''||o.tags.indexOf(tag)>=0)&&e.overlaps(o))
 return false
 }
 resolve(e,ax){
-const q=this.query(e.x-e.w/2,e.y-e.h/2,e.x+e.w/2,e.y+e.h/2,this.qr)
+const q=this.query(e,this.qr)
 for(let i=0;i<q.length;i++){
 const s=q[i]
 if(s===e||s.body!=='static'||!s.alive||!e.overlaps(s))continue
@@ -361,6 +382,59 @@ e.y+=e.vy*dt
 this.resolve(e,false)
 }
 }
+physics3(dt){
+const es=this.entities,g=this.gravity
+this.buildGrid(true)
+for(let i=0;i<es.length;i++){
+const e=es[i]
+if(!e.alive||e.body!=='dynamic')continue
+e.vy-=g*e.gravityScale*dt
+e.x+=e.vx*dt
+this.res3(e,0)
+e.z+=e.vz*dt
+this.res3(e,2)
+e.grounded=false
+e.y+=e.vy*dt
+this.res3(e,1)
+}
+}
+res3(e,ax){
+const q=this.query(e,this.qr)
+for(let i=0;i<q.length;i++){
+const s=q[i]
+if(s===e||s.body!=='static'||!s.alive||!e.overlaps(s))continue
+if(ax===0){
+if(e.vx>0||(e.vx===0&&e.x<s.x))e.x=s.x-(s.w+e.w)/2
+else e.x=s.x+(s.w+e.w)/2
+e.vx=0
+}else if(ax===2){
+if(e.vz>0||(e.vz===0&&e.z<s.z))e.z=s.z-(s.d+e.d)/2
+else e.z=s.z+(s.d+e.d)/2
+e.vz=0
+}else{
+if(e.vy<0||(e.vy===0&&e.y>s.y)){e.y=s.y+(s.h+e.h)/2;e.grounded=true}
+else e.y=s.y-(s.h+e.h)/2
+e.vy=0
+}
+}
+}
+cam3(dt){
+const c=this.camera,t=c.follow
+if(!t||!t.alive)return
+const yaw=c.yaw*DEG,pit=c.pitch*DEG,cp=Math.cos(pit)
+if(c.dist>0.05){
+const k=1-Math.pow(1-c.smooth,dt*60)
+const tx=t.x,ty=t.y+c.eye,tz=t.z
+const px=tx+Math.sin(yaw)*cp*c.dist,py=ty+Math.sin(pit)*c.dist,pz=tz+Math.cos(yaw)*cp*c.dist
+c.tx+=(tx-c.tx)*k;c.ty+=(ty-c.ty)*k;c.tz+=(tz-c.tz)*k
+c.x+=(px-c.x)*k;c.y+=(py-c.y)*k;c.z+=(pz-c.z)*k
+}else{
+c.x=t.x;c.y=t.y+c.eye;c.z=t.z
+c.tx=c.x-Math.sin(yaw)*cp
+c.ty=c.y+Math.sin(pit)
+c.tz=c.z-Math.cos(yaw)*cp
+}
+}
 events(){
 const es=this.entities
 this.buildGrid(false)
@@ -369,7 +443,7 @@ const a=es[i]
 if(!a.alive||a.body==='none')continue
 const c=a.hd&&a.hd.collide
 if(!c)continue
-const q=this.query(a.x-a.w/2,a.y-a.h/2,a.x+a.w/2,a.y+a.h/2,this.qe)
+const q=this.query(a,this.qe)
 for(let j=0;j<q.length;j++){
 const b=q[j]
 if(b===a||!b.alive||!a.alive||!a.overlaps(b))continue
@@ -394,10 +468,11 @@ if(!e.alive)continue
 const u=e.hd&&e.hd.update
 if(u)for(let j=0;j<u.length;j++)this.call(u[j],e,dt)
 }
-this.physics(dt)
+if(this.is3d)this.physics3(dt);else this.physics(dt)
 this.events()
 const c=this.camera
-if(c.follow&&c.follow.alive){
+if(this.is3d)this.cam3(dt)
+else if(c.follow&&c.follow.alive){
 const k=1-Math.pow(1-c.smooth,dt*60)
 c.x+=(c.follow.x-c.x)*k
 c.y+=(c.follow.y-c.y)*k
@@ -433,6 +508,8 @@ for(const e of p)this.fire(e,'start')
 if(this.dead){this.entities=this.entities.filter(e=>e.alive);this.dead=false;this.zDirty=true}
 this.pressedSet.clear()
 this.mouse.clicked=false
+this.mouse.dx=0
+this.mouse.dy=0
 if(this.nextScene!==null){
 const n=this.nextScene
 this.nextScene=null
@@ -446,6 +523,7 @@ m.x=(m.sx-this.w/2)/c.zoom+c.x
 m.y=(m.sy-this.h/2)/c.zoom+c.y
 }
 draw(){
+if(this.is3d){this.draw3();return}
 const c=this.ctx,W=this.w,H=this.h,cam=this.camera,z=cam.zoom
 if(this.zDirty){this.order=this.entities.slice().sort((a,b)=>a.z-b.z);this.zDirty=false}
 c.setTransform(1,0,0,1,0,0)
@@ -516,7 +594,26 @@ c.fillRect(e.x-tw/2,by-12,tw,24)
 c.fillStyle='#111'
 c.fillText(e.sayText,e.x,by)
 }
+this.drawHud(c)
+}
+draw3(){
+const c=this.ctx,r=this.r3
 c.setTransform(1,0,0,1,0,0)
+c.globalAlpha=1
+c.clearRect(0,0,this.w,this.h)
+if(!r)return
+r.sync(this)
+const cam=this.camera
+if(this.shakeT>0){const s=this.shakeA*0.05;cam.x+=this.shx*0.05;cam.y+=this.shy*0.05}
+r.render(cam,this.bg)
+if(this.shakeT>0){cam.x-=this.shx*0.05;cam.y-=this.shy*0.05}
+if(!this.editor&&this.scene.mouseLook){c.fillStyle='rgba(255,255,255,0.85)';c.fillRect(this.w/2-1,this.h/2-8,2,16);c.fillRect(this.w/2-8,this.h/2-1,16,2)}
+this.drawHud(c)
+}
+drawHud(c){
+const W=this.w
+c.setTransform(1,0,0,1,0,0)
+c.globalAlpha=1
 if(this.hudLines.size){
 c.font='600 18px system-ui,sans-serif'
 c.textAlign='left'
@@ -622,6 +719,13 @@ this.updateMouse()
 this.mouse.down=true
 this.mouse.clicked=true
 this.audio()
+if(this.is3d){
+if(this.scene.mouseLook&&!locked()&&cv.requestPointerLock)cv.requestPointerLock()
+const px=locked()?this.w/2:this.mouse.sx,py=locked()?this.h/2:this.mouse.sy
+const e=this.r3?this.r3.pick(px,py,this.w,this.h):null
+if(e&&e.alive)this.fire(e,'click')
+return
+}
 const o=this.order
 for(let i=o.length-1;i>=0;i--){
 const e=o[i]
@@ -629,7 +733,10 @@ if(!e.alive||!e.hd||!e.hd.click)continue
 if(Math.abs(this.mouse.x-e.x)*2<=e.w&&Math.abs(this.mouse.y-e.y)*2<=e.h){this.fire(e,'click');break}
 }
 }
-const mm=ev=>pos(ev)
+const locked=()=>root.document&&root.document.pointerLockElement===cv
+const mm=ev=>{
+if(locked()){this.mouse.dx+=ev.movementX||0;this.mouse.dy+=ev.movementY||0}else pos(ev)
+}
 const mu=()=>{this.mouse.down=false}
 root.addEventListener('keydown',kd)
 root.addEventListener('keyup',ku)

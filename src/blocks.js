@@ -10,7 +10,7 @@ const st=name=>({type:'input_statement',name})
 const stmt=(type,msg,args,col)=>({type,message0:msg,args0:args||[],previousStatement:null,nextStatement:null,colour:col,inputsInline:true})
 const val=(type,msg,args,col,out)=>({type,message0:msg,args0:args||[],output:out===undefined?null:out,colour:col,inputsInline:true})
 const hat=(type,msg,args)=>({type,message0:msg+' %'+((args||[]).length+1),args0:(args||[]).concat([{type:'input_dummy'}]),message1:'%1',args1:[st('DO')],style:'event_blocks',inputsInline:true})
-const PROPSEL=['x','y','vx','vy','w','h','rot'].map(p=>[p,p])
+const PROPSEL=['x','y','z','vx','vy','vz','w','h','d','rot','rx','ry','rz'].map(p=>[p,p])
 const DEFS=[
 hat('vue_on_start','when game starts'),
 hat('vue_on_update','every frame'),
@@ -24,6 +24,11 @@ stmt('vue_set_x','set x to %1',[iv('V','Number')],C.mo),
 stmt('vue_set_y','set y to %1',[iv('V','Number')],C.mo),
 stmt('vue_set_pos','go to x %1 y %2',[iv('X','Number'),iv('Y','Number')],C.mo),
 stmt('vue_set_vel','set velocity x %1 y %2',[iv('VX','Number'),iv('VY','Number')],C.mo),
+stmt('vue_change_z','change z by %1',[iv('BY','Number')],C.mo),
+stmt('vue_set_z','set z to %1',[iv('V','Number')],C.mo),
+stmt('vue_set_pos3','go to x %1 y %2 z %3',[iv('X','Number'),iv('Y','Number'),iv('Z','Number')],C.mo),
+stmt('vue_set_vel3','set velocity x %1 y %2 z %3',[iv('VX','Number'),iv('VY','Number'),iv('VZ','Number')],C.mo),
+stmt('vue_rotate3','rotate %1 axis by %2 degrees',[dd('AX',[['x','rx'],['y','ry'],['z','rz']]),iv('V','Number')],C.mo),
 stmt('vue_set_vx','set velocity x to %1',[iv('V','Number')],C.mo),
 stmt('vue_jump','jump with power %1',[iv('P','Number')],C.mo),
 stmt('vue_set_rot','set rotation to %1 degrees',[iv('V','Number')],C.mo),
@@ -76,7 +81,7 @@ return o
 const cat=(name,colour,contents)=>({kind:'category',name,colour,contents})
 const toolbox=()=>({kind:'categoryToolbox',contents:[
 cat('Events',C.ev,['vue_on_start','vue_on_update','vue_on_key','vue_on_collide','vue_on_click'].map(t=>blk(t))),
-cat('Motion',C.mo,[blk('vue_change_x',{BY:5}),blk('vue_change_y',{BY:5}),blk('vue_set_x',{V:0}),blk('vue_set_y',{V:0}),blk('vue_set_pos',{X:0,Y:0}),blk('vue_set_vel',{VX:0,VY:0}),blk('vue_set_vx',{V:100}),blk('vue_jump',{P:600}),blk('vue_set_rot',{V:0}),blk('vue_change_rot',{V:3}),blk('vue_move_dir',{V:4})]),
+cat('Motion',C.mo,[blk('vue_change_x',{BY:5}),blk('vue_change_y',{BY:5}),blk('vue_set_x',{V:0}),blk('vue_set_y',{V:0}),blk('vue_set_pos',{X:0,Y:0}),blk('vue_set_vel',{VX:0,VY:0}),blk('vue_change_z',{BY:5}),blk('vue_set_z',{V:0}),blk('vue_set_pos3',{X:0,Y:0,Z:0}),blk('vue_set_vel3',{VX:0,VY:0,VZ:0}),blk('vue_rotate3',{V:3}),blk('vue_set_vx',{V:100}),blk('vue_jump',{P:600}),blk('vue_set_rot',{V:0}),blk('vue_change_rot',{V:3}),blk('vue_move_dir',{V:4})]),
 cat('Looks',C.lo,[blk('vue_color'),blk('vue_say',{T:'Hello!',S:2}),blk('vue_visible'),blk('vue_size',{W:32,H:32}),blk('vue_burst',{N:14}),blk('vue_shake',{A:6}),blk('vue_follow')]),
 cat('Control',C.co,[blk('vue_wait',{S:1}),blk('vue_forever'),blk('controls_repeat_ext',{TIMES:10}),blk('controls_whileUntil'),blk('controls_if'),blk('controls_flow_statements'),blk('vue_destroy_self'),blk('vue_destroy'),blk('vue_spawn',{X:0,Y:0}),blk('vue_go')]),
 cat('Sensing',C.se,[blk('vue_key_down'),blk('vue_grounded'),blk('vue_touching'),blk('vue_other'),blk('vue_other_tag'),blk('vue_self_prop'),blk('vue_mouse'),blk('vue_dist'),blk('vue_find'),blk('vue_get_prop'),blk('vue_time')]),
@@ -110,6 +115,11 @@ G.vue_set_x=b=>`self.x=${V(b,'V')};\n`
 G.vue_set_y=b=>`self.y=${V(b,'V')};\n`
 G.vue_set_pos=b=>`self.x=${V(b,'X')};self.y=${V(b,'Y')};\n`
 G.vue_set_vel=b=>`self.vx=${V(b,'VX')};self.vy=${V(b,'VY')};\n`
+G.vue_change_z=b=>`self.z+=${V(b,'BY',Order.ADDITION)};\n`
+G.vue_set_z=b=>`self.z=${V(b,'V')};\n`
+G.vue_set_pos3=b=>`self.x=${V(b,'X')};self.y=${V(b,'Y')};self.z=${V(b,'Z')};\n`
+G.vue_set_vel3=b=>`self.vx=${V(b,'VX')};self.vy=${V(b,'VY')};self.vz=${V(b,'VZ')};\n`
+G.vue_rotate3=b=>`self.${b.getFieldValue('AX')}+=${V(b,'V',Order.ADDITION)};\n`
 G.vue_set_vx=b=>`self.vx=${V(b,'V')};\n`
 G.vue_jump=b=>`self.jump(${V(b,'P')});\n`
 G.vue_set_rot=b=>`self.rot=${V(b,'V')};\n`

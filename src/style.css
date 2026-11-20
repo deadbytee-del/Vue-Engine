@@ -48,6 +48,7 @@ section.grow .list{flex:1;overflow:auto}
 .modes{display:flex;gap:4px;margin-left:14px}
 .modes button.on{background:#5b6cff;border-color:#7a88ff;color:#fff}
 #cvwrap{flex:1;min-height:0;position:relative;overflow:hidden}
+#cvwrap canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
 #cv{position:absolute;left:0;top:0;width:100%;height:100%;display:block;cursor:default}
 #sbody{flex:1;position:relative;min-height:0}
 #sbody>div{position:absolute;inset:0;display:none}

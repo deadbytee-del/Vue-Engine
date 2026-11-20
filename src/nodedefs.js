@@ -4,7 +4,7 @@ const KEYS=KEY_LIST.map(k=>[k==='arrowleft'?'left arrow':k==='arrowright'?'right
 const E=n=>({n,t:'exec'})
 const P=(n,t,d)=>({n,t,d})
 const F=(n,t,d,o)=>({n,t,d,o,f:1})
-const PROPS=['x','y','vx','vy','w','h','rot','alpha','grounded','name','color','text']
+const PROPS=['x','y','z','vx','vy','vz','w','h','d','rot','rx','ry','rz','alpha','grounded','name','color','text']
 const NUMPROPS=['x','y','vx','vy','w','h','rot','alpha']
 const J=JSON.stringify
 const defs={
@@ -19,6 +19,10 @@ forever:{title:'Forever',cat:'Flow',end:1,in:[E('in')],out:[E('body')],c:(n,a,k)
 wait:{title:'Wait',cat:'Flow',in:[E('in'),P('sec','num',1)],out:[E('next')],c:(n,a)=>`await vue.wait(${a('sec')});\n`},
 setpos:{title:'Set Position',cat:'Motion',in:[E('in'),P('x','num',0),P('y','num',0)],out:[E('next')],c:(n,a)=>`self.x=${a('x')};self.y=${a('y')};\n`},
 move:{title:'Move By',cat:'Motion',in:[E('in'),P('dx','num',0),P('dy','num',0)],out:[E('next')],c:(n,a)=>`self.x+=${a('dx')};self.y+=${a('dy')};\n`},
+setpos3:{title:'Set Position 3D',cat:'Motion',in:[E('in'),P('x','num',0),P('y','num',0),P('z','num',0)],out:[E('next')],c:(n,a)=>`self.x=${a('x')};self.y=${a('y')};self.z=${a('z')};\n`},
+move3:{title:'Move By 3D',cat:'Motion',in:[E('in'),P('dx','num',0),P('dy','num',0),P('dz','num',0)],out:[E('next')],c:(n,a)=>`self.x+=${a('dx')};self.y+=${a('dy')};self.z+=${a('dz')};\n`},
+setvel3:{title:'Set Velocity 3D',cat:'Motion',in:[E('in'),P('vx','num',0),P('vy','num',0),P('vz','num',0)],out:[E('next')],c:(n,a)=>`self.vx=${a('vx')};self.vy=${a('vy')};self.vz=${a('vz')};\n`},
+rotate3:{title:'Rotate By 3D',cat:'Motion',in:[E('in'),P('rx','num',0),P('ry','num',0),P('rz','num',0)],out:[E('next')],c:(n,a)=>`self.rx+=${a('rx')};self.ry+=${a('ry')};self.rz+=${a('rz')};\n`},
 setvel:{title:'Set Velocity',cat:'Motion',in:[E('in'),P('vx','num',0),P('vy','num',0)],out:[E('next')],c:(n,a)=>`self.vx=${a('vx')};self.vy=${a('vy')};\n`},
 setvx:{title:'Set Velocity X',cat:'Motion',in:[E('in'),P('vx','num',0)],out:[E('next')],c:(n,a)=>`self.vx=${a('vx')};\n`},
 jump:{title:'Jump',cat:'Motion',in:[E('in'),P('power','num',600)],out:[E('next')],c:(n,a)=>`self.jump(${a('power')});\n`},
@@ -30,7 +34,7 @@ visible:{title:'Set Visible',cat:'Looks',in:[E('in'),P('show','bool',true)],out:
 burst:{title:'Particle Burst',cat:'Looks',in:[E('in'),F('color','col','#ffd34d'),P('count','num',14)],out:[E('next')],c:(n,a)=>`vue.burst(self.x,self.y,${a('color')},${a('count')});\n`},
 shake:{title:'Camera Shake',cat:'Looks',in:[E('in'),P('amount','num',6),P('sec','num',0.3)],out:[E('next')],c:(n,a)=>`vue.shake(${a('amount')},${a('sec')});\n`},
 follow:{title:'Camera Follow Self',cat:'Looks',in:[E('in')],out:[E('next')],c:()=>`vue.follow(self);\n`},
-spawn:{title:'Spawn Prefab',cat:'Game',in:[E('in'),P('name','str','Prefab'),P('x','num',0),P('y','num',0)],out:[E('next'),P('entity','ent')],c:(n,a)=>`const s${n.id}=vue.spawn(${a('name')},${a('x')},${a('y')});\n`,x:n=>'s'+n.id},
+spawn:{title:'Spawn Prefab',cat:'Game',in:[E('in'),P('name','str','Prefab'),P('x','num',0),P('y','num',0),P('z','num',0)],out:[E('next'),P('entity','ent')],c:(n,a)=>`const s${n.id}=vue.spawn(${a('name')},${a('x')},${a('y')},${a('z')});\n`,x:n=>'s'+n.id},
 destroy:{title:'Destroy',cat:'Game',in:[E('in'),P('target','ent','self')],out:[E('next')],c:(n,a)=>`{const t=${a('target')};if(t)t.destroy();}\n`},
 go:{title:'Go To Scene',cat:'Game',in:[E('in'),P('scene','str','Level 1')],out:[E('next')],c:(n,a)=>`vue.go(${a('scene')});\n`},
 hud:{title:'Show On HUD',cat:'Game',in:[E('in'),P('label','str','Score'),P('value','any',0)],out:[E('next')],c:(n,a)=>`vue.hud(${a('label')},${a('value')});\n`},

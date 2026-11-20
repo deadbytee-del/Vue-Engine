@@ -2,7 +2,7 @@
 
 # Vue Engine
 
-A 2D game creation engine for Windows. Build games three ways and run them instantly.
+A 2D and 3D game creation engine for Windows. Build games three ways and run them instantly.
 
 - **Blocks**: Scratch-style drag and drop blocks
 - **Nodes**: visual node graphs with execution and data wires
@@ -12,6 +12,8 @@ All three compile to the same runtime, so one project can mix them per entity.
 
 ## Features
 
+- 2D and 3D scenes in one project, switchable per scene
+- 3D: Three.js rendering, shadows, lights, orbit camera editor, third-person and first-person cameras, mouse look, 3D collisions
 - Scene editor with move, resize, snapping, grid, undo and redo
 - Multiple scenes, prefabs and runtime spawning
 - Fixed timestep game loop, spatial hash collisions, static, dynamic and trigger bodies

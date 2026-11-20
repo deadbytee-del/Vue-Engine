@@ -20,7 +20,8 @@ if(!ts)return{code:'',errors:['TypeScript compiler is not available']}
 const r=ts.transpileModule(String(src),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,strict:false,esModuleInterop:false},reportDiagnostics:true})
 return{code:r.outputText,errors:(r.diagnostics||[]).map(d=>ts.flattenDiagnosticMessageText(d.messageText,'\n'))}
 })
-ipcMain.handle('runtime:source',()=>fs.readFileSync(path.join(__dirname,'src','runtime.js'),'utf8'))
+ipcMain.handle('runtime:source',()=>fs.readFileSync(path.join(__dirname,'src','runtime.js'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'src','render3d.js'),'utf8'))
+ipcMain.handle('three:source',()=>fs.readFileSync(path.join(__dirname,'node_modules','three','build','three.min.js'),'utf8'))
 ipcMain.handle('project:open',async()=>{
 const r=await dialog.showOpenDialog(win,{title:'Open Vue project',filters:[{name:'Vue project',extensions:['vue','json']}],properties:['openFile']})
 if(r.canceled||!r.filePaths.length)return null
