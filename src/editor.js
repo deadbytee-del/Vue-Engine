@@ -1346,7 +1346,7 @@ if(monacoP)return monacoP
 monacoP=new Promise(res=>{
 if(typeof require==='undefined'||!require.config){res(null);return}
 try{
-const base=new URL('../node_modules/monaco-editor/min/',location.href).href
+const base=window.VUE_CDN&&VUE_CDN.monaco||new URL('../node_modules/monaco-editor/min/',location.href).href
 window.MonacoEnvironment={getWorkerUrl:()=>'data:text/javascript;charset=utf-8,'+encodeURIComponent("self.MonacoEnvironment={baseUrl:'"+base+"'};importScripts('"+base+"vs/base/worker/workerMain.js');")}
 require.config({paths:{vs:base+'vs'}})
 require(['vs/editor/editor.main'],()=>res(window.monaco),()=>res(null))

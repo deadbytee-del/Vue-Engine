@@ -1,0 +1,211 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Vue Engine</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.1.0/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.1.0/500.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.1.0/600.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.1.0/700.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.1.1/400.css">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.module.js"}}</script>
+</head>
+<body>
+<div id="splash"><img src="logo.png" alt=""></div>
+<div id="hub">
+<nav class="hub-rail">
+<img class="hub-logo" src="logo.png" alt="Vue Engine">
+<button class="hub-nav on" data-hub="new"><span data-ic="sparkles"></span>New project</button>
+<button class="hub-nav" data-hub="recent"><span data-ic="clock"></span>Recent</button>
+<button class="hub-nav" data-hub="learn"><span data-ic="book"></span>Learn</button>
+<div class="hub-foot"><button id="hubOpen" class="btn"><span data-ic="folder"></span>Open project…</button><button id="hubBack" class="btn ghost"><span data-ic="x"></span>Back to editor</button><span id="hubVer"></span></div>
+</nav>
+<main class="hub-main">
+<section data-pane="new" class="on">
+<h1>Start something new</h1>
+<p class="sub">Every template is a playable game you can take apart. Mix Blocks, Nodes and Code in one project.</p>
+<div id="tplGrid" class="cards"></div>
+<h2>Recent</h2>
+<div id="recentMini" class="cards small"></div>
+</section>
+<section data-pane="recent">
+<h1>Recent projects</h1>
+<div id="recentGrid" class="cards"></div>
+</section>
+<section data-pane="learn">
+<h1>Learn Vue Engine</h1>
+<div class="learn">
+<div class="lcard"><span data-ic="blocks"></span><h3>Blocks</h3><p>Drag event hats like <b>when game starts</b> or <b>every frame</b>, snap actions under them. Great for first games.</p></div>
+<div class="lcard"><span data-ic="nodes"></span><h3>Nodes</h3><p>Wire white execution pins to run steps in order and coloured data pins to feed values. Right-click the canvas to add nodes.</p></div>
+<div class="lcard"><span data-ic="code"></span><h3>Code</h3><p>TypeScript with full autocomplete. Export <code>start</code>, <code>update(dt)</code>, <code>collide(other)</code> and <code>click</code>. Use <code>vue</code> and <code>self</code>.</p></div>
+<div class="lcard"><span data-ic="cube"></span><h3>2D and 3D</h3><p>Each scene picks 2D or 3D in the Inspector. Physics, cameras and scripting work the same in both.</p></div>
+<div class="lcard"><span data-ic="map"></span><h3>Tilemaps</h3><p>Add a Tilemap, open the Tiles tab and paint with brush, rectangle or fill. Solid tiles collide with dynamic bodies automatically.</p></div>
+<div class="lcard"><span data-ic="film"></span><h3>Sprite animation</h3><p>Pick a sprite sheet in the Animation tab, click frames to build a timeline, set the speed, then call <code>self.play("walk")</code> or use the play animation block.</p></div>
+<div class="lcard"><span data-ic="video"></span><h3>Cutscenes</h3><p>Stack camera moves, captions, speech, sounds and entity tweens on a timeline. Auto-play on scene start or trigger with <code>vue.cutscene("Intro")</code>.</p></div>
+<div class="lcard"><span data-ic="child"></span><h3>Parenting</h3><p>Drag an entity onto the middle of another row in the Hierarchy to put it inside. Children move and rotate with their parent.</p></div>
+<div class="lcard"><span data-ic="audio"></span><h3>Audio</h3><p>Drop WAV, MP3 or OGG files in. Use Audio Source components, sound and music blocks, or <code>vue.play()</code> and <code>vue.music()</code>.</p></div>
+<div class="lcard"><span data-ic="keyboard"></span><h3>Shortcuts</h3><p>Ctrl+Enter plays, Ctrl+P opens the command palette, Q W E R switch tools, F frames the selection, ? shows every shortcut.</p></div>
+<div class="lcard"><span data-ic="export"></span><h3>Ship it</h3><p>Export builds a single HTML file that runs anywhere: itch.io, GitHub Pages, or a friend's browser.</p></div>
+</div>
+</section>
+</main>
+</div>
+<div id="app">
+<header id="tb">
+<div class="tb-l">
+<img class="gem" src="gem.png" alt="">
+<div class="menus">
+<button class="mb" data-menu="file">File</button>
+<button class="mb" data-menu="edit">Edit</button>
+<button class="mb" data-menu="view">View</button>
+<button class="mb" data-menu="help">Help</button>
+</div>
+<div class="ws">
+<button data-tab="scene"><span data-ic="scene"></span>Scene</button>
+<button data-tab="script"><span data-ic="script"></span>Script</button>
+</div>
+</div>
+<div class="transport">
+<button id="bPlay" class="tr play" title="Play (Ctrl+Enter)"><span data-ic="play"></span></button>
+<button id="bPause" class="tr" title="Pause"><span data-ic="pause"></span></button>
+<button id="bStep" class="tr" title="Step one frame"><span data-ic="step"></span></button>
+<button id="bStop" class="tr" title="Stop (Esc)"><span data-ic="stop"></span></button>
+</div>
+<div class="tb-r">
+<span id="pname"></span><i id="dirty"></i>
+<button id="bExport" class="btn primary" title="Port your game (Ctrl+E)"><span data-ic="export"></span>Port</button>
+</div>
+</header>
+<aside id="left" class="panel">
+<div class="ph"><span>Scenes</span><button class="ib" id="bAddScene" title="New scene"><span data-ic="plus"></span></button></div>
+<div id="scenes" class="list sc"></div>
+<div class="ph"><span>Hierarchy</span><button class="ib" id="bAddEnt" title="Add entity (Shift+A)"><span data-ic="plus"></span></button></div>
+<div class="filter"><span data-ic="search"></span><input id="hfilter" placeholder="Filter…"></div>
+<div id="hier" class="list grow"></div>
+</aside>
+<div class="split v" id="spL"></div>
+<main id="center">
+<div id="viewScene" class="view">
+<div class="vt">
+<div class="seg" id="tools">
+<button data-tool="pan" title="Pan (Q)"><span data-ic="hand"></span></button>
+<button data-tool="move" title="Move (W)"><span data-ic="move"></span></button>
+<button data-tool="rotate" title="Rotate (E)"><span data-ic="rotate"></span></button>
+<button data-tool="scale" title="Scale (R)"><span data-ic="scale"></span></button>
+<button data-tool="paint" id="tPaint" title="Paint tiles (B)"><span data-ic="brush"></span></button>
+</div>
+<span class="vsep"></span>
+<button class="tg" id="tSnap" title="Snap"><span data-ic="magnet"></span></button>
+<select id="snapSel" title="Snap increment"></select>
+<button class="tg" id="tGrid" title="Grid"><span data-ic="grid"></span></button>
+<button class="tg" id="tSky" title="Preview scene background"><span data-ic="palette"></span></button>
+<span class="vsep"></span>
+<button class="ib" id="bFrame" title="Frame selection (F)"><span data-ic="frame"></span></button>
+<div class="vt-r"><span class="chip" id="zoomLbl" title="Click to reset view"></span><span class="chip mode" id="modeLbl"></span></div>
+</div>
+<div id="cvwrap"><canvas id="cv"></canvas><div id="dropHint"><span data-ic="upload"></span>Drop images or audio to import</div></div>
+</div>
+<div id="viewScript" class="view">
+<div class="vt">
+<div class="crumb" id="crumb"></div>
+<div class="seg modes">
+<button data-mode="blocks" title="Blocks"><span data-ic="blocks"></span>Blocks</button>
+<button data-mode="nodes" title="Nodes"><span data-ic="nodes"></span>Nodes</button>
+<button data-mode="code" title="Code"><span data-ic="code"></span>Code</button>
+</div>
+</div>
+<div id="sbody">
+<div id="blk"></div>
+<div id="nodes"></div>
+<div id="code"></div>
+<div id="sempty"><div class="empty"><span data-ic="script" data-s="40"></span><h3>No entity selected</h3><p>Pick an entity in the Hierarchy to give it behavior with Blocks, Nodes or Code.</p><button class="btn" id="bToScene"><span data-ic="scene"></span>Go to Scene</button></div></div>
+</div>
+</div>
+<div id="playLayer">
+<div id="playBox"><iframe id="frame" sandbox="allow-scripts allow-pointer-lock"></iframe></div>
+<div id="pill">
+<span class="live"><i></i>Playing</span>
+<button class="ib" id="pPause" title="Pause"><span data-ic="pause"></span></button>
+<button class="ib" id="pStep" title="Step"><span data-ic="step"></span></button>
+<button class="ib stopb" id="pStop" title="Stop (Esc)"><span data-ic="stop"></span></button>
+<span class="vsep"></span>
+<select id="resSel"><option value="free">Free aspect</option><option value="960x540">960 × 540</option><option value="1280x720">1280 × 720</option><option value="1920x1080">1920 × 1080</option><option value="720x1280">720 × 1280</option></select>
+<span id="fps" class="mono"></span>
+<button class="ib" id="pDetach" title="Play in separate window"><span data-ic="detach"></span></button>
+</div>
+</div>
+</main>
+<div class="split v" id="spR"></div>
+<aside id="right" class="panel">
+<div class="ph"><span id="inspTitle">Inspector</span></div>
+<div id="insp"></div>
+</aside>
+<div class="split h" id="spB"></div>
+<section id="bottom" class="panel">
+<div class="ph tabs">
+<button class="btab on" data-btab="console"><span data-ic="terminal"></span>Console</button>
+<button class="btab" data-btab="assets"><span data-ic="assets"></span>Assets</button>
+<button class="btab" data-btab="tiles"><span data-ic="map"></span>Tiles</button>
+<button class="btab" data-btab="anim"><span data-ic="film"></span>Animation</button>
+<button class="btab" data-btab="cuts"><span data-ic="video"></span>Cutscenes</button>
+<div class="ph-r" id="conTools">
+<button class="fchip on" data-lv="log"><span data-ic="info"></span><b id="cLog">0</b></button>
+<button class="fchip on" data-lv="warn"><span data-ic="alert"></span><b id="cWarn">0</b></button>
+<button class="fchip on" data-lv="error"><span data-ic="err"></span><b id="cErr">0</b></button>
+<div class="filter sm"><span data-ic="search"></span><input id="cfilter" placeholder="Search log"></div>
+<label class="chk"><input type="checkbox" id="clearPlay" class="sw" checked>Clear on play</label>
+<button class="ib" id="bClear" title="Clear"><span data-ic="trash"></span></button>
+</div>
+<div class="ph-r hide" id="assetTools">
+<button class="btn sm" id="bImport"><span data-ic="upload"></span>Import</button>
+</div>
+</div>
+<div id="console" class="bpane on"></div>
+<div id="assets" class="bpane"></div>
+<div id="tiles" class="bpane pp"></div>
+<div id="anim" class="bpane pp"></div>
+<div id="cuts" class="bpane pp"></div>
+</section>
+<footer id="status">
+<span id="stSave"><i></i><b></b></span>
+<span id="stScene"></span>
+<span class="st-r"><span id="stErr"></span><span id="stVer"></span></span>
+</footer>
+</div>
+<div id="menu" class="pop"></div>
+<div id="ctx" class="pop"></div>
+<div id="palette"><div class="pal-box"><div class="pal-in"><span data-ic="command"></span><input id="palIn" placeholder="Search commands, entities, scenes, assets…"></div><div id="palList"></div></div></div>
+<div id="dialog"><div class="dlg"><h3 id="dTitle"></h3><p id="dMsg"></p><input id="dInput"><div class="row" id="dBtns"></div></div></div>
+<div id="keys"><div class="dlg wide"><h3>Keyboard shortcuts</h3><div id="keyList"></div><div class="row"><button class="btn" id="keysClose">Close</button></div></div></div>
+<div id="port"><div class="dlg port"><h3>Port your game</h3><p>Pick where it should run. Everything is built from your current project, scripts compiled.</p><div id="portList"></div><div class="fld"><label>Game title</label><input id="portName"></div><div class="fld" id="portFsRow"><label>Fullscreen</label><input type="checkbox" class="sw" id="portFs"></div><div id="portBar"><i></i></div><div class="row"><button class="btn" id="portCancel">Cancel</button><button class="btn primary" id="portGo"><span data-ic="export"></span>Port</button></div></div></div>
+<div id="toasts"></div>
+<script src="https://cdn.jsdelivr.net/npm/blockly@11.2.2/blockly_compressed.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/blockly@11.2.2/blocks_compressed.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/blockly@11.2.2/javascript_compressed.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/blockly@11.2.2/msg/en.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
+<script>window.VUE_CDN={"monaco":"https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/","three":"https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js","ts":"https://cdn.jsdelivr.net/npm/typescript@5.6.3/lib/typescript.js"}</script>
+<script src="host-web.js"></script>
+<script src="icons.js"></script>
+<script src="vwr.js"></script>
+<script src="render3d.js"></script>
+<script src="runtime.js"></script>
+<script src="nodedefs.js"></script>
+<script src="blocks.js"></script>
+<script src="compiler.js"></script>
+<script src="player.js"></script>
+<script src="dts.js"></script>
+<script src="sample.js"></script>
+<script src="nodes.js"></script>
+<script src="panels.js"></script>
+<script src="editor.js"></script>
+<script type="module">
+import*as T from'three'
+import{TransformControls}from'./vendor/TransformControls.js'
+window.THREE=T
+window.TransformControls=TransformControls
+window.vueBoot()
+</script>
+</body>
+</html>

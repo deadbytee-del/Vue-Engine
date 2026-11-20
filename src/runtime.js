@@ -33,6 +33,7 @@ return{x:dx*Math.cos(a)-dy*Math.sin(a),y:dx*Math.sin(a)+dy*Math.cos(a),rot:(w.ro
 }
 class Entity{
 constructor(d,game){
+this._x=0;this._y=0;this._z=0;this._w=0;this._h=0;this._d=0
 this.game=game
 this.alive=true
 this.vx=0
@@ -54,9 +55,27 @@ this.animT=0
 this.frame=0
 this.animDone=false
 this.snd=null
+this._sx=NaN;this._sy=NaN;this._sw=NaN;this._sh=NaN;this._sz=NaN;this._sd=NaN
+this._wx=undefined;this._wy=0;this._wz=0;this._wr=0;this._wrx=0;this._wry=0;this._wrz=0
+this._ox=NaN;this._oy=NaN;this._oc=NaN
+this._body='none'
 this.src=d
 this.apply(d)
 }
+get x(){return this._x}
+set x(v){if(v!==this._x){this._x=v;if(this._body==='static')this.game.sDirty=true}}
+get y(){return this._y}
+set y(v){if(v!==this._y){this._y=v;if(this._body==='static')this.game.sDirty=true}}
+get z(){return this._z}
+set z(v){if(v!==this._z){this._z=v;if(this._body==='static')this.game.sDirty=true}}
+get w(){return this._w}
+set w(v){if(v!==this._w){this._w=v;if(this._body==='static')this.game.sDirty=true}}
+get h(){return this._h}
+set h(v){if(v!==this._h){this._h=v;if(this._body==='static')this.game.sDirty=true}}
+get d(){return this._d}
+set d(v){if(v!==this._d){this._d=v;if(this._body==='static')this.game.sDirty=true}}
+get body(){return this._body}
+set body(v){if(v!==this._body){this._body=v;if(this.game){this.game.listDirty=true;this.game.sDirty=true}}}
 apply(d){
 this.id=d.id
 this.name=d.name||'Entity'
@@ -326,6 +345,7 @@ this.tms=[]
 const all=this.entities.concat(this.pending)
 for(const e of all){e.kids=[];if(e.shape==='tilemap'&&e.alive)this.tms.push(e)}
 const hs=[]
+this.listDirty=true
 for(const e of all){
 const p=e.pid?m.get(e.pid):null
 e.par=p&&p!==e?p:null
@@ -698,23 +718,29 @@ this.W={x,MS,MD,sx:F('vwr_sx',MS),sy:F('vwr_sy',MS),sz:F('vwr_sz',MS),sw:F('vwr_
 }
 return this.W
 }
-physW(dt){
-const W=this.vwr(),es=this.entities,d3=this.is3d
-let dirty=this.sDirty||W.d3!==d3,n=0
-for(let i=0;i<es.length;i++){
-const e=es[i]
-if(!e.alive||e.body!=='static')continue
-n++
-if(e._sx!==e.x||e._sy!==e.y||e._sw!==e.w||e._sh!==e.h||(d3&&(e._sz!==e.z||e._sd!==e.d))){dirty=true;e._sx=e.x;e._sy=e.y;e._sw=e.w;e._sh=e.h;e._sz=e.z;e._sd=e.d}
+lists(){
+const es=this.entities,st=this.statics||(this.statics=[]),dy=this.dyns||(this.dyns=[])
+const old=st.slice()
+st.length=0;dy.length=0
+for(let i=0;i<es.length;i++){const e=es[i];if(!e.alive)continue;const b=e._body;if(b==='static')st.push(e);else if(b==='dynamic'&&!e.par)dy.push(e)}
+if(old.length!==st.length)this.sDirty=true
+else for(let i=0;i<st.length;i++)if(old[i]!==st[i]){this.sDirty=true;break}
+this.listDirty=false
 }
+physW(dt){
+const W=this.vwr(),d3=this.is3d
+if(this.listDirty||!this.statics)this.lists()
+const es=this.statics
+let dirty=this.sDirty||W.d3!==d3,n=es.length
 if(!d3)for(const m of this.tms)if(m.alive&&m.solid){n+=m.tiles.size;if(m._ox!==m.x||m._oy!==m.y||m._oc!==m.cell){dirty=true;m._ox=m.x;m._oy=m.y;m._oc=m.cell}}
 if(n!==W.sn)dirty=true
 if(n>W.MS)return false
+
 if(dirty){
 let k=0
 for(let i=0;i<es.length;i++){
 const e=es[i]
-if(!e.alive||e.body!=='static')continue
+if(!e.alive)continue
 W.sx[k]=e.x;W.sy[k]=e.y;W.sw[k]=e.w;W.sh[k]=e.h;W.sz[k]=e.z;W.sd[k]=e.d;k++
 }
 const ne=k
@@ -728,13 +754,12 @@ W.sn=n
 W.d3=d3
 this.sDirty=false
 }
-const L=W.list
-L.length=0
-for(let i=0;i<es.length;i++){const e=es[i];if(e.alive&&e.body==='dynamic'&&!e.par)L.push(e)}
-if(L.length>W.MD)return false
-for(let i=0;i<L.length;i++){const e=L[i];W.dx[i]=e.x;W.dy[i]=e.y;W.dz[i]=e.z;W.dw[i]=e.w;W.dh[i]=e.h;W.dd[i]=e.d;W.dvx[i]=e.vx;W.dvy[i]=e.vy;W.dvz[i]=e.vz;W.dgs[i]=e.gravityScale}
-W.x.vwr_step(L.length,dt,this.gravity)
-for(let i=0;i<L.length;i++){const e=L[i];e.x=W.dx[i];e.y=W.dy[i];e.z=W.dz[i];e.vx=W.dvx[i];e.vy=W.dvy[i];e.vz=W.dvz[i];e.grounded=W.dgr[i]===1}
+const L=this.dyns,nl=L.length
+if(nl>W.MD)return false
+const dx=W.dx,dyy=W.dy,dz=W.dz,dw=W.dw,dh=W.dh,dd=W.dd,dvx=W.dvx,dvy=W.dvy,dvz=W.dvz,dgs=W.dgs,dgr=W.dgr
+for(let i=0;i<nl;i++){const e=L[i];dx[i]=e.x;dyy[i]=e.y;dw[i]=e.w;dh[i]=e.h;dvx[i]=e.vx;dvy[i]=e.vy;dgs[i]=e.gravityScale;if(d3){dz[i]=e.z;dd[i]=e.d;dvz[i]=e.vz}}
+W.x.vwr_step(nl,dt,this.gravity)
+for(let i=0;i<nl;i++){const e=L[i];if(!e.alive)continue;e.x=dx[i];e.y=dyy[i];e.vx=dvx[i];e.vy=dvy[i];e.grounded=dgr[i]===1;if(d3){e.z=dz[i];e.vz=dvz[i]}}
 return true
 }
 physics(dt){

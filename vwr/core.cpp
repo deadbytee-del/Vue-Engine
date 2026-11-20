@@ -29,14 +29,21 @@ if(d3){for(unsigned i=0;i<n;i++){SPX[i]=SZ[i];SPW[i]=SD[i];}return vwr_grid_buil
 return vwr_grid_build(n,SX,SY,SW,SH,cell);
 }
 }
+static unsigned QN=0;
+static void q2(unsigned i,double ex,double ey){
+double x=DX[i],y=DY[i],w=DW[i]*0.5,h=DH[i]*0.5;
+double x0=x-w,x1=x+w,y0=y-h,y1=y+h;
+if(ex<0)x0+=ex;else x1+=ex;
+if(ey<0)y0+=ey;else y1+=ey;
+QN=vwr_grid_query(x0,y0,x1,y1,Q,QCAP);
+}
 static void res2(unsigned i,int ax){
-double x=DX[i],y=DY[i],w=DW[i],h=DH[i];
-unsigned n=vwr_grid_query(x-w*0.5,y-h*0.5,x+w*0.5,y+h*0.5,Q,QCAP);
-for(unsigned pass=0;pass<2;pass++)for(unsigned k=0;k<n;k++){
+double w=DW[i],h=DH[i];
+for(unsigned pass=0;pass<2;pass++)for(unsigned k=0;k<QN;k++){
 unsigned s=Q[k];
 if((s<NE)!=(pass==0))continue;
 double sx=SX[s],sy=SY[s],sw=SW[s],sh=SH[s];
-x=DX[i];y=DY[i];
+double x=DX[i],y=DY[i];
 if(!(fabs_(x-sx)*2<sw+w&&fabs_(y-sy)*2<sh+h))continue;
 if(ax){
 if(DVX[i]>0||(DVX[i]==0&&x<sx))DX[i]=sx-(sw+w)*0.5;else DX[i]=sx+(sw+w)*0.5;
@@ -47,10 +54,16 @@ DVY[i]=0;
 }
 }
 }
+static void q3(unsigned i,double ex,double ez){
+double w=DW[i]*0.5,d=DD[i]*0.5;
+double x0=DX[i]-w,x1=DX[i]+w,z0=DZ[i]-d,z1=DZ[i]+d;
+if(ex<0)x0+=ex;else x1+=ex;
+if(ez<0)z0+=ez;else z1+=ez;
+QN=vwr_grid_query(x0,z0,x1,z1,Q,QCAP);
+}
 static void res3(unsigned i,int ax){
 double w=DW[i],h=DH[i],d=DD[i];
-unsigned n=vwr_grid_query(DX[i]-w*0.5,DZ[i]-d*0.5,DX[i]+w*0.5,DZ[i]+d*0.5,Q,QCAP);
-for(unsigned k=0;k<n;k++){
+for(unsigned k=0;k<QN;k++){
 unsigned s=Q[k];
 double x=DX[i],y=DY[i],z=DZ[i];
 if(!(fabs_(x-SX[s])*2<w+SW[s]&&fabs_(y-SY[s])*2<h+SH[s]&&fabs_(z-SZ[s])*2<d+SD[s]))continue;
@@ -71,6 +84,7 @@ if(n>MAXD)n=MAXD;
 if(D3){
 for(unsigned i=0;i<n;i++){
 DVY[i]-=g*DGS[i]*dt;
+q3(i,DVX[i]*dt,DVZ[i]*dt);
 DX[i]+=DVX[i]*dt;res3(i,0);
 DZ[i]+=DVZ[i]*dt;res3(i,2);
 DGR[i]=0;
@@ -79,7 +93,9 @@ DY[i]+=DVY[i]*dt;res3(i,1);
 }else{
 for(unsigned i=0;i<n;i++){
 DVY[i]+=g*DGS[i]*dt;
-DX[i]+=DVX[i]*dt;res2(i,1);
+double ex=DVX[i]*dt,ey=DVY[i]*dt;
+q2(i,ex,ey);
+DX[i]+=ex;res2(i,1);
 DGR[i]=0;
 DY[i]+=DVY[i]*dt;res2(i,0);
 }
