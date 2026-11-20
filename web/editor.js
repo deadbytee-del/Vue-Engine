@@ -1493,7 +1493,11 @@ document.body.classList.add('playing')
 $('#playLayer').classList.add('on')
 transport()
 log('info','Playing '+S.project.name+(errors.length?' with '+errors.length+' script error'+(errors.length>1?'s':''):''))
-const f=$('#frame')
+const o=$('#frame'),f=document.createElement('iframe')
+f.id='frame'
+f.setAttribute('sandbox','allow-scripts allow-pointer-lock')
+f.setAttribute('allow','autoplay; fullscreen; gamepad')
+o.replaceWith(f)
 f.onload=()=>f.focus()
 f.srcdoc=html
 fitPlay()
@@ -1501,7 +1505,8 @@ fitPlay()
 function stopGame(){
 const f=$('#frame')
 f.onload=null
-f.srcdoc=''
+f.replaceWith(Object.assign(document.createElement('iframe'),{id:'frame'}))
+$('#frame').setAttribute('sandbox','allow-scripts allow-pointer-lock')
 $('#fps').textContent=''
 const was=S.playing
 S.playing=false
