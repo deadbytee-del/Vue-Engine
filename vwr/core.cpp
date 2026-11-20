@@ -7,6 +7,7 @@ unsigned vwr_grid_query(double x0,double y0,double x1,double y1,unsigned*out,uns
 #define QCAP 4096
 static double SX[MAXS],SY[MAXS],SZ[MAXS],SW[MAXS],SH[MAXS],SD[MAXS];
 static double SPX[MAXS],SPW[MAXS];
+static double SR[MAXS*6];
 static double DX[MAXD],DY[MAXD],DZ[MAXD],DW[MAXD],DH[MAXD],DD[MAXD],DVX[MAXD],DVY[MAXD],DVZ[MAXD],DGS[MAXD];
 static unsigned char DGR[MAXD];
 static unsigned Q[QCAP];
@@ -25,6 +26,7 @@ unsigned vwr_max_dynamic(){return MAXD;}
 unsigned vwr_static(unsigned n,unsigned ne,int d3,double cell){
 if(n>MAXS)n=MAXS;
 NS=n;NE=ne;D3=d3;
+for(unsigned i=0;i<n;i++){double*r=SR+i*6;r[0]=SX[i];r[1]=SY[i];r[2]=SW[i];r[3]=SH[i];r[4]=SZ[i];r[5]=SD[i];}
 if(d3){for(unsigned i=0;i<n;i++){SPX[i]=SZ[i];SPW[i]=SD[i];}return vwr_grid_build(n,SX,SPX,SW,SPW,cell);}
 return vwr_grid_build(n,SX,SY,SW,SH,cell);
 }
@@ -42,7 +44,7 @@ double w=DW[i],h=DH[i];
 for(unsigned pass=0;pass<2;pass++)for(unsigned k=0;k<QN;k++){
 unsigned s=Q[k];
 if((s<NE)!=(pass==0))continue;
-double sx=SX[s],sy=SY[s],sw=SW[s],sh=SH[s];
+const double*r=SR+s*6;double sx=r[0],sy=r[1],sw=r[2],sh=r[3];
 double x=DX[i],y=DY[i];
 if(!(fabs_(x-sx)*2<sw+w&&fabs_(y-sy)*2<sh+h))continue;
 if(ax){
@@ -64,17 +66,18 @@ QN=vwr_grid_query(x0,z0,x1,z1,Q,QCAP);
 static void res3(unsigned i,int ax){
 double w=DW[i],h=DH[i],d=DD[i];
 for(unsigned k=0;k<QN;k++){
-unsigned s=Q[k];
+const double*r=SR+Q[k]*6;
+double sx=r[0],sy=r[1],sw=r[2],sh=r[3],sz=r[4],sd=r[5];
 double x=DX[i],y=DY[i],z=DZ[i];
-if(!(fabs_(x-SX[s])*2<w+SW[s]&&fabs_(y-SY[s])*2<h+SH[s]&&fabs_(z-SZ[s])*2<d+SD[s]))continue;
+if(!(fabs_(x-sx)*2<w+sw&&fabs_(y-sy)*2<h+sh&&fabs_(z-sz)*2<d+sd))continue;
 if(ax==0){
-if(DVX[i]>0||(DVX[i]==0&&x<SX[s]))DX[i]=SX[s]-(SW[s]+w)*0.5;else DX[i]=SX[s]+(SW[s]+w)*0.5;
+if(DVX[i]>0||(DVX[i]==0&&x<sx))DX[i]=sx-(sw+w)*0.5;else DX[i]=sx+(sw+w)*0.5;
 DVX[i]=0;
 }else if(ax==2){
-if(DVZ[i]>0||(DVZ[i]==0&&z<SZ[s]))DZ[i]=SZ[s]-(SD[s]+d)*0.5;else DZ[i]=SZ[s]+(SD[s]+d)*0.5;
+if(DVZ[i]>0||(DVZ[i]==0&&z<sz))DZ[i]=sz-(sd+d)*0.5;else DZ[i]=sz+(sd+d)*0.5;
 DVZ[i]=0;
 }else{
-if(DVY[i]<0||(DVY[i]==0&&y>SY[s])){DY[i]=SY[s]+(SH[s]+h)*0.5;DGR[i]=1;}else DY[i]=SY[s]-(SH[s]+h)*0.5;
+if(DVY[i]<0||(DVY[i]==0&&y>sy)){DY[i]=sy+(sh+h)*0.5;DGR[i]=1;}else DY[i]=sy-(sh+h)*0.5;
 DVY[i]=0;
 }
 }

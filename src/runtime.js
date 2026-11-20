@@ -1,5 +1,6 @@
 (function(root){
 const STEP=1/60,CELL=128,MAXP=2048,DEG=Math.PI/180,OFF=32768
+const EXT=root.VueExt||(root.VueExt={list:{},register(d){this.list[d.id]=d;return d}})
 const norm=k=>{k=String(k).toLowerCase();return k===' '?'space':k}
 const pk=(x,y)=>(x+OFF)*65536+(y+OFF)
 const clamp=(v,a,b)=>v<a?a:v>b?b:v
@@ -34,6 +35,7 @@ return{x:dx*Math.cos(a)-dy*Math.sin(a),y:dx*Math.sin(a)+dy*Math.cos(a),rot:(w.ro
 class Entity{
 constructor(d,game){
 this._x=0;this._y=0;this._z=0;this._w=0;this._h=0;this._d=0
+this._px=0;this._py=0;this._pz=0;this._pr=0;this._pn=-1;this._qx=0;this._qy=0;this._qz=0;this._qr=0;this._rs=0;this._ix=0;this._iy=0;this._iz=0;this._ivx=0;this._ivy=0;this._ivz=0;this._iw=0;this._ih=0;this._id=0;this._igs=0;this._ig=false
 this.game=game
 this.alive=true
 this.vx=0
@@ -130,7 +132,7 @@ for(const k of this.tiles.keys()){const cx=Math.floor(k/65536)-OFF,cy=k%65536-OF
 this.tb=a>c?null:[a,b,c,d]
 }
 getTile(cx,cy){const v=this.tiles?this.tiles.get(pk(cx,cy)):undefined;return v==null?-1:v}
-setTile(cx,cy,i){if(!this.tiles)return;this.game.sDirty=true;if(i==null||i<0)this.tiles.delete(pk(cx,cy));else this.tiles.set(pk(cx,cy),i|0);this.bounds()}
+setTile(cx,cy,i){if(!this.tiles)return;this.game.sDirty=true;if(i==null||i<0){if(this.tiles.delete(pk(cx,cy)))this.bounds()}else{this.tiles.set(pk(cx,cy),i|0);const t=this.tb;if(!t)this.tb=[cx,cy,cx,cy];else{if(cx<t[0])t[0]=cx;if(cy<t[1])t[1]=cy;if(cx>t[2])t[2]=cx;if(cy>t[3])t[3]=cy}}}
 cellAt(wx,wy){return[Math.floor((wx-this.x)/this.cell),Math.floor((wy-this.y)/this.cell)]}
 tileAt(wx,wy){const c=this.cellAt(wx,wy);return this.getTile(c[0],c[1])}
 tileHit(o,ep){
@@ -244,6 +246,8 @@ this.musicH=null
 this.vol=1
 this.vue=this.makeApi()
 this.loop=this.loop.bind(this)
+this.snapN=0
+this.exts=[]
 }
 resize(w,h){
 this.w=w
@@ -437,6 +441,19 @@ const pv=this.project._preview
 if(pv&&!this._pvDone){this._pvDone=true;this.cutscene(pv)}
 else if(sc&&sc.cutscene)this.cutscene(sc.cutscene)
 }
+vkey(k,on){
+k=norm(k)
+if(on){if(this.keys.has(k))return;this.keys.add(k);this.pressedSet.add(k);this.audio(true);if(this.cs&&this.cs.lock)return;this.fireAll('key:'+k);this.fireAll('keypress',k)}
+else{if(!this.keys.has(k))return;this.keys.delete(k);if(this.cs&&this.cs.lock)return;this.fireAll('keyup:'+k)}
+}
+add(o){
+const d=Object.assign({id:'x'+(++this.stamp),name:'Entity',x:0,y:0,z:0,w:32,h:32,d:32,rot:0,rx:0,ry:0,rz:0,shape:'rect',color:'#ffffff',image:'',text:'',fontSize:20,alpha:1,body:'none',gravityScale:1,tags:[],visible:true,prefab:false,script:null},o||{})
+const e=new Entity(d,this)
+this.attach(e,d)
+this.pending.push(e)
+this.link()
+return e
+}
 spawn(n,x,y,z){
 const d=this.prefabs[n]
 if(!d)return null
@@ -517,6 +534,7 @@ all:t=>g.entities.filter(e=>e.alive&&(t==null||t===''||e.tags.indexOf(t)>=0)),
 count:t=>{let n=0;for(const e of g.entities)if(e.alive&&(t==null||t===''||e.tags.indexOf(t)>=0))n++;return n},
 nearest:(from,tag)=>g.nearest(from,tag),
 spawn:(n,x,y,z)=>g.spawn(n,x,y,z),
+create:o=>g.add(o),
 destroy:e=>g.destroy(ent(e)),
 go:s=>{g.nextScene=s},
 restart:()=>{g.nextScene=g.scene.id},
@@ -712,8 +730,10 @@ for(let cx=x0;cx<=x1;cx++)for(let cy=y0;cy<=y1;cy++)if(m.tiles.has(pk(cx,cy)))th
 }
 vwr(){
 const V=root.VWR
-if(!V||!V.exports||(this.project.settings&&this.project.settings.core==='js'))return null
+const core=this.project.settings&&this.project.settings.core
+if(!V||!V.exports||core==='js')return null
 if(!this.W){
+this.sleep=core!=='vwr-steady'
 const x=V.exports,m=x.memory.buffer,F=(f,n)=>new Float64Array(m,x[f](),n),MS=x.vwr_max_static(),MD=x.vwr_max_dynamic()
 this.W={x,MS,MD,sx:F('vwr_sx',MS),sy:F('vwr_sy',MS),sz:F('vwr_sz',MS),sw:F('vwr_sw',MS),sh:F('vwr_sh',MS),sd:F('vwr_sd',MS),dx:F('vwr_dx',MD),dy:F('vwr_dy',MD),dz:F('vwr_dz',MD),dw:F('vwr_dw',MD),dh:F('vwr_dh',MD),dd:F('vwr_dd',MD),dvx:F('vwr_dvx',MD),dvy:F('vwr_dvy',MD),dvz:F('vwr_dvz',MD),dgs:F('vwr_dgs',MD),dgr:new Uint8Array(m,x.vwr_dgr(),MD),list:[],sn:-1}
 }
@@ -758,9 +778,27 @@ this.sDirty=false
 const L=this.dyns,nl=L.length
 if(nl>W.MD)return false
 const dx=W.dx,dyy=W.dy,dz=W.dz,dw=W.dw,dh=W.dh,dd=W.dd,dvx=W.dvx,dvy=W.dvy,dvz=W.dvz,dgs=W.dgs,dgr=W.dgr
-for(let i=0;i<nl;i++){const e=L[i];dx[i]=e.x;dyy[i]=e.y;dw[i]=e.w;dh[i]=e.h;dvx[i]=e.vx;dvy[i]=e.vy;dgs[i]=e.gravityScale;if(d3){dz[i]=e.z;dd[i]=e.d;dvz[i]=e.vz}}
-W.x.vwr_step(nl,dt,this.gravity)
-for(let i=0;i<nl;i++){const e=L[i];if(!e.alive)continue;e.x=dx[i];e.y=dyy[i];e.vx=dvx[i];e.vy=dvy[i];e.grounded=dgr[i]===1;if(d3){e.z=dz[i];e.vz=dvz[i]}}
+const wake=dirty||W.lg!==this.gravity||W.ldt!==dt||!this.sleep,map=W.map||(W.map=new Int32Array(W.MD))
+W.lg=this.gravity;W.ldt=dt
+let m=0
+for(let i=0;i<nl;i++){
+const e=L[i]
+if(!wake&&e._rs===1&&e._x===e._ix&&e._y===e._iy&&e.vx===e._ivx&&e.vy===e._ivy&&e._w===e._iw&&e._h===e._ih&&e.gravityScale===e._igs&&(!d3||(e._z===e._iz&&e.vz===e._ivz&&e._d===e._id))){e.grounded=e._ig;continue}
+map[m]=i;dx[m]=e._x;dyy[m]=e._y;dw[m]=e._w;dh[m]=e._h;dvx[m]=e.vx;dvy[m]=e.vy;dgs[m]=e.gravityScale
+if(d3){dz[m]=e._z;dd[m]=e._d;dvz[m]=e.vz}
+m++
+}
+W.awake=m
+if(m)W.x.vwr_step(m,dt,this.gravity)
+for(let j=0;j<m;j++){
+const e=L[map[j]]
+if(!e.alive)continue
+const x=dx[j],y=dyy[j],vx=dvx[j],vy=dvy[j],gr=dgr[j]===1
+let rs=x===e._x&&y===e._y&&vx===e.vx&&vy===e.vy
+e._x=x;e._y=y;e.vx=vx;e.vy=vy;e.grounded=gr
+if(d3){const z=dz[j],vz=dvz[j];rs=rs&&z===e._z&&vz===e.vz;e._z=z;e.vz=vz;if(rs){e._iz=z;e._ivz=vz;e._id=e._d}}
+if(rs){e._rs=1;e._ix=x;e._iy=y;e._ivx=vx;e._ivy=vy;e._iw=e._w;e._ih=e._h;e._igs=e.gravityScale;e._ig=gr}else e._rs=0
+}
 return true
 }
 physics(dt){
@@ -947,6 +985,7 @@ cs.res()
 update(dt){
 this.frameNo++
 this.time+=dt
+if(this.exts.length)this.hk('pre',dt)
 const tm=this.timers
 if(tm.length){
 for(let i=tm.length-1;i>=0;i--){
@@ -988,6 +1027,7 @@ if(k>=1){tw.splice(i,1);w.res()}
 if(this.cs)this.csUpdate(dt)
 if(this.is3d)this.physics3(dt);else this.physics(dt)
 if(this.hier.length)this.updateHier()
+if(this.exts.length)this.hk('update',dt)
 this.events()
 const c=this.camera
 if(this.is3d)this.cam3(dt)
@@ -1037,6 +1077,7 @@ const n=this.nextScene
 this.nextScene=null
 this.stopSounds()
 this.loadScene(n)
+if(this.exts.length)this.hk("scene")
 this.startAll()
 }
 }
@@ -1141,6 +1182,7 @@ c.fillRect(e.x-tw/2,by-12,tw,24)
 c.fillStyle='#111'
 c.fillText(e.sayText,e.x,by)
 }
+if(this.exts.length){this.hk('world',c);c.setTransform(1,0,0,1,0,0);c.globalAlpha=1;this.hk('screen',c);this.hk('post',c)}
 this.drawHud(c)
 }
 draw3(){
@@ -1152,7 +1194,9 @@ if(!r)return
 r.sync(this)
 const cam=this.camera
 cam.x+=this.shx*0.05;cam.y+=this.shy*0.05
+if(this.exts.length)this.hk('render3',r)
 r.render(cam,this.bg)
+if(this.exts.length){this.hk('screen',c);this.hk('post',c)}
 cam.x-=this.shx*0.05;cam.y-=this.shy*0.05
 if(!this.editor&&this.scene.mouseLook){c.fillStyle='rgba(255,255,255,0.85)';c.fillRect(this.w/2-1,this.h/2-8,2,16);c.fillRect(this.w/2-8,this.h/2-1,16,2)}
 this.drawHud(c)
@@ -1228,16 +1272,17 @@ c.beginPath();c.moveTo(0,t);c.lineTo(0,b);c.stroke()
 }
 loop(ts){
 if(!this.running)return
-this.raf=requestAnimationFrame(this.loop)
+if(!this.xrLoop)this.raf=requestAnimationFrame(this.loop)
 let ft=(ts-this.last)/1000
 this.last=ts
 if(ft>0.1)ft=0.1
 this.acc+=ft
 let n=0
+const sm=!this.editor&&this.project.settings.smooth!==false
 if(this.paused){this.acc=0;if(this.stepReq){this.stepReq=false;this.update(STEP)}}
-while(!this.paused&&this.acc>=STEP&&n<5){this.update(STEP);this.acc-=STEP;n++}
+while(!this.paused&&this.acc>=STEP&&n<5){if(sm)this.snap();this.update(STEP);this.acc-=STEP;n++}
 if(n===5)this.acc=0
-this.draw()
+if(sm&&!this.paused&&this.snapN>0)this.drawLerp(this.acc/STEP);else this.draw()
 this.fc++
 this.ft+=ft
 if(this.ft>=0.5){
@@ -1247,10 +1292,54 @@ this.ft=0
 if(root.parent&&root.parent!==root)root.parent.postMessage({vue:1,type:'fps',v:this.fps,n:this.entities.length},'*')
 }
 }
+snap(){
+const es=this.entities,c=this.camera,n=++this.snapN
+for(let i=0;i<es.length;i++){const e=es[i];e._px=e._x;e._py=e._y;e._pz=e._z;e._pr=e.rot;e._pn=n}
+this.pcam=[c.x,c.y,c.z,c.tx,c.ty,c.tz]
+}
+drawLerp(a){
+const es=this.entities,n=this.snapN,c=this.camera,lim=this.is3d?16:65536,L=this.lerpL||(this.lerpL=[])
+L.length=0
+for(let i=0;i<es.length;i++){
+const e=es[i]
+if(e._pn!==n||!e.alive)continue
+const dx=e._x-e._px,dy=e._y-e._py,dz=e._z-e._pz
+if(dx===0&&dy===0&&dz===0&&e.rot===e._pr)continue
+if(dx*dx+dy*dy+dz*dz>lim)continue
+L.push(e)
+e._qx=e._x;e._qy=e._y;e._qz=e._z;e._qr=e.rot
+e._x=e._px+dx*a;e._y=e._py+dy*a;e._z=e._pz+dz*a
+const dr=e.rot-e._pr
+if(dr<180&&dr>-180)e.rot=e._pr+dr*a
+}
+const p=this.pcam,q=[c.x,c.y,c.z,c.tx,c.ty,c.tz],ks=['x','y','z','tx','ty','tz']
+if(p)for(let i=0;i<6;i++){const d=q[i]-p[i];if(d*d<lim)c[ks[i]]=p[i]+d*a}
+try{this.draw()}finally{
+for(let i=0;i<L.length;i++){const e=L[i];e._x=e._qx;e._y=e._qy;e._z=e._qz;e.rot=e._qr}
+for(let i=0;i<6;i++)c[ks[i]]=q[i]
+}
+}
+initExt(){
+const ids=this.project.extensions||[],cfg=this.project.extConfig||{}
+this.exts=[]
+for(const id of ids){
+const d=EXT.list[id]
+if(!d){this.log('warn','Extension '+id+' is not installed');continue}
+const x={d,cfg:Object.assign({},d.defaults||{},cfg[id]||{}),s:{}}
+this.exts.push(x)
+if(d.api)try{const a=d.api(this,x.cfg,x.s);if(a)this.vue[d.ns||id]=a}catch(e){this.err(e)}
+}
+for(const x of this.exts)if(x.d.init)try{x.d.init(this,x.cfg,x.s)}catch(e){this.err(e)}
+}
+hk(n,a,b){
+const xs=this.exts
+for(let i=0;i<xs.length;i++){const x=xs[i],f=x.d[n];if(f)try{f(this,x.cfg,x.s,a,b)}catch(e){this.err(e)}}
+}
 async start(){
 await this.loadAssets()
 this.loadScene(this.project.startScene)
 this.bind()
+this.initExt()
 this.startAll()
 this.running=true
 this.acc=0

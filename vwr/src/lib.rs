@@ -18,14 +18,17 @@ static mut QGEN: u32 = 1;
 static mut NENT: usize = 0;
 static mut CELL: f64 = 128.0;
 const DENSE: usize = 1 << 20;
-static mut DHEAD: [i32; DENSE] = [0; DENSE];
-static mut DTAIL: [i32; DENSE] = [0; DENSE];
 static mut DUSED: [u32; DENSE] = [0; DENSE];
+static mut DSTART: [u32; DENSE] = [0; DENSE];
+static mut DCNT: [u32; DENSE] = [0; DENSE];
+static mut DLIST: [u32; DENSE] = [0; DENSE];
+static mut DITEMS: [u32; MAX_ENTRIES] = [0; MAX_ENTRIES];
 static mut DMODE: bool = false;
 static mut GX0: i64 = 0;
 static mut GY0: i64 = 0;
 static mut GW: i64 = 0;
 static mut GH: i64 = 0;
+macro_rules! g { ($a:ident, $i:expr) => { *core::ptr::addr_of_mut!($a).cast::<u32>().add($i) } }
 #[inline(always)]
 fn key(cx: i64, cy: i64) -> i64 { (cx << 32) ^ (cy & 0xffff_ffff) }
 #[inline(always)]
@@ -68,6 +71,39 @@ pub unsafe extern "C" fn vwr_grid_build(n: u32, x: *const f64, y: *const f64, w:
     }
     DMODE = n > 0 && (mx1 - mx0 + 1) > 0 && (my1 - my0 + 1) > 0 && ((mx1 - mx0 + 1) as u64) * ((my1 - my0 + 1) as u64) <= DENSE as u64;
     if DMODE { GX0 = mx0; GY0 = my0; GW = mx1 - mx0 + 1; GH = my1 - my0 + 1; }
+    if DMODE {
+        let mut nl: usize = 0;
+        for p in 0..2 {
+            for i in 0..n {
+                let cx = *x.add(i); let cy = *y.add(i); let hw = *w.add(i) * 0.5; let hh = *h.add(i) * 0.5;
+                let x0 = libm_floor((cx - hw) / cell) as i64; let x1 = libm_floor((cx + hw) / cell) as i64;
+                let y0 = libm_floor((cy - hh) / cell) as i64; let y1 = libm_floor((cy + hh) / cell) as i64;
+                let mut gx = x0;
+                while gx <= x1 {
+                    let mut gy = y0;
+                    while gy <= y1 {
+                        let s = ((gy - GY0) * GW + (gx - GX0)) as usize;
+                        if p == 0 {
+                            if g!(DUSED, s) != GEN { g!(DUSED, s) = GEN; g!(DCNT, s) = 0; g!(DLIST, nl) = s as u32; nl += 1; }
+                            g!(DCNT, s) += 1;
+                        } else {
+                            let k = (g!(DSTART, s) + g!(DCNT, s)) as usize;
+                            if k < MAX_ENTRIES { g!(DITEMS, k) = i as u32; }
+                            g!(DCNT, s) += 1;
+                        }
+                        gy += 1;
+                    }
+                    gx += 1;
+                }
+            }
+            if p == 0 {
+                let mut off: u32 = 0;
+                for j in 0..nl { let s = g!(DLIST, j) as usize; g!(DSTART, s) = off; off += g!(DCNT, s); g!(DCNT, s) = 0; }
+                NENT = off as usize;
+            }
+        }
+        return NENT as u32;
+    }
     for i in 0..n {
         let cx = *x.add(i); let cy = *y.add(i); let hw = *w.add(i) * 0.5; let hh = *h.add(i) * 0.5;
         let x0 = libm_floor((cx - hw) / cell) as i64; let x1 = libm_floor((cx + hw) / cell) as i64;
@@ -79,16 +115,9 @@ pub unsafe extern "C" fn vwr_grid_build(n: u32, x: *const f64, y: *const f64, w:
                 if NENT >= MAX_ENTRIES { return NENT as u32; }
                 ENT_IDX[NENT] = i as u32;
                 ENT_NEXT[NENT] = -1;
-                if DMODE {
-                    let s = ((gy - GY0) * GW + (gx - GX0)) as usize;
-                    if DUSED[s] != GEN { DUSED[s] = GEN; DHEAD[s] = -1; DTAIL[s] = -1; }
-                    if DTAIL[s] < 0 { DHEAD[s] = NENT as i32; } else { ENT_NEXT[DTAIL[s] as usize] = NENT as i32; }
-                    DTAIL[s] = NENT as i32;
-                } else {
-                    let s = find(key(gx, gy), true) as usize;
-                    if TAIL[s] < 0 { HEAD[s] = NENT as i32; } else { ENT_NEXT[TAIL[s] as usize] = NENT as i32; }
-                    TAIL[s] = NENT as i32;
-                }
+                let s = find(key(gx, gy), true) as usize;
+                if TAIL[s] < 0 { HEAD[s] = NENT as i32; } else { ENT_NEXT[TAIL[s] as usize] = NENT as i32; }
+                TAIL[s] = NENT as i32;
                 NENT += 1;
                 gy += 1;
             }
@@ -113,15 +142,16 @@ pub unsafe extern "C" fn vwr_grid_query(x0: f64, y0: f64, x1: f64, y1: f64, out:
             let mut gy = ya;
             while gy <= yb {
                 let s = ((gy - GY0) * GW + (gx - GX0)) as usize;
-                if DUSED[s] == GEN {
-                    let mut e = DHEAD[s];
-                    while e >= 0 {
-                        let idx = ENT_IDX[e as usize];
-                        if STAMP[idx as usize] != QGEN {
-                            STAMP[idx as usize] = QGEN;
-                            if n < cap { *out.add(n as usize) = idx; n += 1; }
+                if g!(DUSED, s) == GEN {
+                    let st = g!(DSTART, s) as usize; let en = st + g!(DCNT, s) as usize;
+                    let mut k = st;
+                    while k < en {
+                        let idx = g!(DITEMS, k) as usize;
+                        if g!(STAMP, idx) != QGEN {
+                            g!(STAMP, idx) = QGEN;
+                            if n < cap { *out.add(n as usize) = idx as u32; n += 1; }
                         }
-                        e = ENT_NEXT[e as usize];
+                        k += 1;
                     }
                 }
                 gy += 1;

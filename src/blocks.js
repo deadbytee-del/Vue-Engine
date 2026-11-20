@@ -1,6 +1,6 @@
 (function(root){
 const KEYS=(root.VueNodes||(typeof require!=='undefined'?require('./nodedefs.js'):null)).KEYS
-const C={ev:'#e0457b',mo:'#4d8dff',lo:'#9d5cff',co:'#f5a524',se:'#38bdf8',so:'#d65ad1',ga:'#22c3a6',ca:'#6c7cff',ob:'#ff8a3d',ti:'#a3c94a'}
+const C={ex:'#c23bd4',ev:'#e0457b',mo:'#4d8dff',lo:'#9d5cff',co:'#f5a524',se:'#38bdf8',so:'#d65ad1',ga:'#22c3a6',ca:'#6c7cff',ob:'#ff8a3d',ti:'#a3c94a'}
 const iv=(name,check)=>({type:'input_value',name,check})
 const dd=(name,opts)=>({type:'field_dropdown',name,options:opts})
 const ft=(name,text)=>({type:'field_input',name,text})
@@ -20,6 +20,29 @@ const WAVES=[['square','square'],['sine','sine'],['triangle','triangle'],['sawto
 const BODIES=[['static','static'],['dynamic','dynamic'],['trigger','trigger'],['none','none']]
 const MOUSE=[['x','x'],['y','y'],['moved x','dx'],['moved y','dy']]
 const DEFS=[
+stmt('vue_x_burst','burst %1 effect here',[dd('P',[['sparks','sparks'],['explosion','explosion'],['magic','magic'],['dust','dust'],['fire','fire'],['smoke','smoke']])],C.ex),
+stmt('vue_x_emit','attach %1 emitter to this',[dd('P',[['fire','fire'],['smoke','smoke'],['magic','magic'],['snow','snow']])],C.ex),
+stmt('vue_x_weather','set weather to %1 intensity %2',[dd('W',[['rain','rain'],['snow','snow'],['storm','storm'],['fog','fog'],['clear','clear']]),iv('I','Number')],C.ex),
+stmt('vue_x_hour','set time of day to hour %1',[iv('H','Number')],C.ex),
+val('vue_x_night','is night',[],C.ex,'Boolean'),
+stmt('vue_x_goto','walk to %1 at speed %2 using pathfinding',[iv('E'),iv('S','Number')],C.ex),
+stmt('vue_x_explode','explode here with radius %1',[iv('R','Number')],C.ex),
+stmt('vue_x_shatter','shatter this into %1 pieces',[iv('N','Number')],C.ex),
+stmt('vue_x_say','dialogue: %1 says %2',[iv('W','String'),iv('T','String')],C.ex),
+val('vue_x_ask','dialogue: %1 asks %2 choices %3',[iv('W','String'),iv('T','String'),iv('L','Array')],C.ex,'Number'),
+val('vue_x_chat','AI reply from %1 to %2 personality %3',[iv('W','String'),iv('T','String'),iv('P','String')],C.ex,'String'),
+stmt('vue_x_voice','speak %1 with voice %2',[iv('T','String'),dd('V',[['Heart','af_heart'],['Bella','af_bella'],['Nicole','af_nicole'],['Sky','af_sky'],['Michael','am_michael'],['Fenrir','am_fenrir'],['Puck','am_puck'],['Emma','bf_emma'],['George','bm_george'],['Lewis','bm_lewis']])],C.ex),
+val('vue_x_pad','gamepad button %1 held',[dd('B',[['A','a'],['B','b'],['X','x'],['Y','y'],['LB','lb'],['RB','rb'],['LT','lt'],['RT','rt'],['Start','start'],['Select','select']])],C.ex,'Boolean'),
+val('vue_x_axis','gamepad stick %1',[dd('A',[['left x','lx'],['left y','ly'],['right x','rx'],['right y','ry']])],C.ex,'Number'),
+stmt('vue_x_rumble','rumble controller for %1 ms',[iv('M','Number')],C.ex),
+stmt('vue_x_host','host multiplayer room and show code',[],C.ex),
+stmt('vue_x_join','join multiplayer room %1',[iv('C','String')],C.ex),
+stmt('vue_x_rep','sync this across multiplayer',[],C.ex),
+stmt('vue_x_send','send network message %1 with %2',[ft('M','chat'),iv('D')],C.ex),
+stmt('vue_x_post','set screen effect %1 to %2',[dd('K',[['bloom','bloom'],['vignette','vignette'],['grain','grain'],['saturation','saturation'],['contrast','contrast'],['brightness','brightness'],['scanlines','scanlines'],['hue','hue']]),iv('V','Number')],C.ex),
+stmt('vue_x_flash','flash screen %1 for %2 secs',[fc('C'),iv('S','Number')],C.ex),
+stmt('vue_x_call','call extension vue. %1 . %2 with %3',[ft('NS','fx'),ft('FN','burst'),iv('A')],C.ex),
+val('vue_x_get','extension value vue. %1 . %2',[ft('NS','day'),ft('K','hour')],C.ex,null),
 hat('vue_on_start','when game starts'),
 hat('vue_on_update','every frame'),
 hat('vue_on_key','when key %1 pressed',[dd('KEY',KEYS)]),
@@ -185,6 +208,7 @@ cat('Sound',C.so,[blk('vue_play2',{V:1}),blk('vue_play'),blk('vue_music',{V:0.6}
 cat('Control',C.co,[blk('vue_wait',{S:1}),blk('vue_wait_until'),blk('vue_forever'),blk('controls_repeat_ext',{TIMES:10}),blk('controls_whileUntil'),blk('controls_for',{FROM:1,TO:10,BY:1}),blk('controls_forEach'),blk('vue_foreach'),blk('controls_if'),blk('controls_flow_statements'),blk('vue_after',{S:1}),blk('vue_every',{S:1}),blk('vue_return'),blk('vue_spawn',{X:0,Y:0}),blk('vue_spawn3',{X:0,Y:1,Z:0}),blk('vue_spawn_v',{X:0,Y:0}),blk('vue_destroy_self'),blk('vue_destroy',{T:E('Enemy')}),blk('vue_go'),blk('vue_restart'),blk('vue_emit',{V:''}),blk('vue_cutscene'),blk('vue_skip_cs'),blk('vue_stop_game')]),
 cat('Sensing',C.se,[blk('vue_key_down'),blk('vue_key_pressed'),blk('vue_any_key'),blk('vue_mouse'),blk('vue_mouse_down'),blk('vue_mouse_clicked'),blk('vue_self_prop'),blk('vue_grounded'),blk('vue_touching'),blk('vue_other'),blk('vue_other_tag'),blk('vue_self'),blk('vue_find'),blk('vue_nearest'),blk('vue_count'),blk('vue_all'),blk('vue_exists',{E:E('Player')}),blk('vue_dist',{E:E('Player')}),blk('vue_angle',{E:E('Player')}),blk('vue_get_prop',{E:E('Player')}),blk('vue_time'),blk('vue_dt'),blk('vue_screen'),blk('vue_in_cs'),blk('vue_scene_name')]),
 cat('Objects',C.ob,[blk('vue_set_prop',{E:E('Player'),V:0}),blk('vue_change_prop',{E:E('Player'),V:10}),blk('vue_add_tag'),blk('vue_remove_tag'),blk('vue_has_tag',{E:E('Player')}),blk('vue_set_local',{V:100}),blk('vue_change_local',{V:-10}),blk('vue_get_local'),blk('vue_attach',{E:E('Player')}),blk('vue_detach'),blk('vue_parent'),blk('vue_children')]),
+cat('Extensions',C.ex,[blk('vue_x_burst'),blk('vue_x_emit'),blk('vue_x_weather',{I:1}),blk('vue_x_hour',{H:20}),blk('vue_x_night'),blk('vue_x_goto',{E:E('Player'),S:140}),blk('vue_x_explode',{R:100}),blk('vue_x_shatter',{N:8}),blk('vue_x_say',{W:'Guide',T:'Hello!'}),blk('vue_x_ask',{W:'Guide',T:'Ready?'}),blk('vue_x_chat',{W:'Guide',T:'Hi there',P:'A friendly guide'}),blk('vue_x_voice',{T:'Welcome!'}),blk('vue_x_pad'),blk('vue_x_axis'),blk('vue_x_rumble',{M:200}),blk('vue_x_host'),blk('vue_x_join',{C:'ABCDE'}),blk('vue_x_rep'),blk('vue_x_send',{D:'hi'}),blk('vue_x_post',{V:0.5}),blk('vue_x_flash',{S:0.2}),blk('vue_x_call',{A:0}),blk('vue_x_get')]),
 cat('Tiles',C.ti,[blk('vue_set_tile',{X:0,Y:0,I:0}),blk('vue_erase_tile',{X:0,Y:0}),blk('vue_tile_at',{X:0,Y:0})]),
 cat('Game',C.ga,[blk('vue_set_global',{V:0}),blk('vue_change_global',{V:1}),blk('vue_get_global'),blk('vue_hud',{V:0}),blk('vue_hud_clear'),blk('vue_print',{V:'hello'}),blk('vue_warn',{V:'careful'}),blk('vue_random',{A:0,B:10}),blk('vue_random_int',{A:1,B:6}),blk('vue_chance',{P:50}),blk('vue_lerp',{A:0,B:100,K:0.1})]),
 {kind:'sep'},
@@ -198,7 +222,7 @@ cat('Lists','#c06cff',[blk('lists_create_empty'),blk('lists_create_with'),blk('l
 const fnh=(args,body)=>(/\bawait\b/.test(body)?'async ':'')+'function('+args+'){\n'+body+'}'
 function init(Blockly,gen,Order){
 Blockly.defineBlocksWithJsonArray(DEFS)
-gen.addReservedWords('vue,self,on,exports,module,dt,other,key,data,vue_e')
+gen.addReservedWords('vue,self,on,exports,module,dt,other,key,data,vue_e,vue_x')
 gen.INFINITE_LOOP_TRAP='await vue.frame();\n'
 const G=gen.forBlock
 const V=(b,n,o)=>gen.valueToCode(b,n,o===undefined?Order.NONE:o)||'0'
@@ -279,6 +303,29 @@ G.vue_stop_music=()=>`vue.stopMusic();\n`
 G.vue_stop_sounds=()=>`vue.stopSounds();\n`
 G.vue_volume=b=>`vue.volume(${V(b,'V')});\n`
 G.vue_my_sound=b=>`self.${F(b,'A')}();\n`
+G.vue_x_burst=b=>`vue_x('fx','Particle FX').burst(self.x,self.y,self.z,${J(F(b,'P'))});\n`
+G.vue_x_emit=b=>`vue_x('fx','Particle FX').emitter(${J(F(b,'P'))},{follow:self});\n`
+G.vue_x_weather=b=>`vue_x('weather','Weather System').set(${J(F(b,'W'))},${V(b,'I')});\n`
+G.vue_x_hour=b=>`vue_x('day','Day/Night Cycle').setHour(${V(b,'H')});\n`
+G.vue_x_night=()=>[`!!vue_x('day','Day/Night Cycle').isNight`,Order.LOGICAL_NOT]
+G.vue_x_goto=b=>`await vue_x('nav','NavMesh & Pathfinding').go(self,${EN(b,'E')},${V(b,'S')});\n`
+G.vue_x_explode=b=>`vue_x('destruct','Destructible World').explode(self.x,self.y,self.z,${V(b,'R')});\n`
+G.vue_x_shatter=b=>`vue_x('destruct','Destructible World').shatter(self,{pieces:${V(b,'N')}});\n`
+G.vue_x_say=b=>`await vue_x('dialogue','Dialogue AI').say(${T(b,'W')},${T(b,'T')});\n`
+G.vue_x_ask=b=>[`(await vue_x('dialogue','Dialogue AI').ask(${T(b,'W')},${T(b,'T')},${gen.valueToCode(b,'L',Order.NONE)||'[]'}))`,FC]
+G.vue_x_chat=b=>[`(await vue_x('dialogue','Dialogue AI').chat(${T(b,'W')},${T(b,'T')},${T(b,'P')}))`,FC]
+G.vue_x_voice=b=>`await vue_x('voice','Kokoro Voice').say(${T(b,'T')},{voice:${J(F(b,'V'))},entity:self});\n`
+G.vue_x_pad=b=>[`!!vue_x('pad','Gamepad').button(${J(F(b,'B'))})`,Order.LOGICAL_NOT]
+G.vue_x_axis=b=>[`(+vue_x('pad','Gamepad').axis(${J(F(b,'A'))})||0)`,FC]
+G.vue_x_rumble=b=>`vue_x('pad','Gamepad').vibrate(${V(b,'M')});\n`
+G.vue_x_host=()=>`vue.hud('Room',await vue_x('net','Multiplayer').host());\n`
+G.vue_x_join=b=>`await vue_x('net','Multiplayer').join(${T(b,'C')});\n`
+G.vue_x_rep=()=>`vue_x('net','Multiplayer').replicate(self);\n`
+G.vue_x_send=b=>`vue_x('net','Multiplayer').send(${J(F(b,'M'))},${N(b,'D')});\n`
+G.vue_x_post=b=>`vue_x('post','Post Processing').set(${J(F(b,'K'))},${V(b,'V')});\n`
+G.vue_x_flash=b=>`vue_x('post','Post Processing').flash(${J(F(b,'C'))},${V(b,'S')});\n`
+G.vue_x_call=b=>`await vue_x(${J(F(b,'NS'))},${J(F(b,'NS'))})[${J(F(b,'FN'))}](${N(b,'A')});\n`
+G.vue_x_get=b=>[`vue_x(${J(F(b,'NS'))},${J(F(b,'NS'))})[${J(F(b,'K'))}]`,M]
 G.vue_wait=b=>`await vue.wait(${V(b,'S')});\n`
 G.vue_wait_until=b=>`while(!(${V(b,'C')}))await vue.frame();\n`
 G.vue_after=b=>`vue.after(${V(b,'S')},${fnh('',S(b,'DO'))});\n`
@@ -353,7 +400,7 @@ const cr=G.procedures_callreturn
 if(cr)G.procedures_callreturn=(b,g)=>{const r=cr(b,g);return['(await '+r[0]+')',A]}
 return {toolbox:toolbox()}
 }
-const PRE='const vue_e=v=>typeof v==="string"?vue.find(v):v;\n'
+const PRE='const vue_e=v=>typeof v==="string"?vue.find(v):v;\nconst vue_x=(n,t)=>vue[n]||(vue.warn("Turn on the "+t+" extension to use this block"),new Proxy(function(){},{get:(a,k)=>k==="then"?undefined:vue_x(n,t),apply:()=>undefined}));\n'
 function compile(json,Blockly,gen){
 const ws=new Blockly.Workspace()
 try{

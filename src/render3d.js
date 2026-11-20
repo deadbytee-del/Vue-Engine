@@ -3,7 +3,7 @@ const D=Math.PI/180
 class Render3D{
 constructor(T,parent,before){
 this.T=T
-this.r=new T.WebGLRenderer({antialias:true})
+this.r=new T.WebGLRenderer({antialias:true,alpha:!!root.VUE_GL_ALPHA})
 this.r.shadowMap.enabled=true
 this.r.shadowMap.type=T.PCFSoftShadowMap
 this.r.outputEncoding=T.sRGBEncoding
@@ -145,14 +145,15 @@ this.scene.add(this.helper)
 }
 render(c,bg){
 const T=this.T
-if(bg!==this.bg){this.scene.background=new T.Color(bg);this.scene.fog=this.editor?null:new T.Fog(new T.Color(bg),60,220);this.bg=bg}
+if(bg!==this.bg&&!this.skyLock){this.scene.background=new T.Color(bg);this.scene.fog=this.editor?null:new T.Fog(new T.Color(bg),60,220);this.bg=bg}
 if(this.grid)this.grid.visible=this.editor&&this.gridOn!==false
 const cam=this.cam
 cam.fov=c.fov||70
 cam.position.set(c.x,c.y,c.z)
 cam.lookAt(c.tx,c.ty,c.tz)
 cam.updateProjectionMatrix()
-this.sun.position.set(c.tx+22,c.ty+40,c.tz+14)
+const sd=this.sunDir||[22,40,14]
+this.sun.position.set(c.tx+sd[0],c.ty+sd[1],c.tz+sd[2])
 this.sun.target.position.set(c.tx,c.ty,c.tz)
 if(this.helper)this.helper.update()
 this.r.render(this.scene,cam)

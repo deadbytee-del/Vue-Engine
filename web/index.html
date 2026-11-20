@@ -16,25 +16,31 @@
 <div id="hub">
 <nav class="hub-rail">
 <img class="hub-logo" src="logo.png" alt="Vue Engine">
-<button class="hub-nav on" data-hub="new"><span data-ic="sparkles"></span>New project</button>
-<button class="hub-nav" data-hub="recent"><span data-ic="clock"></span>Recent</button>
-<button class="hub-nav" data-hub="learn"><span data-ic="book"></span>Learn</button>
-<div class="hub-foot"><button id="hubOpen" class="btn"><span data-ic="folder"></span>Open project…</button><button id="hubBack" class="btn ghost"><span data-ic="x"></span>Back to editor</button><span id="hubVer"></span></div>
+<button class="hub-nav on" data-hub="home"><span data-ic="home" data-s="18"></span><span>Home</span></button>
+<button class="hub-nav" data-hub="projects"><span data-ic="projects" data-s="18"></span><span>Projects</span></button>
+<button class="hub-nav" data-hub="templates"><span data-ic="templates" data-s="18"></span><span>Templates</span></button>
+<button class="hub-nav" data-hub="ext"><span data-ic="puzzle" data-s="18"></span><span>Extensions</span><i id="extCount"></i></button>
+<button class="hub-nav" data-hub="settings"><span data-ic="settings" data-s="18"></span><span>Settings</span></button>
+<button class="hub-nav" data-hub="about"><span data-ic="info" data-s="18"></span><span>About</span></button>
+<div class="hub-foot"><span id="hubVer"></span></div>
 </nav>
 <main class="hub-main">
-<section data-pane="new" class="on">
-<h1>Start something new</h1>
-<p class="sub">Every template is a playable game you can take apart. Mix Blocks, Nodes and Code in one project.</p>
-<div id="tplGrid" class="cards"></div>
-<h2>Recent</h2>
+<section data-pane="home" class="on">
+<div class="hero">
+<div><h1 id="hubHello">Welcome to Vue Engine</h1><p class="sub">Build 2D and 3D games with Blocks, Nodes and TypeScript. Every template is a playable game you can take apart.</p></div>
+<div class="hero-a"><button id="hubBack" class="btn ghost"><span data-ic="x"></span>Back to editor</button><button id="hubOpen" class="btn"><span data-ic="folder"></span>Open project…</button></div>
+</div>
+<div class="quick">
+<button class="qa" data-q="2d"><span class="qi" data-ic="square" data-s="22"></span><b>New 2D game</b><small>Empty 2D scene with physics</small></button>
+<button class="qa" data-q="3d"><span class="qi" data-ic="cube" data-s="22"></span><b>New 3D game</b><small>Ground, light and sky</small></button>
+<button class="qa" data-q="kit"><span class="qi" data-ic="sparkles" data-s="22"></span><b>Adventure Kit</b><small>Tiles, animation, cutscenes</small></button>
+<button class="qa" data-q="ext"><span class="qi" data-ic="puzzle" data-s="22"></span><b>Get extensions</b><small>VR, multiplayer, weather and more</small></button>
+</div>
+<div class="sh"><h2>Continue</h2><button class="lk" data-go="projects">All projects<span data-ic="chevr" data-s="14"></span></button></div>
 <div id="recentMini" class="cards small"></div>
-</section>
-<section data-pane="recent">
-<h1>Recent projects</h1>
-<div id="recentGrid" class="cards"></div>
-</section>
-<section data-pane="learn">
-<h1>Learn Vue Engine</h1>
+<div class="sh"><h2>Templates</h2><button class="lk" data-go="templates">All templates<span data-ic="chevr" data-s="14"></span></button></div>
+<div id="tplMini" class="cards"></div>
+<div class="sh"><h2>Learn the basics</h2></div>
 <div class="learn">
 <div class="lcard"><span data-ic="blocks"></span><h3>Blocks</h3><p>Drag event hats like <b>when game starts</b> or <b>every frame</b>, snap actions under them. Great for first games.</p></div>
 <div class="lcard"><span data-ic="nodes"></span><h3>Nodes</h3><p>Wire white execution pins to run steps in order and coloured data pins to feed values. Right-click the canvas to add nodes.</p></div>
@@ -49,7 +55,28 @@
 <div class="lcard"><span data-ic="export"></span><h3>Ship it</h3><p>Export builds a single HTML file that runs anywhere: itch.io, GitHub Pages, or a friend's browser.</p></div>
 </div>
 </section>
+<section data-pane="projects">
+<div class="ph2"><div><h1>Projects</h1><p class="sub">Everything you have saved or opened, newest first.</p></div><div class="hero-a"><div class="sbox"><span data-ic="search" data-s="14"></span><input id="projQ" placeholder="Search projects"></div><button id="hubOpen2" class="btn"><span data-ic="folder"></span>Open…</button></div></div>
+<div id="recentGrid" class="cards small"></div>
+</section>
+<section data-pane="templates">
+<div class="ph2"><div><h1>Templates</h1><p class="sub">Pick a starting point. Each one plays right away.</p></div><div class="chips" id="tplF"><button class="chip on" data-f="">All</button><button class="chip" data-f="2D">2D</button><button class="chip" data-f="3D">3D</button></div></div>
+<div id="tplGrid" class="cards"></div>
+</section>
+<section data-pane="ext">
+<div class="ph2"><div><h1>Extensions</h1><p class="sub" id="extSub">Download features into Vue Engine, then switch them on per project.</p></div><div class="hero-a"><div class="sbox"><span data-ic="search" data-s="14"></span><input id="extQ" placeholder="Search extensions"></div><button id="extRefresh" class="btn ghost" title="Check for updates"><span data-ic="refresh"></span></button></div></div>
+<div class="extbar"><div class="seg" id="extTab"><button class="on" data-t="all">Browse</button><button data-t="inst">Installed</button><button data-t="proj">In this project</button></div><div class="chips" id="extCat"></div></div>
+<div id="extGrid" class="egrid"></div>
+</section>
+<section data-pane="settings">
+<div class="ph2"><div><h1>Settings</h1><p class="sub">Preferences for this computer. Project options live in the Inspector.</p></div></div>
+<div id="setBox" class="setbox"></div>
+</section>
+<section data-pane="about">
+<div id="aboutBox"></div>
+</section>
 </main>
+<div id="extDetail" class="drawer"></div>
 </div>
 <div id="app">
 <header id="tb">

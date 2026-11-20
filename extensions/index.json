@@ -1,0 +1,504 @@
+{
+ "version": 1,
+ "extensions": [
+  {
+   "id": "ar",
+   "name": "AR",
+   "ns": "ar",
+   "cat": "XR",
+   "icon": "scan",
+   "version": "1.0.0",
+   "modes": "3d",
+   "requires": [],
+   "desc": "Places your 3D scene on real tables and floors through WebXR augmented reality on Android phones and AR headsets. Tap to anchor the world, then play on top of the real room.",
+   "defaults": {
+    "scale": 20
+   },
+   "example": "export function start() {\nvue.ar.scale(30)\n}\nexport function update(dt: number) {\nif (vue.ar.placed) self.ry += 40 * dt\n}",
+   "file": "ar.js",
+   "size": 3232
+  },
+  {
+   "id": "behaviortree",
+   "name": "Behavior Trees",
+   "ns": "bt",
+   "cat": "AI",
+   "icon": "git-branch",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "Structured enemy and NPC brains: sequences, selectors, conditions, actions, waits, repeats, inverters and parallel nodes with a per-entity blackboard. Trees tick every frame and keep running actions across frames.",
+   "defaults": {},
+   "example": "const B = vue.bt\nexport function start() {\nB.run(self, B.sel(\nB.seq(B.cond(e => vue.dist(e, 'Player') < 200), B.act(e => { e.vx = (vue.find('Player').x - e.x) > 0 ? 160 : -160; return 'running' })),\nB.seq(B.act(e => { e.vx = 0 }), B.wait(1))\n))\n}",
+   "file": "behaviortree.js",
+   "size": 2930
+  },
+  {
+   "id": "crowd",
+   "name": "Crowd Simulation",
+   "ns": "crowd",
+   "cat": "AI",
+   "icon": "users",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "Flocking crowds, herds and swarms. Agents keep their distance, move together, flow toward goals and push around obstacles, scaling to thousands with a spatial grid.",
+   "defaults": {},
+   "example": "export function start() {\nconst flock = vue.crowd.add('sheep', { speed: 90 })\nvue.crowd.flee(flock, 'Dog', 200)\n}",
+   "file": "crowd.js",
+   "size": 2969
+  },
+  {
+   "id": "daynight",
+   "name": "Day/Night Cycle",
+   "ns": "day",
+   "cat": "World",
+   "icon": "sun",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "A full sun and moon cycle. 3D scenes move the sun, recolor the sky, fog and light; 2D scenes get dusk and night grading, stars, and glowing lights on anything tagged \"light\".",
+   "defaults": {
+    "length": 180,
+    "start": 0.3,
+    "auto": true,
+    "lightTag": "light"
+   },
+   "example": "export function start() {\nvue.day.setHour(18)\nvue.day.speed(120)\n}\nexport function update(dt: number) {\nvue.hud('Time', Math.floor(vue.day.hour) + ':00')\n}",
+   "file": "daynight.js",
+   "size": 2821
+  },
+  {
+   "id": "destruct",
+   "name": "Destructible World",
+   "ns": "destruct",
+   "cat": "World",
+   "icon": "bomb",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "Break things apart. Shatter any entity into physical debris, blast craters into solid tilemaps, and push nearby bodies away from explosions. Anything tagged \"breakable\" caught in a blast shatters too.",
+   "defaults": {
+    "life": 2.2,
+    "debris": true
+   },
+   "example": "export function click() {\nvue.destruct.explode(self.x, self.y, 120)\n}\nexport function collide(other: any) {\nif (other.hasTag('bullet')) vue.destruct.shatter(self, { pieces: 12 })\n}",
+   "file": "destruct.js",
+   "size": 3415
+  },
+  {
+   "id": "dialogue",
+   "name": "Dialogue AI",
+   "ns": "dialogue",
+   "cat": "AI",
+   "icon": "message",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "A polished dialogue box with typewriter text, speaker names and branching choices, plus live AI conversations: give an NPC a personality and players can talk to it in their own words. AI replies use Puter, which is free and needs no API key.",
+   "defaults": {
+    "speed": 45,
+    "box": "#110f19",
+    "accent": "#9d5cff",
+    "model": "gpt-4o-mini"
+   },
+   "example": "export async function click() {\nawait vue.dialogue.say('Mira', 'You made it through the forest!')\nconst pick = await vue.dialogue.ask('Mira', 'Need anything?', ['A map', 'Nothing'])\nconst line = await vue.dialogue.input('You', 'Ask Mira anything')\nawait vue.dialogue.say('Mira', await vue.dialogue.chat('Mira', line, 'You are Mira, a cheerful forest guide.'))\n}",
+   "file": "dialogue.js",
+   "size": 5674
+  },
+  {
+   "id": "director",
+   "name": "AI Director",
+   "ns": "director",
+   "cat": "AI",
+   "icon": "activity",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "Paces your game like a horror or horde director. Tracks player stress, cycles calm, build-up, peak and relief phases, and spawns enemies off screen at the right moments so fights never feel flat or overwhelming.",
+   "defaults": {
+    "calm": 18,
+    "build": 22,
+    "peak": 10,
+    "relax": 12,
+    "decay": 6,
+    "peakAt": 70,
+    "max": 100
+   },
+   "example": "export function start() {\nvue.director.spawner('Zombie', { max: 12, tag: 'zombie', around: 'Player' })\nvue.director.onPhase(p => vue.hud('Threat', p))\n}\nexport function collide(other: any) {\nif (other.hasTag('zombie')) vue.director.stress(15)\n}",
+   "file": "director.js",
+   "size": 2416
+  },
+  {
+   "id": "gamepad",
+   "name": "Gamepad",
+   "ns": "pad",
+   "cat": "Input",
+   "icon": "gamepad",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "Xbox, PlayStation and Switch controllers. Sticks and buttons drive your keyboard controls automatically, with rumble and per-button reads for custom mappings.",
+   "defaults": {
+    "map": true,
+    "dead": 0.25
+   },
+   "example": "export function update(dt: number) {\nself.vx = vue.pad.axis('lx') * 240\nif (vue.pad.pressed('a')) self.vy = -600\nif (vue.pad.pressed('x')) vue.pad.vibrate(150, 0.6)\n}",
+   "file": "gamepad.js",
+   "size": 2476
+  },
+  {
+   "id": "handtracking",
+   "name": "Hand Tracking",
+   "ns": "hands",
+   "cat": "XR",
+   "icon": "hand",
+   "version": "1.0.0",
+   "modes": "3d",
+   "requires": [
+    "vr"
+   ],
+   "desc": "Tracks both hands in VR with all 25 joints per hand. Read fingertip positions and detect pinches to grab, point and press without controllers.",
+   "defaults": {
+    "show": true,
+    "pinch": 0.025
+   },
+   "example": "export function update(dt: number) {\nif (vue.hands.pinch('right')) {\nconst p = vue.hands.tip('right', 'index')\nif (p) { self.x = p.x; self.y = p.y; self.z = p.z }\n}\n}",
+   "file": "handtracking.js",
+   "size": 1476
+  },
+  {
+   "id": "kokorovoice",
+   "name": "Kokoro Voice",
+   "ns": "voice",
+   "cat": "Audio",
+   "icon": "mic",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "Natural AI voices from the open Kokoro-82M model, generated on the player's device with no server or key. Make any NPC speak any line, with 3D panning from the speaker. Falls back to the system voice while the model downloads.",
+   "defaults": {
+    "voice": "af_heart",
+    "speed": 1,
+    "dtype": "q8",
+    "volume": 1,
+    "preload": false
+   },
+   "example": "export async function click() {\nawait vue.voice.say('Welcome, traveler. The gate opens at dawn.', { voice: 'bm_george', entity: self })\n}",
+   "file": "kokorovoice.js",
+   "size": 3010
+  },
+  {
+   "id": "mblur",
+   "name": "Motion Blur",
+   "ns": "blur",
+   "cat": "Rendering",
+   "icon": "wind",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "Camera motion blur that streaks along the direction the view is moving, plus per-object trails for fast movers. Scales with frame rate so it looks the same at 60 and 144 Hz.",
+   "defaults": {
+    "strength": 0.6,
+    "samples": 6,
+    "trails": 0.35
+   },
+   "example": "export function start() {\nvue.blur.strength(0.8)\nvue.blur.trails(0.4)\n}",
+   "file": "mblur.js",
+   "size": 2224
+  },
+  {
+   "id": "multiplayer",
+   "name": "Multiplayer",
+   "ns": "net",
+   "cat": "Networking",
+   "icon": "globe",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "Online multiplayer over peer-to-peer WebRTC with no server to run. Host a room, share the 5-letter code, and friends join from any browser. Includes messages, shared state, join and leave events and automatic entity replication with smoothing.",
+   "defaults": {
+    "rate": 20,
+    "smooth": 14,
+    "prefix": "vue-"
+   },
+   "example": "export async function start() {\nconst code = await vue.net.host()\nvue.hud('Room', code)\nvue.net.replicate(self)\nvue.net.on('chat', (msg, from) => vue.log(from, msg))\n}",
+   "file": "multiplayer.js",
+   "size": 5948
+  },
+  {
+   "id": "navmesh",
+   "name": "NavMesh & Pathfinding",
+   "ns": "nav",
+   "cat": "AI",
+   "icon": "route",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "Builds a walkable navigation grid from your static bodies and solid tiles, then finds smooth A* paths around them. Send any entity to a point or another entity and it steers there, re-planning when the world changes.",
+   "defaults": {
+    "cell": 0,
+    "margin": 0,
+    "agentHeight": 1.8,
+    "diagonal": true,
+    "rebuild": 1
+   },
+   "example": "export function start() {\nvue.every(1, () => vue.nav.go(self, 'Player', 140))\n}",
+   "file": "navmesh.js",
+   "size": 6464
+  },
+  {
+   "id": "particles",
+   "name": "Particle FX",
+   "ns": "fx",
+   "cat": "Effects",
+   "icon": "sparkles",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "GPU-friendly particle systems for 2D and 3D: continuous emitters and one-shot bursts with gravity, drag, size and color over life, additive glow and presets for fire, smoke, sparks, magic, explosions and dust.",
+   "defaults": {
+    "max": 20000
+   },
+   "example": "export function start() {\nvue.fx.emitter('fire', { follow: self, oy: -10 })\n}\nexport function click() {\nvue.fx.burst(self.x, self.y, 'explosion')\n}",
+   "file": "particles.js",
+   "size": 6507
+  },
+  {
+   "id": "pbr",
+   "name": "PBR",
+   "ns": "pbr",
+   "cat": "Rendering",
+   "icon": "sparkles",
+   "version": "1.0.0",
+   "modes": "3d",
+   "requires": [],
+   "desc": "Physically based rendering: image-based sky lighting, ACES filmic tone mapping and per-object metalness, roughness and glow. Metals reflect the sky and colors stay natural in bright scenes.",
+   "defaults": {
+    "exposure": 1,
+    "envIntensity": 1,
+    "sky": "#9ec9ff",
+    "ground": "#4a4038"
+   },
+   "example": "export function start() {\nvue.pbr.material(self, { metalness: 1, roughness: 0.2 })\nvue.pbr.tag('lava', { emissive: '#ff5a1f', glow: 2 })\n}",
+   "file": "pbr.js",
+   "size": 2079
+  },
+  {
+   "id": "postfx",
+   "name": "Post Processing",
+   "ns": "post",
+   "cat": "Rendering",
+   "icon": "aperture",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "Screen effects for 2D and 3D: bloom, color grading, vignette, film grain, scanlines and chromatic fringe. Change any of them live from scripts for hit flashes, slow-mo or flashbacks.",
+   "defaults": {
+    "bloom": 0.45,
+    "threshold": 0.6,
+    "vignette": 0.35,
+    "grain": 0.04,
+    "scanlines": 0,
+    "chroma": 0,
+    "saturation": 1.1,
+    "contrast": 1.05,
+    "brightness": 1,
+    "hue": 0,
+    "tint": ""
+   },
+   "example": "export function collide(other: any) {\nvue.post.flash('#ff3355', 0.25)\nvue.post.set({ saturation: 0.4, vignette: 0.6 })\nvue.after(1, () => vue.post.set({ saturation: 1.1, vignette: 0.35 }))\n}",
+   "file": "postfx.js",
+   "size": 3859
+  },
+  {
+   "id": "shadows",
+   "name": "Advanced Shadows",
+   "ns": "shadows",
+   "cat": "Rendering",
+   "icon": "sun",
+   "version": "1.0.0",
+   "modes": "3d",
+   "requires": [],
+   "desc": "Soft variance shadows at up to 4096px that follow the camera, shadow-casting point lights and per-object control. Crisp up close, soft at the edges, no acne.",
+   "defaults": {
+    "size": 4096,
+    "range": 40,
+    "softness": 4,
+    "pointShadows": true
+   },
+   "example": "export function start() {\nvue.shadows.range(60)\nvue.shadows.softness(6)\n}",
+   "file": "shadows.js",
+   "size": 1300
+  },
+  {
+   "id": "streaming",
+   "name": "World Streaming",
+   "ns": "stream",
+   "cat": "World",
+   "icon": "layers",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "Keeps huge levels fast by putting far-away entities to sleep. Anything outside the streaming radius stops rendering, colliding and running physics until the camera comes back. Tag an entity \"always\" to keep it awake.",
+   "defaults": {
+    "radius": 0,
+    "interval": 0.25,
+    "keep": "always"
+   },
+   "example": "export function start() {\nvue.stream.radius(1800)\n}\nexport function update(dt: number) {\nvue.hud('Awake', vue.stream.active)\n}",
+   "file": "streaming.js",
+   "size": 1616
+  },
+  {
+   "id": "terrain",
+   "name": "Procedural Terrain",
+   "ns": "terrain",
+   "cat": "World",
+   "icon": "mountain",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "Seeded terrain generation. 2D fills a tilemap with hills, caves, grass, dirt and stone. 3D builds a smooth height-mapped landscape with sand, grass, rock and snow, and keeps every body standing on it.",
+   "defaults": {},
+   "example": "export function start() {\nvue.terrain.generate('Ground', { width: 200, seed: 7, caves: 0.4 })\n}\n// 3D: vue.terrain.generate3({ size: 200, height: 16, seed: 3 })",
+   "file": "terrain.js",
+   "size": 3361
+  },
+  {
+   "id": "touch",
+   "name": "Touch",
+   "ns": "touch",
+   "cat": "Input",
+   "icon": "hand",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "On-screen joystick and buttons for phones and tablets. They press the same keys your game already uses, so mobile ports work with no script changes.",
+   "defaults": {
+    "always": false,
+    "buttons": [
+     {
+      "key": "space",
+      "label": "A"
+     },
+     {
+      "key": "e",
+      "label": "B"
+     }
+    ],
+    "stickKeys": "wasd",
+    "size": 1
+   },
+   "example": "export function start() {\nvue.touch.buttons([{ key: 'space', label: 'Jump' }, { key: 'e', label: 'Use' }])\n}",
+   "file": "touch.js",
+   "size": 3419
+  },
+  {
+   "id": "voicechat",
+   "name": "Voice Chat",
+   "ns": "vc",
+   "cat": "Networking",
+   "icon": "mic",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [
+    "multiplayer"
+   ],
+   "desc": "Live voice between players in a Multiplayer room, with push-to-talk, mute, and optional proximity so voices fade with distance between replicated players.",
+   "defaults": {
+    "proximity": false,
+    "range": 0,
+    "pushToTalk": "",
+    "volume": 1
+   },
+   "example": "export async function start() {\nawait vue.vc.start()\n}\nexport function update(dt: number) {\nif (vue.pressed('m')) vue.vc.mute(!vue.vc.talking)\n}",
+   "file": "voicechat.js",
+   "size": 2577
+  },
+  {
+   "id": "volumetrics",
+   "name": "Volumetrics",
+   "ns": "volume",
+   "cat": "Rendering",
+   "icon": "cloud",
+   "version": "1.0.0",
+   "modes": "3d",
+   "requires": [],
+   "desc": "Volumetric light scattering: god rays stream around anything that blocks the sun, plus exponential fog that thickens with distance. Rendered on the GPU with a radial scattering pass.",
+   "defaults": {
+    "rays": 0.85,
+    "decay": 0.965,
+    "density": 0.012,
+    "fog": 0.018,
+    "samples": 60,
+    "sunColor": "#fff1d6"
+   },
+   "example": "export function start() {\nvue.volume.rays(1)\nvue.volume.fog(0.02)\n}",
+   "file": "volumetrics.js",
+   "size": 3169
+  },
+  {
+   "id": "vr",
+   "name": "VR",
+   "ns": "xr",
+   "cat": "XR",
+   "icon": "glasses",
+   "version": "1.0.0",
+   "modes": "3d",
+   "requires": [],
+   "desc": "Play 3D scenes in a headset through WebXR. PC VR headsets run through their OpenXR runtime (SteamVR, Meta Link, Windows Mixed Reality) and standalone headsets run it in their browser. Controllers drive WASD, jump and turning.",
+   "defaults": {
+    "snapTurn": 30,
+    "eye": 1.6,
+    "moveKeys": true
+   },
+   "example": "export function start() {\nvue.follow(self, 6, 1.6)\n}\nexport function update(dt: number) {\nconst r = vue.xr.controller(1)\nif (r && r.trigger > 0.5) vue.emit('fire')\n}",
+   "file": "vr.js",
+   "size": 3707
+  },
+  {
+   "id": "water",
+   "name": "Advanced Water",
+   "ns": "water",
+   "cat": "World",
+   "icon": "waves",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "Tag any entity \"water\" to turn it into animated water. 3D gets layered waves, Fresnel reflections, sun glints and foam; 2D gets a rolling surface and bubbles. Bodies inside float, drift and slow down.",
+   "defaults": {
+    "tag": "water",
+    "color": "#1f7fbf",
+    "deep": "#0a3a63",
+    "waves": 1,
+    "buoyancy": 1,
+    "drag": 2.5
+   },
+   "example": "// Tag a box or rectangle \"water\" in the Inspector\nexport function update(dt: number) {\nif (self.wet) vue.hud('Status', 'Swimming')\n}",
+   "file": "water.js",
+   "size": 4524
+  },
+  {
+   "id": "weather",
+   "name": "Weather System",
+   "ns": "weather",
+   "cat": "World",
+   "icon": "cloud",
+   "version": "1.0.0",
+   "modes": "2d3d",
+   "requires": [],
+   "desc": "Rain, snow, storms with lightning and thunder, and rolling fog, with wind and smooth transitions between states. Works in 2D and 3D and can change on a timer or from scripts.",
+   "defaults": {
+    "type": "clear",
+    "intensity": 1,
+    "wind": 0.2,
+    "auto": false,
+    "thunder": true
+   },
+   "example": "export function start() {\nvue.weather.set('storm', 1)\nvue.weather.wind(0.4)\nvue.after(30, () => vue.weather.set('clear'))\n}",
+   "file": "weather.js",
+   "size": 4021
+  }
+ ]
+}

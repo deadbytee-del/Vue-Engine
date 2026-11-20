@@ -17,6 +17,8 @@ else e.setAttribute(k,v)
 for(const x of c)if(x!=null&&x!==false)e.append(x)
 return e
 }
+const CORES=[['vwr','VWR (fastest)'],['vwr-steady','VWR Steady'],['js','JavaScript']]
+const CORE_HINT={vwr:'C++ and Rust core compiled to WebAssembly. Bodies that are fully at rest are skipped, so settled scenes cost almost nothing. Same results as JavaScript.','vwr-steady':'WebAssembly core that simulates every body every step. Frame cost stays constant no matter what is moving.',js:'Reference JavaScript core. Use it to compare results or when debugging physics.'}
 const icons=root=>{for(const s of(root||document).querySelectorAll('[data-ic]')){if(s.firstChild)continue;s.innerHTML=ic(s.dataset.ic,+s.dataset.s||16)}}
 const D=Math.PI/180
 const clone=o=>JSON.parse(JSON.stringify(o))
@@ -67,7 +69,7 @@ status()
 let saveT=0
 function scheduleSave(){
 clearTimeout(saveT)
-saveT=setTimeout(()=>{ls.set('vue.autosave',{project:S.project,path:S.path});S.autoAt=Date.now();status()},700)
+saveT=setTimeout(()=>{if(PREFS.autosave===false)return;ls.set('vue.autosave',{project:S.project,path:S.path});S.autoAt=Date.now();status()},700)
 }
 function ago(t){
 const s=Math.round((Date.now()-t)/1000)
@@ -84,7 +86,7 @@ sv.classList.toggle('dirty',S.dirty)
 sv.querySelector('b').textContent=S.dirty?(S.path?'Unsaved changes':'Not saved to a file yet'):S.savedAt?'Saved · '+ago(S.savedAt):'Saved'
 const sc=scene(),d=selData()
 $('#stScene').textContent=sc.name+' · '+(is3()?'3D':'2D')+' · '+sc.entities.length+' entities'+(d?' · '+d.name+' selected':'')
-$('#stVer').textContent=(S.project.settings.core==='js'||!(window.VWR&&VWR.exports)?'JS core':'VWR core')+' · Vue Engine '+S.version
+$('#stVer').textContent=(S.project.settings.core==='js'||!(window.VWR&&VWR.exports)?'JS core':S.project.settings.core==='vwr-steady'?'VWR Steady core':'VWR core')+' · Vue Engine '+S.version
 const e=S.logs.filter(l=>l.level==='error').reduce((a,l)=>a+l.count,0),w=S.logs.filter(l=>l.level==='warn').reduce((a,l)=>a+l.count,0)
 $('#stErr').innerHTML=(e?'<span class="e">'+e+' error'+(e>1?'s':'')+'</span>':'')+(w?'<span class="w">'+w+' warning'+(w>1?'s':'')+'</span>':'')
 $('#pname').textContent=S.project.name
@@ -1305,8 +1307,11 @@ row('Title',bind(p,'name','text',status)),
 row('Resolution',h('div',{class:'vec',style:'grid-template-columns:repeat(2,1fr)'},axIn(p.settings,'width','W'),axIn(p.settings,'height','H'))),
 row('Pixel art',bind(p.settings,'pixelArt','bool',()=>{S.game.pixel=p.settings.pixelArt;S.game.ctx.imageSmoothingEnabled=!S.game.pixel})),
 row('Start scene',ss),
-row('Engine core',(()=>{const c=h('select');c.append(h('option',{value:'vwr',text:'VWR (WebAssembly, fastest)'}),h('option',{value:'js',text:'JavaScript'}));c.value=p.settings.core==='js'?'js':'vwr';c.addEventListener('change',()=>{snap();p.settings.core=c.value;status()});return c})()),
-h('div',{class:'hint',text:window.VWR&&VWR.exports?'VWR runs physics in a C++ and Rust core compiled to WebAssembly. Same results as JavaScript, about 1.5 to 2x faster on big scenes.':'VWR is not available here, so JavaScript runs physics.'})
+row('Engine core',(()=>{const c=h('select');for(const[k,t]of CORES)c.append(h('option',{value:k,text:t}));c.value=CORES.some(x=>x[0]===p.settings.core)?p.settings.core:'vwr';c.addEventListener('change',()=>{snap();p.settings.core=c.value;status();buildInspector()});return c})()),
+h('div',{class:'hint',text:window.VWR&&VWR.exports?(CORE_HINT[p.settings.core]||CORE_HINT.vwr):'WebAssembly is not available here, so the JavaScript core runs physics.'}),
+row('Smooth motion',(()=>{const c=h('input',{type:'checkbox',class:'sw'});c.checked=p.settings.smooth!==false;c.addEventListener('change',()=>{snap();p.settings.smooth=c.checked});return c})()),
+h('div',{class:'hint',text:'Draws between physics steps so motion stays fluid on 120 and 144 Hz screens.'}),
+row('Extensions',h('div',{class:'xchips'},...(p.extensions||[]).map(id=>{const m=extMeta(id);return h('button',{class:'xchip',title:'Open '+(m?m.name:id),html:ic(m&&m.icon||'puzzle',12)+'<span>'+(m?m.name:id).replace(/[<>&]/g,'')+'</span>',onclick:()=>{showHub('ext');extOpen(id)}})}),h('button',{class:'xchip add',html:ic('plus',12)+'<span>Add</span>',onclick:()=>{X.tab='all';showHub('ext')}}))),
 ]))
 box.append(h('div',{class:'hint',style:'padding:4px',text:'Select an entity to edit it. Shift+A adds one, Ctrl+P finds anything.'}))
 }
@@ -1369,7 +1374,7 @@ ts.typescriptDefaults.setCompilerOptions({target:ts.ScriptTarget.ES2020,lib:['es
 ts.typescriptDefaults.addExtraLib(VueDTS.dts,'file:///vue.d.ts')
 m.editor.defineTheme('vue',{base:'vs-dark',inherit:true,rules:[{token:'keyword',foreground:'c792ff'},{token:'string',foreground:'ff9de2'},{token:'number',foreground:'3ddc84'},{token:'comment',foreground:'6b6385',fontStyle:'italic'},{token:'type',foreground:'7dd3fc'},{token:'identifier',foreground:'ece8f6'}],colors:{'editor.background':'#0a0910','editor.foreground':'#ece8f6','editor.lineHighlightBackground':'#16131f','editor.lineHighlightBorder':'#00000000','editorLineNumber.foreground':'#4a4262','editorLineNumber.activeForeground':'#9d5cff','editor.selectionBackground':'#7b2bd966','editor.inactiveSelectionBackground':'#7b2bd933','editorCursor.foreground':'#b98aff','editorIndentGuide.background1':'#1d1929','editorWidget.background':'#171422','editorWidget.border':'#3a3050','editorSuggestWidget.background':'#171422','editorSuggestWidget.border':'#3a3050','editorSuggestWidget.selectedBackground':'#7b2bd9','editorHoverWidget.background':'#171422','editorHoverWidget.border':'#3a3050','scrollbarSlider.background':'#2a233880','scrollbarSlider.hoverBackground':'#3a3050'}})
 const model=m.editor.createModel('','typescript',m.Uri.parse('file:///script.ts'))
-const ed=m.editor.create($('#code'),{model,theme:'vue',minimap:{enabled:false},fontSize:14,fontFamily:"'JetBrains Mono',Consolas,monospace",fontLigatures:true,automaticLayout:true,scrollBeyondLastLine:false,tabSize:2,padding:{top:14},smoothScrolling:true,cursorBlinking:'smooth',cursorSmoothCaretAnimation:'on',renderLineHighlight:'all',bracketPairColorization:{enabled:true}})
+const ed=m.editor.create($('#code'),{model,theme:'vue',minimap:{enabled:false},stickyScroll:{enabled:false},fontSize:14,fontFamily:"'JetBrains Mono',Consolas,monospace",fontLigatures:true,automaticLayout:true,scrollBeyondLastLine:false,tabSize:2,padding:{top:14},smoothScrolling:true,cursorBlinking:'smooth',cursorSmoothCaretAnimation:'on',renderLineHighlight:'all',bracketPairColorization:{enabled:true}})
 model.onDidChangeContent(()=>onChange(model.getValue()))
 S.code={set:v=>{S.loading=true;model.setValue(v);S.loading=false},layout:()=>ed.layout()}
 }else{
@@ -1451,6 +1456,7 @@ if(ov){S.ws.cleanUp();s.blocks=Blockly.serialization.workspaces.save(S.ws)}
 Blockly.Events.enable()
 S.loading=false
 Blockly.svgResize(S.ws)
+requestAnimationFrame(()=>{const bb=S.ws.getBlocksBoundingBox(),k=S.ws.scale;if(bb&&isFinite(bb.left))S.ws.scroll(28-bb.left*k,28-bb.top*k)})
 }else if(m==='nodes'){
 ensureNodes()
 if(!s.nodes)s.nodes={nid:1,nodes:[],links:[]}
@@ -1478,7 +1484,7 @@ async function build(preview){
 const r=await VueCompiler.compileProject(S.project,compileEnv())
 const proj=preview?Object.assign({},S.project,{_preview:preview}):S.project
 for(const e of r.errors){const i=e.indexOf(': ');log('error',i>0?e.slice(i+2):e,i>0?e.slice(0,i):'')}
-const rt=await host.runtimeSource()
+const rt=await gameRuntime()
 const three=S.project.scenes.some(s=>s.mode==='3d')?await host.threeSource():''
 return{html:VuePlayer.html(proj,r.scripts,rt,S.project.name,three),errors:r.errors}
 }
@@ -1496,7 +1502,7 @@ log('info','Playing '+S.project.name+(errors.length?' with '+errors.length+' scr
 const o=$('#frame'),f=document.createElement('iframe')
 f.id='frame'
 f.setAttribute('sandbox','allow-scripts allow-pointer-lock')
-f.setAttribute('allow','autoplay; fullscreen; gamepad')
+f.setAttribute('allow','autoplay; fullscreen; gamepad; microphone; xr-spatial-tracking')
 o.replaceWith(f)
 f.onload=()=>f.focus()
 f.srcdoc=html
@@ -1625,10 +1631,10 @@ function recent(){return ls.get('vue.recent',[])}
 function menus(){
 const rec=recent().slice(0,6).map(r=>({ic:'file',label:r.name+'  ·  '+r.path.split(/[\\/]/).pop(),fn:()=>openPath(r.path)}))
 return{
-file:[{ic:'sparkles',label:'New project…',kbd:'Ctrl+N',fn:()=>showHub('new')},{ic:'folder',label:'Open…',kbd:'Ctrl+O',fn:open},rec.length?{head:'Recent'}:null].concat(rec,[{sep:1},{ic:'save',label:'Save',kbd:'Ctrl+S',fn:()=>save(false)},{ic:'save',label:'Save as…',kbd:'Ctrl+Shift+S',fn:()=>save(true)},{ic:'export',label:'Port game…',kbd:'Ctrl+E',fn:openPort},{sep:1},{ic:'home',label:'Project hub',fn:()=>showHub('new')}]),
+file:[{ic:'sparkles',label:'New project…',kbd:'Ctrl+N',fn:()=>showHub('home')},{ic:'folder',label:'Open…',kbd:'Ctrl+O',fn:open},rec.length?{head:'Recent'}:null].concat(rec,[{sep:1},{ic:'save',label:'Save',kbd:'Ctrl+S',fn:()=>save(false)},{ic:'save',label:'Save as…',kbd:'Ctrl+Shift+S',fn:()=>save(true)},{ic:'export',label:'Port game…',kbd:'Ctrl+E',fn:openPort},{sep:1},{ic:'home',label:'Project hub',fn:()=>showHub('home')}]),
 edit:[{ic:'undo',label:'Undo',kbd:'Ctrl+Z',fn:undo,dis:!S.undo.length},{ic:'redo',label:'Redo',kbd:'Ctrl+Y',fn:redo,dis:!S.redo.length},{sep:1},{ic:'copy',label:'Copy',kbd:'Ctrl+C',fn:copyEntity,dis:!S.sel},{ic:'copy',label:'Paste',kbd:'Ctrl+V',fn:pasteEntity,dis:!S.clip},{ic:'copy',label:'Duplicate',kbd:'Ctrl+D',fn:dupEntity,dis:!S.sel},{ic:'edit',label:'Rename',kbd:'F2',fn:renameEntity,dis:!S.sel},{ic:'trash',label:'Delete',kbd:'Del',fn:delEntity,dis:!S.sel},{sep:1},{ic:'plus',label:'Add entity…',kbd:'Shift+A',fn:()=>palette('create ')},{ic:'scene',label:'New scene…',fn:addScene},{sep:1},{ic:'command',label:'Command palette',kbd:'Ctrl+P',fn:()=>palette('')}],
 view:[{ic:'scene',label:'Scene workspace',kbd:'Ctrl+1',fn:()=>setTab('scene')},{ic:'script',label:'Script workspace',kbd:'Ctrl+2',fn:()=>setTab('script')},{sep:1},{ic:'grid',label:(S.gridOn?'Hide':'Show')+' grid',kbd:'G',fn:toggleGrid},{ic:'magnet',label:(S.snapOn?'Disable':'Enable')+' snapping',fn:toggleSnap},{ic:'frame',label:'Frame selection',kbd:'F',fn:()=>frameSel()},{ic:'frame',label:'Frame all',kbd:'Shift+F',fn:()=>frameSel(true)},{ic:'target',label:'Reset camera',fn:resetView},{sep:1},{ic:'terminal',label:'Console',fn:()=>setBTab('console')},{ic:'assets',label:'Assets',fn:()=>setBTab('assets')},{ic:'map',label:'Tile painter',fn:()=>setBTab('tiles')},{ic:'film',label:'Animation editor',fn:()=>setBTab('anim')},{ic:'video',label:'Cutscene editor',fn:()=>setBTab('cuts')},{ic:'layers',label:'Reset layout',fn:resetLayout}],
-help:[{ic:'keyboard',label:'Keyboard shortcuts',kbd:'?',fn:showKeys},{ic:'book',label:'Learn Vue Engine',fn:()=>showHub('learn')},{sep:1},{ic:'info',label:'About Vue Engine',fn:()=>dialog({title:'Vue Engine '+S.version,msg:'A 2D and 3D game creation engine with Blocks, Nodes and TypeScript. Icons by Lucide (ISC), 3D by three.js (MIT), Blocks by Blockly (Apache 2.0), code editor by Monaco (MIT), fonts Inter and JetBrains Mono (OFL).',buttons:[{label:'Close',value:1,primary:true}]})}]
+help:[{ic:'keyboard',label:'Keyboard shortcuts',kbd:'?',fn:showKeys},{ic:'book',label:'Learn Vue Engine',fn:()=>showHub('home')},{sep:1},{ic:'puzzle',label:'Extensions',fn:()=>showHub('ext')},{ic:'info',label:'About Vue Engine',fn:()=>showHub('about')}]
 }
 }
 function wireMenus(){
@@ -1641,12 +1647,12 @@ document.addEventListener('pointerdown',e=>{if(!(e.target.closest&&e.target.clos
 }
 function commands(){
 const C=[
-['New project','sparkles',()=>showHub('new'),'Ctrl+N'],['Open project','folder',open,'Ctrl+O'],['Save','save',()=>save(false),'Ctrl+S'],['Save as','save',()=>save(true),'Ctrl+Shift+S'],['Port game (HTML, web, PWA, desktop)','export',openPort,'Ctrl+E'],
+['New project','sparkles',()=>showHub('home'),'Ctrl+N'],['Open project','folder',open,'Ctrl+O'],['Save','save',()=>save(false),'Ctrl+S'],['Save as','save',()=>save(true),'Ctrl+Shift+S'],['Port game (HTML, web, PWA, desktop)','export',openPort,'Ctrl+E'],
 ['Play','play',play,'Ctrl+Enter'],['Stop','stop',stopGame,'Esc'],['Undo','undo',undo,'Ctrl+Z'],['Redo','redo',redo,'Ctrl+Y'],
 ['Scene workspace','scene',()=>setTab('scene'),'Ctrl+1'],['Script workspace','script',()=>setTab('script'),'Ctrl+2'],
 ['Toggle grid','grid',toggleGrid,'G'],['Toggle snapping','magnet',toggleSnap,''],['Frame selection','frame',()=>frameSel(),'F'],['Frame all','frame',()=>frameSel(true),'Shift+F'],
 ['Pan tool','hand',()=>setTool('pan'),'Q'],['Move tool','move',()=>setTool('move'),'W'],['Rotate tool','rotate',()=>setTool('rotate'),'E'],['Scale tool','scale',()=>setTool('scale'),'R'],
-['New scene','scene',addScene,''],['Tile painter','map',()=>setBTab('tiles'),'B'],['Animation editor','film',()=>setBTab('anim'),''],['Cutscene editor','video',()=>setBTab('cuts'),''],['Add audio source','audio',()=>{const d=selData();if(d&&d.sound==null){snap();d.sound='';d.soundVol=1;d.soundAuto=true;buildInspector()}},''],['Import assets','upload',importAssets,''],['Clear console','trash',clearLog,''],['Reset layout','layers',resetLayout,''],['Keyboard shortcuts','keyboard',showKeys,'?'],['Project hub','home',()=>showHub('new'),'']
+['New scene','scene',addScene,''],['Tile painter','map',()=>setBTab('tiles'),'B'],['Animation editor','film',()=>setBTab('anim'),''],['Cutscene editor','video',()=>setBTab('cuts'),''],['Add audio source','audio',()=>{const d=selData();if(d&&d.sound==null){snap();d.sound='';d.soundVol=1;d.soundAuto=true;buildInspector()}},''],['Import assets','upload',importAssets,''],['Clear console','trash',clearLog,''],['Reset layout','layers',resetLayout,''],['Keyboard shortcuts','keyboard',showKeys,'?'],['Project hub','home',()=>showHub('home'),'']
 ].map(c=>({label:c[0],ic:c[1],fn:c[2],kbd:c[3],kind:'Command'}))
 const cr=(is3()?K3:K2).map(k=>({label:'Create '+k[1],ic:SHAPE_IC[k[0]],fn:()=>{setTab('scene');addEntity(k[0])},kind:'Create'}))
 const en=[]
@@ -1741,38 +1747,226 @@ return out.toDataURL('image/jpeg',0.82)
 }catch(x){return''}
 finally{wrap.remove()}
 }
+const PREFS=Object.assign({core:'vwr',smooth:true,scale:100,calm:false,autosave:true,reopen:false,extSrc:'github'},ls.get('vue.prefs',{}))
+function setPref(k,v){PREFS[k]=v;ls.set('vue.prefs',PREFS);applyPrefs()}
+function applyPrefs(){document.body.style.zoom=PREFS.scale===100?'':String(PREFS.scale/100);document.body.classList.toggle('calm',!!PREFS.calm)}
+const EXT_SRC={github:'https://raw.githubusercontent.com/deadbytee-del/Vue-Engine/main/extensions/',jsdelivr:'https://cdn.jsdelivr.net/gh/deadbytee-del/Vue-Engine@main/extensions/'}
+const X={cat:ls.get('vue.ext.cat',null),inst:ls.get('vue.ext.inst',{}),tab:'all',q:'',c:'',busy:{}}
+const extSave=()=>ls.set('vue.ext.inst',X.inst)
+const extCodeOf=id=>{try{return localStorage.getItem('vue.ext.code.'+id)}catch(x){return null}}
+const extMeta=id=>(X.cat||[]).find(e=>e.id===id)||(X.inst[id]&&X.inst[id].meta)||null
+async function extFetch(file,txt){
+const order=PREFS.extSrc==='jsdelivr'?['jsdelivr','github']:['github','jsdelivr']
+let err
+for(const k of order){try{const r=await fetch(EXT_SRC[k]+file+(k==='github'?'?t='+Date.now():''),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return txt?await r.text():await r.json()}catch(x){err=x}}
+throw err
+}
+async function extCatalog(force){
+if(X.cat&&!force&&X.fresh)return X.cat
+try{const j=await extFetch('index.json');X.cat=j.extensions||[];X.fresh=true;ls.set('vue.ext.cat',X.cat)}catch(x){if(!X.cat)throw x}
+return X.cat
+}
+async function extInstall(id,quiet){
+const m=extMeta(id)
+if(!m)throw new Error('Unknown extension '+id)
+for(const r of m.requires||[])if(!X.inst[r])await extInstall(r,true)
+X.busy[id]=1;renderExt()
+try{
+const code=await extFetch(m.file,true)
+if(!/VueExt\.register\(/.test(code))throw new Error('Not a Vue extension')
+localStorage.setItem('vue.ext.code.'+id,code)
+X.inst[id]={version:m.version,meta:m,at:Date.now()}
+extSave()
+if(!quiet)toast('Installed '+m.name,'ok')
+}finally{delete X.busy[id];renderExt()}
+}
+function extRemove(id){
+delete X.inst[id]
+try{localStorage.removeItem('vue.ext.code.'+id)}catch(x){}
+extSave()
+if(S.project&&(S.project.extensions||[]).includes(id))extUse(id,false)
+renderExt()
+toast('Removed '+(extMeta(id)||{name:id}).name)
+}
+function extUse(id,on){
+const p=S.project
+if(!p)return
+snap()
+const L=p.extensions||(p.extensions=[])
+const m=extMeta(id)
+if(on){for(const r of(m&&m.requires)||[])if(!L.includes(r))L.push(r);if(!L.includes(id))L.push(id)}
+else{p.extensions=L.filter(x=>x!==id&&!((extMeta(x)||{}).requires||[]).includes(id))}
+markDirty();buildInspector();renderExt()
+}
+async function ensureExts(ids){
+const miss=ids.filter(id=>!X.inst[id]||!extCodeOf(id))
+if(!miss.length)return
+try{await extCatalog();for(const id of miss)await extInstall(id,true);toast('Downloaded '+miss.length+' extension'+(miss.length>1?'s':'')+' this project uses','ok')}catch(x){log('warn','Could not download extensions: '+miss.join(', ')+'. Check your connection.')}
+}
+async function gameRuntime(){
+const rt=await host.runtimeSource(),ids=(S.project.extensions||[]).slice()
+if(!ids.length)return rt
+await ensureExts(ids)
+const parts=[]
+for(const id of ids){const c=extCodeOf(id);if(c)parts.push(c);else log('warn','Extension '+id+' is not installed. Open Extensions to add it.')}
+return rt+'\n;\n'+parts.join('\n;\n')
+}
+const extUpd=m=>X.inst[m.id]&&X.inst[m.id].version!==m.version
+function extCard(m){
+const inst=!!X.inst[m.id],used=!!(S.project&&(S.project.extensions||[]).includes(m.id)),busy=X.busy[m.id]
+const act=busy?h('button',{class:'btn sm',disabled:true,html:ic('download',13)+'Installing…'}):!inst?h('button',{class:'btn sm pri',html:ic('download',13)+'Install',onclick:e=>{e.stopPropagation();extInstall(m.id).catch(x=>toast('Download failed: '+x.message,'err'))}}):extUpd(m)?h('button',{class:'btn sm pri',html:ic('refresh',13)+'Update',onclick:e=>{e.stopPropagation();extInstall(m.id).catch(x=>toast('Update failed: '+x.message,'err'))}}):S.project?h('label',{class:'use',onclick:e=>e.stopPropagation()},(()=>{const c=h('input',{type:'checkbox',class:'sw'});c.checked=used;c.onchange=()=>extUse(m.id,c.checked);return c})(),h('span',{text:used?'On in project':'Use in project'})):h('span',{class:'tagok',html:ic('check',12)+'Installed'})
+return h('div',{class:'ecard'+(used?' used':''),onclick:()=>extOpen(m.id)},
+h('div',{class:'eh'},h('span',{class:'ei',html:ic(m.icon||'puzzle',20)}),h('div',{class:'et'},h('b',{text:m.name}),h('small',{text:m.cat+' · v'+m.version+(m.modes==='3d'?' · 3D':'')}))),
+h('p',{text:m.desc}),
+h('div',{class:'ef'},h('code',{text:'vue.'+m.ns}),act))
+}
+function renderExt(){
+const grid=$('#extGrid')
+if(!grid)return
+const n=Object.keys(X.inst).length
+$('#extCount').textContent=n?String(n):''
+if(!$('#hub').classList.contains('on'))return
+const cat=X.cat||[]
+const cats=Array.from(new Set(cat.map(e=>e.cat)))
+const cc=$('#extCat')
+cc.innerHTML=''
+for(const c of['',...cats])cc.append(h('button',{class:'chip'+(X.c===c?' on':''),text:c||'All',onclick:()=>{X.c=c;renderExt()}}))
+for(const b of $$('#extTab button')){b.classList.toggle('on',b.dataset.t===X.tab);if(b.dataset.t==='proj')b.style.display=S.project?'':'none'}
+const q=X.q.toLowerCase(),used=S.project?S.project.extensions||[]:[]
+const list=cat.filter(m=>(!X.c||m.cat===X.c)&&(!q||(m.name+' '+m.desc+' '+m.cat+' '+m.ns).toLowerCase().includes(q))&&(X.tab==='all'||(X.tab==='inst'?X.inst[m.id]:used.includes(m.id))))
+grid.innerHTML=''
+if(!cat.length){grid.append(h('div',{class:'nores',html:X.err?'Could not reach the extension library. '+X.err+'<br><button class="btn sm" id="extRetry">Try again</button>':'Loading the extension library…'}));const rb=$('#extRetry');if(rb)rb.onclick=()=>loadExt(true);return}
+if(!list.length){grid.append(h('div',{class:'nores',text:X.tab==='proj'?'No extensions are on in this project yet. Install one, then switch on "Use in project".':X.tab==='inst'?'Nothing installed yet.':'No extensions match.'}));return}
+for(const m of list)grid.append(extCard(m))
+}
+async function loadExt(force){
+X.err=''
+renderExt()
+try{await extCatalog(force)}catch(x){X.err=x.message||String(x)}
+renderExt()
+}
+function extOpen(id){
+const m=extMeta(id),d=$('#extDetail')
+if(!m)return
+const inst=!!X.inst[id],p=S.project,used=!!(p&&(p.extensions||[]).includes(id))
+const cfg=p?((p.extConfig||{})[id]||{}):{}
+const setC=(k,v)=>{snap();p.extConfig=p.extConfig||{};p.extConfig[id]=p.extConfig[id]||{};p.extConfig[id][k]=v;markDirty()}
+const form=[]
+for(const k in m.defaults||{}){
+const dv=m.defaults[k],cv=cfg[k]!==undefined?cfg[k]:dv
+let el
+if(typeof dv==='boolean'){el=h('input',{type:'checkbox',class:'sw'});el.checked=!!cv;el.onchange=()=>setC(k,el.checked)}
+else if(typeof dv==='number'){el=h('input',{type:'number',step:'any',value:cv});el.onchange=()=>setC(k,+el.value)}
+else if(typeof dv==='string'){el=h('input',{type:'text',value:cv});el.onchange=()=>setC(k,el.value)}
+else{el=h('textarea',{rows:3,class:'mono'});el.value=JSON.stringify(cv);el.onchange=()=>{try{setC(k,JSON.parse(el.value));el.classList.remove('bad')}catch(x){el.classList.add('bad')}}}
+if(!p||!used)el.disabled=true
+form.push(h('div',{class:'frow'},h('span',{text:k.replace(/([A-Z])/g,' $1').toLowerCase()}),el))
+}
+d.innerHTML=''
+d.append(
+h('div',{class:'dh'},h('span',{class:'ei big',html:ic(m.icon||'puzzle',26)}),h('div',{class:'et'},h('h2',{text:m.name}),h('small',{text:m.cat+' · version '+m.version+' · '+(m.size/1024).toFixed(1)+' KB'})),h('button',{class:'ib',html:ic('x',16),onclick:()=>d.classList.remove('on')})),
+h('p',{class:'dd',text:m.desc}),
+h('div',{class:'dmeta'},h('span',{class:'badge',text:m.modes==='3d'?'3D scenes':'2D and 3D'}),h('span',{class:'badge',text:'vue.'+m.ns}),...(m.requires||[]).map(r=>h('span',{class:'badge',text:'Needs '+((extMeta(r)||{}).name||r)}))),
+h('div',{class:'dact'},
+!inst?h('button',{class:'btn pri',html:ic('download',14)+'Install',onclick:()=>extInstall(id).then(()=>extOpen(id)).catch(x=>toast('Download failed: '+x.message,'err'))}):extUpd(m)?h('button',{class:'btn pri',html:ic('refresh',14)+'Update to '+m.version,onclick:()=>extInstall(id).then(()=>extOpen(id))}):null,
+inst&&p?h('button',{class:'btn'+(used?'':' pri'),html:ic(used?'x':'check',14)+(used?'Turn off in project':'Use in '+p.name),onclick:()=>{extUse(id,!used);extOpen(id)}}):null,
+inst?h('button',{class:'btn ghost',html:ic('trash',14)+'Remove',onclick:()=>{extRemove(id);extOpen(id)}}):null),
+m.example?h('div',{class:'dsec'},h('h3',{text:'Example'}),h('pre',{class:'mono',text:m.example})):null,
+form.length?h('div',{class:'dsec'},h('h3',{text:used?'Settings for this project':'Settings (turn it on in a project to edit)'}),...form):null
+)
+d.classList.add('on')
+}
+function tplCard(t){
+const th=h('div',{class:'th'},h('span',{class:'badge b'+t.kind[0],text:t.kind}))
+const c=h('button',{class:'card',onclick:()=>newFrom(t.make(),t.name)},th,h('div',{class:'cb'},h('b',{text:t.name}),h('small',{text:t.desc})))
+if(t._th)th.style.backgroundImage='url('+t._th+')'
+else thumb(t.make()).then(u=>{if(u){t._th=u;th.style.backgroundImage='url('+u+')'}})
+return c
+}
+function newFrom(p,name){
+p.settings=p.settings||{}
+if(p.settings.core==null)p.settings.core=PREFS.core
+if(p.settings.smooth==null)p.settings.smooth=PREFS.smooth
+setProject(p,null,true);hideHub();toast('Created '+name,'ok')
+}
+function renderTpl(){
+const g=$('#tplGrid'),f=S.tplF||''
+g.innerHTML=''
+for(const t of VueSample.TEMPLATES)if(!f||t.kind===f)g.append(tplCard(t))
+const mini=$('#tplMini')
+mini.innerHTML=''
+for(const t of VueSample.TEMPLATES.slice(0,4))mini.append(tplCard(t))
+}
+function renderSettings(){
+const b=$('#setBox')
+b.innerHTML=''
+const sel=(k,opts,on)=>{const s=h('select');for(const[v,t]of opts)s.append(h('option',{value:v,text:t}));s.value=String(PREFS[k]);s.onchange=()=>{setPref(k,typeof PREFS[k]==='number'?+s.value:s.value);if(on)on()};return s}
+const sw=k=>{const c=h('input',{type:'checkbox',class:'sw'});c.checked=!!PREFS[k];c.onchange=()=>setPref(k,c.checked);return c}
+const it=(t,d,el)=>h('div',{class:'srow'},h('div',null,h('b',{text:t}),h('small',{text:d})),el)
+b.append(
+h('h3',{text:'Engine'}),
+it('Default engine core','Used by new projects. Each project can change it in the Inspector.',sel('core',CORES)),
+it('Smooth motion','New projects draw between physics steps for fluid motion on high refresh screens.',sw('smooth')),
+h('h3',{text:'Interface'}),
+it('Interface size','Scales the whole editor.',sel('scale',[[90,'90%'],[100,'100%'],[110,'110%'],[125,'125%']])),
+it('Reduce motion','Turns off hover lifts and animated transitions.',sw('calm')),
+it('Open last project on launch','Skip the Home screen and go straight back to where you were.',sw('reopen')),
+it('Autosave','Keeps a copy of your work every few seconds so nothing is lost if the app closes.',sw('autosave')),
+h('h3',{text:'Extensions'}),
+it('Download from','Where extensions are fetched from. Switch if one is blocked on your network.',sel('extSrc',[['github','GitHub'],['jsdelivr','jsDelivr mirror']],()=>{X.fresh=false;loadExt(true)})),
+it('Downloaded extensions',Object.keys(X.inst).length+' installed, '+(Object.keys(X.inst).reduce((a,k)=>a+((extCodeOf(k)||'').length),0)/1024).toFixed(0)+' KB on this computer.',h('button',{class:'btn sm ghost',html:ic('trash',13)+'Remove all',onclick:async()=>{if(!await dialog({title:'Remove all extensions?',msg:'Projects that use them will download them again when you play.',buttons:[{label:'Cancel',value:false},{label:'Remove all',value:true,primary:true}]}))return;for(const k of Object.keys(X.inst))extRemove(k);renderSettings()}}))
+)
+}
+function renderAbout(){
+const b=$('#aboutBox'),v=window.VWR&&VWR.exports
+b.innerHTML=''
+b.append(
+h('div',{class:'about'},
+h('img',{src:'logo.png',class:'about-logo'}),
+h('p',{class:'sub',text:'Version '+S.version+(S.platform?' · '+S.platform:'')}),
+h('div',{class:'cores'},
+...CORES.map(([k,t])=>h('div',{class:'core'+(k==='js'||v?'':' off')},h('span',{class:'ei',html:ic(k==='js'?'code':'cpu',18)}),h('div',null,h('b',{text:t}),h('small',{text:k==='js'?'Always available':v?'WebAssembly ready':'WebAssembly unavailable'})),h('p',{text:CORE_HINT[k]})))),
+h('h3',{text:'Built with'}),
+h('p',{class:'credits',text:'three.js (MIT) for 3D, Blockly (Apache 2.0) for Blocks, Monaco (MIT) for the code editor, TypeScript (Apache 2.0), Lucide icons (ISC), Inter and JetBrains Mono fonts (OFL). Optional extensions load PeerJS (MIT), Kokoro-82M via kokoro-js (Apache 2.0) and Puter.js on demand.'}),
+h('div',{class:'hero-a',style:'justify-content:center'},h('button',{class:'btn',html:ic('link',14)+'Releases',onclick:()=>window.open('https://github.com/deadbytee-del/Vue-Engine/releases','_blank')}),h('button',{class:'btn ghost',html:ic('keyboard',14)+'Shortcuts',onclick:()=>{hideHub();showKeys()}}))
+))
+}
 async function showHub(pane){
 $('#hub').classList.add('on')
-hubPane(pane||'new')
+hubPane(pane||'home')
 $('#hubBack').style.display=S.project?'':'none'
-const grid=$('#tplGrid')
-if(!grid.children.length){
-for(const t of VueSample.TEMPLATES){
-const th=h('div',{class:'th'},h('span',{class:'badge b'+t.kind[0],text:t.kind}))
-grid.append(h('button',{class:'card',onclick:()=>{setProject(t.make(),null,true);hideHub();toast('Created '+t.name,'ok')}},th,h('div',{class:'cb'},h('b',{text:t.name}),h('small',{text:t.desc}))))
-thumb(t.make()).then(u=>{if(u)th.style.backgroundImage='url('+u+')'})
-}
-}
+const hr=new Date().getHours()
+$('#hubHello').textContent=(hr<5?'Late night':hr<12?'Good morning':hr<18?'Good afternoon':'Good evening')+', ready to build?'
+renderTpl()
 renderRecent()
 }
-function hideHub(){$('#hub').classList.remove('on');setTimeout(()=>{if(S.game){const w=$('#cvwrap').clientWidth,hh=$('#cvwrap').clientHeight;if(w&&hh)S.game.resize(w,hh);redraw()}},0)}
+function hideHub(){$('#hub').classList.remove('on');$('#extDetail').classList.remove('on');setTimeout(()=>{if(S.game){const w=$('#cvwrap').clientWidth,hh=$('#cvwrap').clientHeight;if(w&&hh)S.game.resize(w,hh);redraw()}},0)}
 function hubPane(p){
+if(p==='new'||p==='learn')p='home'
 for(const b of $$('.hub-nav'))b.classList.toggle('on',b.dataset.hub===p)
 for(const s of $$('.hub-main section'))s.classList.toggle('on',s.dataset.pane===p)
+$('#extDetail').classList.remove('on')
+$('.hub-main').scrollTop=0
+if(p==='ext')loadExt()
+if(p==='settings')renderSettings()
+if(p==='about')renderAbout()
+if(p==='projects')renderRecent()
 }
 function renderRecent(){
-const rs=recent(),auto=ls.get('vue.autosave',null)
+const rs=recent(),auto=ls.get('vue.autosave',null),q=(($('#projQ')||{}).value||'').toLowerCase()
 const mk=r=>h('button',{class:'card',onclick:()=>openPath(r.path)},h('div',{class:'th',style:r.thumb?'background-image:url('+r.thumb+')':null},h('span',{class:'badge b'+(r.kind||'2D')[0],text:r.kind||'2D'})),h('div',{class:'cb'},h('b',{text:r.name}),h('small',{text:ago(r.time)+' · '+r.path})))
 const mini=$('#recentMini'),full=$('#recentGrid')
 mini.innerHTML=''
 full.innerHTML=''
 if(auto&&auto.project&&auto.project.scenes){
-mini.append(h('button',{class:'card',onclick:()=>{setProject(auto.project,auto.path,!auto.path);hideHub()}},h('div',{class:'th',style:'background:radial-gradient(circle at 50% 40%,rgba(157,92,255,.35),transparent 70%),#0a0910;display:grid;place-items:center;color:#c9a6ff',html:ic('clock',34)}),h('div',{class:'cb'},h('b',{text:'Continue: '+auto.project.name}),h('small',{text:'Your last session, restored'}))))
+const c=()=>h('button',{class:'card',onclick:()=>{setProject(auto.project,auto.path,!auto.path);hideHub()}},h('div',{class:'th',style:auto.project.thumb?'background-image:url('+auto.project.thumb+')':'background:radial-gradient(circle at 50% 40%,rgba(157,92,255,.35),transparent 70%),#0a0910;display:grid;place-items:center;color:#c9a6ff',html:auto.project.thumb?'':ic('clock',34)}),h('div',{class:'cb'},h('b',{text:'Continue: '+auto.project.name}),h('small',{text:'Your last session, restored'})))
+mini.append(c())
+if(!q||auto.project.name.toLowerCase().includes(q))full.append(c())
 }
 for(const r of rs.slice(0,7))mini.append(mk(r))
-for(const r of rs)full.append(mk(r))
-if(!mini.children.length)mini.append(h('div',{class:'nores',text:'Nothing yet. Pick a template above to start.'}))
-if(!full.children.length)full.append(h('div',{class:'nores',text:'Projects you save or open show up here.'}))
+for(const r of rs)if(!q||(r.name+' '+r.path).toLowerCase().includes(q))full.append(mk(r))
+if(!mini.children.length)mini.append(h('div',{class:'nores',text:'Nothing yet. Pick a template below to start.'}))
+if(!full.children.length)full.append(h('div',{class:'nores',text:q?'No projects match.':'Projects you save or open show up here.'}))
 }
 function pushRecent(path,thumbUrl){
 const rs=recent().filter(r=>r.path!==path)
@@ -1857,7 +2051,7 @@ const target=portSel,name=($('#portName').value||S.project.name).trim()||'My Gam
 const r=await VueCompiler.compileProject(S.project,compileEnv())
 for(const e of r.errors){const i=e.indexOf(': ');log('error',i>0?e.slice(i+2):e,i>0?e.slice(0,i):'')}
 if(r.errors.length&&target!=='project'&&!await dialog({title:'Port with '+r.errors.length+' script error'+(r.errors.length>1?'s':'')+'?',msg:'Entities with broken scripts will do nothing in the ported game. Details are in the Console.',buttons:[{label:'Cancel',value:null},{label:'Port anyway',value:1,primary:true}]}))return
-const rt=await host.runtimeSource()
+const rt=await gameRuntime()
 const three=S.project.scenes.some(s=>s.mode==='3d')?await host.threeSource():''
 const proj=JSON.parse(JSON.stringify(S.project))
 proj.name=name
@@ -1947,7 +2141,7 @@ if(e.ctrlKey||e.metaKey){
 if(k==='s'){e.preventDefault();save(e.shiftKey);return}
 if(k==='enter'){e.preventDefault();play();return}
 if(k==='o'){e.preventDefault();open();return}
-if(k==='n'){e.preventDefault();showHub('new');return}
+if(k==='n'){e.preventDefault();showHub('home');return}
 if(k==='e'){e.preventDefault();openPort();return}
 if(k==='p'){e.preventDefault();palette('');return}
 if(k==='1'){e.preventDefault();setTab('scene');return}
@@ -2038,6 +2232,14 @@ $('#stErr').onclick=()=>setBTab('console')
 $('#keysClose').onclick=()=>$('#keys').classList.remove('on')
 $('#keys').onpointerdown=e=>{if(e.target.id==='keys')$('#keys').classList.remove('on')}
 $('#hubOpen').onclick=open
+$('#hubOpen2').onclick=open
+$('#projQ').oninput=renderRecent
+$('#extQ').oninput=()=>{X.q=$('#extQ').value;renderExt()}
+$('#extRefresh').onclick=()=>{X.fresh=false;loadExt(true).then(()=>toast('Extension library is up to date','ok'))}
+for(const b of $$('#extTab button'))b.onclick=()=>{X.tab=b.dataset.t;renderExt()}
+for(const b of $$('#tplF .chip'))b.onclick=()=>{S.tplF=b.dataset.f;for(const x of $$('#tplF .chip'))x.classList.toggle('on',x===b);renderTpl()}
+for(const b of $$('.lk'))b.onclick=()=>hubPane(b.dataset.go)
+for(const b of $$('.qa'))b.onclick=()=>{const q=b.dataset.q;if(q==='ext')return hubPane('ext');const t=VueSample.TEMPLATES.find(t=>t.id===(q==='2d'?'empty2':q==='3d'?'empty3':'kit'))||VueSample.TEMPLATES[0];newFrom(t.make(),t.name)}
 $('#hubBack').onclick=hideHub
 for(const b of $$('.hub-nav'))b.onclick=()=>hubPane(b.dataset.hub)
 for(const b of $$('.fchip'))b.onclick=()=>{S.lv[b.dataset.lv]=!S.lv[b.dataset.lv];b.classList.toggle('on',S.lv[b.dataset.lv]);renderLog()}
@@ -2080,7 +2282,9 @@ setBTab('console')
 transport()
 loadMonaco()
 log('info','Vue Engine '+S.version+' ready')
-await showHub('new')
+applyPrefs()
+renderExt()
+if(PREFS.reopen&&ok)renderTpl();else await showHub('home')
 setTimeout(()=>$('#splash').classList.add('out'),650)
 setTimeout(()=>$('#splash').remove(),1100)
 }

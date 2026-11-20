@@ -32,9 +32,25 @@ All three compile to the same runtime, so one project can mix them per entity.
 - Export any project as a single playable HTML file
 - Single portable `VueEngine.exe`, no installer
 
-## VWR core
+## Engine cores
 
-VWR (Vender WASM Rust) is Vue's native physics core. The collision solver is written in C++, the spatial hash broadphase in Rust, and both are linked into one 5 KB WebAssembly module (`vwr/`). It produces the exact same results as the JavaScript path and runs about 1.5 to 2x faster on large scenes. Switch it under Project → Engine core. Rebuild with `npm run build:vwr` (needs clang, wasm-ld and Rust with the wasm32 target).
+Pick a core per project under Project → Engine core. All three give identical physics results.
+
+| Core | What it does |
+| --- | --- |
+| **VWR** | Vender WASM Rust. C++ collision solver and Rust broadphase linked into one 7 KB WebAssembly module (`vwr/`). Bodies that are exactly at rest are skipped, so settled scenes cost almost nothing. |
+| **VWR Steady** | The same WebAssembly core, but every body runs every step, so frame cost stays flat. |
+| **JavaScript** | Reference core for comparing results and debugging. |
+
+Measured on 20,000 dynamic and 20,000 static bodies: VWR is about 3.3x faster than JavaScript while everything moves and about 7x faster once a scene settles. Smooth motion (on by default) draws between physics steps so 120 and 144 Hz screens stay fluid. Rebuild VWR with `npm run build:vwr` (needs clang, wasm-ld and Rust with the wasm32 target).
+
+## Extensions
+
+Open Home → Extensions to download features, then switch them on per project. They live in `extensions/` and are fetched from this repository, so new ones ship without a new app build. Each adds a `vue.<name>` API, and the Blocks Extensions category covers the common calls.
+
+Input: Gamepad, Touch. XR: VR (PC VR through OpenXR runtimes and standalone headsets), AR, Hand Tracking. Rendering: PBR, Advanced Shadows, Volumetrics, Post Processing, Motion Blur. Effects: Particle FX. World: Advanced Water, Weather System, Day/Night Cycle, Procedural Terrain, Destructible World, World Streaming. AI: NavMesh & Pathfinding, Behavior Trees, AI Director, Crowd Simulation, Dialogue AI. Audio: Kokoro Voice. Networking: Multiplayer (peer-to-peer WebRTC), Voice Chat.
+
+Run `node tools/build-ext.js` after editing an extension to refresh `extensions/index.json`.
 
 ## Porting
 

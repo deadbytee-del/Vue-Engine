@@ -33,6 +33,18 @@ a.es.forEach((e,i)=>{const f=b.es[i];mx=Math.max(mx,Math.abs(e.x-f.x),Math.abs(e
 assert.ok(mx<1e-6&&gr===0,(d3?'3D':'2D')+' parity max diff '+mx+' grounded mismatches '+gr)
 console.log((d3?'3D':'2D')+' VWR matches JS physics (max diff '+mx.toExponential(1)+')')
 }
+{
+const run=core=>{const p=scene(false,600,300,11);p.settings.core=core;const g=new R.Game({canvas,project:p,scripts:{}});g.loadScene('a');const ds=g.entities.filter(e=>e.body==='dynamic');for(let i=0;i<400;i++){if(i===250)ds.forEach((e,k)=>{if(k%7===0)e.vx=120;if(k%11===0)e.vy=-500});if(i===320)g.gravity=900;g.update(1/60)}return{ds,g}}
+const a=run('js'),b=run('vwr'),c=run('vwr-steady')
+let mx=0;a.ds.forEach((e,i)=>{for(const o of[b.ds[i],c.ds[i]]){mx=Math.max(mx,Math.abs(e.x-o.x),Math.abs(e.y-o.y));assert.strictEqual(e.grounded,o.grounded)}})
+assert.ok(mx<1e-6,'resting skip parity '+mx)
+console.log('VWR resting-body skip matches JS after wake-ups and gravity change')
+}
+{
+const pile=core=>{const p=scene(false,20000,20000,3);p.settings.core=core;const g=new R.Game({canvas,project:p,scripts:{}});g.loadScene('a');for(let i=0;i<240;i++)g.update(1/60);const t0=process.hrtime.bigint();for(let i=0;i<60;i++)g.update(1/60);return Number(process.hrtime.bigint()-t0)/1e6/60}
+const a=pile('js'),b=pile('vwr-steady'),c=pile('vwr')
+console.log('2D settling pile 20000+20000: JS '+a.toFixed(2)+' ms, VWR Steady '+b.toFixed(2)+' ms, VWR '+c.toFixed(2)+' ms ('+(a/c).toFixed(2)+'x)')
+}
 for(const[nd,ns]of[[1000,1000],[5000,5000],[20000,20000]]){
 const a=sim(scene(false,nd,ns,3),'js',120,150),b=sim(scene(false,nd,ns,3),'vwr',120,150)
 console.log('2D '+nd+' dynamic + '+ns+' static: JS '+a.ms.toFixed(2)+' ms, VWR '+b.ms.toFixed(2)+' ms ('+(a.ms/b.ms).toFixed(2)+'x)')
