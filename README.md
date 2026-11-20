@@ -17,6 +17,12 @@ All three compile to the same runtime, so one project can mix them per entity.
 - Project hub with playable templates, recent projects and thumbnails
 - Scene editor with move, rotate and scale gizmos, smart guides, snapping, grid, undo and redo
 - 3D transform gizmos, axis view cube, orbit and fly camera
+- Tilemap painter with brush, rectangle, fill, eraser and picker, plus solid-tile collisions
+- Sprite animation editor with sheet slicing, frame timeline and live preview
+- Cutscene editor: camera moves, captions, speech, sounds, tweens and events on a timeline
+- Parent/child entities in 2D and 3D, with drag-to-parent in the Hierarchy
+- Audio sources, music, sound effects with waveform previews
+- 140+ blocks covering the whole scripting API, plus lists, text, math and functions
 - Command palette (Ctrl+P), resizable panels, filterable console, status bar
 - Play inside the editor with pause, step, resolution presets, or in its own window
 - Multiple scenes, prefabs and runtime spawning

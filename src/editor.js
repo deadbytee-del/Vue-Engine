@@ -23,8 +23,8 @@ const clone=o=>JSON.parse(JSON.stringify(o))
 const num=v=>{const n=parseFloat(v);return isNaN(n)?0:n}
 const r2=v=>Math.round(v*1000)/1000
 const ls={get:(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(x){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(x){}}}
-const SHAPE_IC={rect:'square',circle:'circle',sprite:'image',text:'text',box:'box',sphere:'sphere',cylinder:'cylinder',cone:'cone',plane:'plane',light:'light'}
-const K2=[['rect','Rectangle'],['circle','Circle'],['sprite','Sprite'],['text','Text']]
+const SHAPE_IC={tilemap:'map',rect:'square',circle:'circle',sprite:'image',text:'text',box:'box',sphere:'sphere',cylinder:'cylinder',cone:'cone',plane:'plane',light:'light'}
+const K2=[['rect','Rectangle'],['circle','Circle'],['sprite','Sprite'],['text','Text'],['tilemap','Tilemap']]
 const K3=[['box','Box'],['sphere','Sphere'],['cylinder','Cylinder'],['plane','Plane'],['light','Light']]
 const S={project:null,path:null,sceneId:null,sel:null,hover:null,tab:'scene',undo:[],redo:[],cam:{x:0,y:0,zoom:1},cam3:{tx:0,ty:1,tz:0,yaw:30,pitch:28,dist:20},drag:null,space:false,tool:'move',snapOn:ls.get('vue.snap',true),gridOn:ls.get('vue.grid',true),skyOn:ls.get('vue.sky',false),snap2:ls.get('vue.snap2',8),snap3:ls.get('vue.snap3',0.5),playing:false,paused:false,game:null,ws:null,ne:null,code:null,dirty:false,savedAt:0,autoAt:0,clip:null,logs:[],lv:{log:true,warn:true,error:true},closed:new Set(ls.get('vue.closed',[])),inputs:{},editing:false,loading:false,tc:null,guides:[],gizmo:[],fly:new Set(),version:'1.0.0',res:'free',lastHtml:''}
 const scene=()=>S.project.scenes.find(s=>s.id===S.sceneId)||S.project.scenes[0]
@@ -89,22 +89,25 @@ $('#stErr').innerHTML=(e?'<span class="e">'+e+' error'+(e>1?'s':'')+'</span>':''
 $('#pname').textContent=S.project.name
 document.title=S.project.name+(S.dirty?' •':'')+' — Vue Engine'
 }
+const snapJ=()=>JSON.stringify({s:S.project.scenes,c:S.project.cutscenes||[]})
 function snap(){
-S.undo.push(JSON.stringify(S.project.scenes))
+S.undo.push(snapJ())
 if(S.undo.length>80)S.undo.shift()
 S.redo=[]
 markDirty()
 }
 function restore(json){
-S.project.scenes=JSON.parse(json)
+const o=JSON.parse(json)
+S.project.scenes=o.s
+S.project.cutscenes=o.c
 if(!S.project.scenes.find(s=>s.id===S.sceneId))S.sceneId=S.project.scenes[0].id
 if(S.sel&&!selData())S.sel=null
 reloadScene()
 renderAll()
 markDirty()
 }
-function undo(){if(!S.undo.length)return;S.redo.push(JSON.stringify(S.project.scenes));restore(S.undo.pop());toast('Undo')}
-function redo(){if(!S.redo.length)return;S.undo.push(JSON.stringify(S.project.scenes));restore(S.redo.pop());toast('Redo')}
+function undo(){if(!S.undo.length)return;S.redo.push(snapJ());restore(S.undo.pop());VuePanels.render();toast('Undo')}
+function redo(){if(!S.redo.length)return;S.undo.push(snapJ());restore(S.redo.pop());VuePanels.render();toast('Redo')}
 function normalize(p){
 p.settings=Object.assign({width:960,height:540,pixelArt:true},p.settings||{})
 p.assets=p.assets||{}
@@ -173,10 +176,8 @@ else{S.tcDrag=false;scheduleSave();syncInspector()}
 tc.addEventListener('objectChange',()=>{
 const m=tc.object,d=selData()
 if(!m||!d)return
-d.x=r2(m.position.x);d.y=r2(m.position.y);d.z=r2(m.position.z)
-d.rx=r2(m.rotation.x/D);d.ry=r2(m.rotation.y/D);d.rz=r2(m.rotation.z/D)
 if(d.shape!=='light'){d.w=r2(Math.max(0.01,m.scale.x));d.d=r2(Math.max(0.01,m.scale.z));if(d.shape!=='plane')d.h=r2(Math.max(0.01,m.scale.y))}
-S.game.refresh()
+setW(d,{x:m.position.x,y:m.position.y,z:m.position.z,rx:m.rotation.x/D,ry:m.rotation.y/D,rz:m.rotation.z/D})
 syncInspector()
 })
 S.tc=tc
@@ -213,7 +214,7 @@ const step=()=>{const k=Math.min(1,(performance.now()-t0)/ms),e=1-Math.pow(1-k,3
 requestAnimationFrame(step)
 }
 function frameSel(all){
-const d=all?null:selData(),es=d?[d]:scene().entities.filter(e=>!e.prefab)
+const d=all?null:selData(),es=(d?[d]:scene().entities.filter(e=>!e.prefab)).map(x=>{const e=entOf(x);if(e&&e.shape==='tilemap'){const b=tmRect(e);return{x:(b[0]+b[2])/2,y:(b[1]+b[3])/2,w:b[2]-b[0],h:b[3]-b[1]}}return e||x})
 if(!es.length)return
 if(is3()){
 let x0=1e9,y0=1e9,z0=1e9,x1=-1e9,y1=-1e9,z1=-1e9
@@ -229,6 +230,25 @@ const z=Math.min(4,Math.max(0.1,Math.min(g.w/((x1-x0)*1.6||1),g.h/((y1-y0)*1.6||
 const t={x:(x0+x1)/2,y:(y0+y1)/2,zoom:z}
 tween(f,t,220,k=>{for(const q in t)c[q]=f[q]+(t[q]-f[q])*k})
 }
+}
+function wd(d){return entOf(d)||d}
+function byId(id){return scene().entities.find(x=>x.id===id)||null}
+function setW(d,p){
+const pd=d.parent?byId(d.parent):null,pe=pd?entOf(pd):null
+if(!pe){Object.assign(d,p);for(const k in p)d[k]=r2(d[k])}
+else{
+const cur=wd(d),w={x:cur.x,y:cur.y,z:cur.z,rot:cur.rot,rx:cur.rx,ry:cur.ry,rz:cur.rz}
+Object.assign(w,p)
+const L=VueRuntime.toLocal(pe,w,is3())
+d.x=r2(L.x);d.y=r2(L.y)
+if(is3()){d.z=r2(L.z);d.rx=r2(L.rx);d.ry=r2(L.ry);d.rz=r2(L.rz)}else d.rot=r2(L.rot)
+}
+S.game.refresh()
+}
+function tmRect(e){
+const s=e.cell||32
+if(!e.tb)return[e.x,e.y,e.x+s,e.y+s]
+return[e.x+e.tb[0]*s,e.y+e.tb[1]*s,e.x+(e.tb[2]+1)*s,e.y+(e.tb[3]+1)*s]
 }
 function paint(){
 const g=S.game
@@ -258,7 +278,7 @@ c.fillStyle='#fff'
 c.textAlign='left'
 c.textBaseline='middle'
 c.fillText(lab,fx+7,fy-13)
-const hv=S.hover&&S.hover!==S.sel?scene().entities.find(e=>e.id===S.hover):null
+const hv=S.hover&&S.hover!==S.sel?byId(S.hover):null
 if(hv)outline(c,hv,'rgba(157,92,255,0.6)',1)
 for(const gl of S.guides){
 c.strokeStyle='#ff4d9a'
@@ -269,19 +289,22 @@ c.stroke()
 }
 const d=selData()
 if(d){
+const W=wd(d)
+if(d.parent){const pd=byId(d.parent);if(pd){const P=wd(pd);c.setLineDash([3,4]);c.strokeStyle='rgba(255,211,77,0.55)';c.lineWidth=1;c.beginPath();c.moveTo(sx(P.x),sy(P.y));c.lineTo(sx(W.x),sy(W.y));c.stroke();c.setLineDash([])}}
 outline(c,d,'#9d5cff',2)
-const cx=sx(d.x),cy=sy(d.y)
-if(S.tool==='scale'){
+const cx=sx(W.x),cy=sy(W.y),tm=d.shape==='tilemap'
+if(S.tool==='paint'&&tm)VuePanels.overlay(c)
+else if(S.tool==='scale'&&!tm){
 for(const[hx,hy]of HANDLES){const p=handlePos(d,hx,hy);c.fillStyle='#fff';c.strokeStyle='#7b2bd9';c.lineWidth=1.5;rr(c,p[0]-4,p[1]-4,8,8,2);c.fill();c.stroke()}
-}else if(S.tool==='rotate'){
+}else if(S.tool==='rotate'&&!tm){
 const R=rotR(d)
 c.strokeStyle='rgba(157,92,255,0.85)';c.lineWidth=2
 c.beginPath();c.arc(cx,cy,R,0,Math.PI*2);c.stroke()
-const a=(d.rot||0)*D-Math.PI/2
+const a=(W.rot||0)*D-Math.PI/2
 c.fillStyle='#ffd34d';c.beginPath();c.arc(cx+Math.cos(a)*R,cy+Math.sin(a)*R,6,0,Math.PI*2);c.fill()
 c.strokeStyle='rgba(255,211,77,0.6)';c.lineWidth=1;c.beginPath();c.moveTo(cx,cy);c.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);c.stroke()
-if(S.drag&&S.drag.k==='rot'){c.fillStyle='#fff';c.font='600 12px Inter';c.textAlign='center';c.fillText(Math.round(d.rot||0)+'°',cx,cy-R-14)}
-}else if(S.tool==='move'){
+if(S.drag&&S.drag.k==='rot'){c.fillStyle='#fff';c.font='600 12px Inter';c.textAlign='center';c.fillText(Math.round(W.rot||0)+'°',cx,cy-R-14)}
+}else if(S.tool==='move'||(S.tool==='paint'&&!tm)){
 arrow(c,cx,cy,cx+64,cy,'#ff4d6a',S.hoverAx==='x')
 arrow(c,cx,cy,cx,cy-64,'#3ddc84',S.hoverAx==='y')
 c.fillStyle=S.hoverAx==='xy'?'#ffe58a':'rgba(255,211,77,0.85)'
@@ -298,13 +321,14 @@ const a=Math.atan2(y1-y0,x1-x0)
 c.beginPath();c.moveTo(x1+Math.cos(a)*10,y1+Math.sin(a)*10);c.lineTo(x1+Math.cos(a+2.4)*9,y1+Math.sin(a+2.4)*9);c.lineTo(x1+Math.cos(a-2.4)*9,y1+Math.sin(a-2.4)*9);c.closePath();c.fill()
 }
 const HANDLES=[[-1,-1],[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0]]
-function corner(d,lx,ly){const a=(d.rot||0)*D,co=Math.cos(a),si=Math.sin(a);return[d.x+lx*co-ly*si,d.y+lx*si+ly*co]}
+function corner(d,lx,ly){const W=wd(d),a=(W.rot||0)*D,co=Math.cos(a),si=Math.sin(a);return[W.x+lx*co-ly*si,W.y+lx*si+ly*co]}
 function scr(x,y){const g=S.game,z=S.cam.zoom;return[(x-S.cam.x)*z+g.w/2,(y-S.cam.y)*z+g.h/2]}
 function handlePos(d,hx,hy){const p=corner(d,hx*d.w/2,hy*d.h/2);return scr(p[0],p[1])}
 function rotR(d){return Math.max(28,Math.hypot(d.w,d.h)/2*S.cam.zoom+16)}
 function outline(c,d,col,lw){
-const pts=[[-1,-1],[1,-1],[1,1],[-1,1]].map(q=>{const p=corner(d,q[0]*d.w/2,q[1]*d.h/2);return scr(p[0],p[1])})
 c.strokeStyle=col;c.lineWidth=lw
+if(d.shape==='tilemap'){const e=entOf(d);if(!e)return;const b=tmRect(e),p0=scr(b[0],b[1]),p1=scr(b[2],b[3]);c.strokeRect(p0[0],p0[1],p1[0]-p0[0],p1[1]-p0[1]);return}
+const pts=[[-1,-1],[1,-1],[1,1],[-1,1]].map(q=>{const p=corner(d,q[0]*d.w/2,q[1]*d.h/2);return scr(p[0],p[1])})
 c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();c.stroke()
 }
 function paint3(){
@@ -366,21 +390,23 @@ tween(f,{yaw:ty,pitch:t[1]},240,k=>{c.yaw=f.yaw+(ty-f.yaw)*k;c.pitch=f.pitch+(t[
 function rel(e){const r=$('#cv').getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top,r.width,r.height]}
 function toWorld(e){const g=S.game,[px,py]=rel(e);return[(px-g.w/2)/S.cam.zoom+S.cam.x,(py-g.h/2)/S.cam.zoom+S.cam.y]}
 function pick(wx,wy){
-const es=scene().entities.map((d,i)=>[d,i]).sort((a,b)=>(a[0].z||0)-(b[0].z||0)||a[1]-b[1])
+const es=S.game.entities.map((e,i)=>[e,i]).sort((a,b)=>(a[0].z||0)-(b[0].z||0)||a[1]-b[1])
 for(let i=es.length-1;i>=0;i--){
-const d=es[i][0]
-if(d.locked)continue
-const a=-(d.rot||0)*D,dx=wx-d.x,dy=wy-d.y,lx=dx*Math.cos(a)-dy*Math.sin(a),ly=dx*Math.sin(a)+dy*Math.cos(a)
-if(Math.abs(lx)*2<=Math.abs(d.w)&&Math.abs(ly)*2<=Math.abs(d.h))return d
+const e=es[i][0],d=e.src
+if(!d||d.locked)continue
+if(e.shape==='tilemap'){if(e.tileAt(wx,wy)>=0)return d;continue}
+const a=-(e.rot||0)*D,dx=wx-e.x,dy=wy-e.y,lx=dx*Math.cos(a)-dy*Math.sin(a),ly=dx*Math.sin(a)+dy*Math.cos(a)
+if(Math.abs(lx)*2<=Math.abs(e.w)&&Math.abs(ly)*2<=Math.abs(e.h))return d
 }
 return null
 }
 const gs=v=>S.snapOn?(is3()?Math.round(v/S.snap3)*S.snap3:Math.round(v/S.snap2)*S.snap2):Math.round(v*100)/100
 function gizmoAt2(e,d){
-const[px,py]=rel(e),[cx,cy]=scr(d.x,d.y)
-if(S.tool==='scale'){for(const[hx,hy]of HANDLES){const p=handlePos(d,hx,hy);if(Math.abs(px-p[0])<=7&&Math.abs(py-p[1])<=7)return{k:'size',hx,hy}}}
-if(S.tool==='rotate'){const R=rotR(d),dd=Math.hypot(px-cx,py-cy);if(Math.abs(dd-R)<=8)return{k:'rot'}}
-if(S.tool==='move'){
+const W=wd(d),[px,py]=rel(e),[cx,cy]=scr(W.x,W.y),tm=d.shape==='tilemap'
+if(S.tool==='paint'&&tm)return null
+if(S.tool==='scale'&&!tm){for(const[hx,hy]of HANDLES){const p=handlePos(d,hx,hy);if(Math.abs(px-p[0])<=7&&Math.abs(py-p[1])<=7)return{k:'size',hx,hy}}}
+if(S.tool==='rotate'&&!tm){const R=rotR(d),dd=Math.hypot(px-cx,py-cy);if(Math.abs(dd-R)<=8)return{k:'rot'}}
+if(S.tool==='move'||S.tool==='paint'){
 if(px>=cx+4&&px<=cx+22&&py>=cy-22&&py<=cy-4)return{k:'move',ax:'xy'}
 if(px>cx+8&&px<cx+76&&Math.abs(py-cy)<=7)return{k:'move',ax:'x'}
 if(py<cy-8&&py>cy-76&&Math.abs(px-cx)<=7)return{k:'move',ax:'y'}
@@ -393,6 +419,7 @@ const d=selData(),cv=$('#cv')
 const pax=S.hoverAx
 S.hoverAx=null
 if(S.tool==='pan'||S.space){cv.style.cursor='grab';return}
+if(d&&S.tool==='paint'&&d.shape==='tilemap'){cv.style.cursor='crosshair';const[wx,wy]=toWorld(e);VuePanels.tileHover(wx,wy);return}
 if(d){
 const gz=gizmoAt2(e,d)
 if(gz){
@@ -408,13 +435,14 @@ cv.style.cursor=p?(S.tool==='move'?'move':'pointer'):'default'
 const id=p?p.id:null
 if(id!==S.hover||pax!==S.hoverAx){S.hover=id;redraw()}
 }
+function underOf(e,root){let p=e;let n=0;while(p&&n++<64){if(p===root)return true;p=p.par}return false}
 function alignGuides(d,nx,ny){
 S.guides=[]
-if(!S.snapOn)return[nx,ny]
-const th=6/S.cam.zoom,mine={x:[nx-d.w/2,nx,nx+d.w/2],y:[ny-d.h/2,ny,ny+d.h/2]}
+if(!S.snapOn||d.shape==='tilemap')return[nx,ny]
+const me=entOf(d),th=6/S.cam.zoom,mine={x:[nx-d.w/2,nx,nx+d.w/2],y:[ny-d.h/2,ny,ny+d.h/2]}
 let bx=null,by=null
-for(const o of scene().entities){
-if(o===d||o.prefab)continue
+for(const o of S.game.entities){
+if(!o.src||o.src.prefab||o.shape==='tilemap'||(me&&underOf(o,me)))continue
 const ox=[o.x-o.w/2,o.x,o.x+o.w/2],oy=[o.y-o.h/2,o.y,o.y+o.h/2]
 for(let i=0;i<3;i++)for(const v of ox){const df=v-mine.x[i];if(Math.abs(df)<th&&(!bx||Math.abs(df)<Math.abs(bx.df)))bx={df,v}}
 for(let i=0;i<3;i++)for(const v of oy){const df=v-mine.y[i];if(Math.abs(df)<th&&(!by||Math.abs(df)<Math.abs(by.df)))by={df,v}}
@@ -443,12 +471,14 @@ const[wx,wy]=toWorld(e)
 if(e.button===1||e.button===2||S.space||S.tool==='pan'){S.drag={k:'pan',sx:e.clientX,sy:e.clientY,cx:S.cam.x,cy:S.cam.y,btn:e.button};wrap.classList.add('panning');return}
 const d=selData()
 if(d&&!d.locked){
+if(S.tool==='paint'&&d.shape==='tilemap'){VuePanels.tileDown(e,wx,wy);return}
 const gz=gizmoAt2(e,d)
 if(gz){
 snap()
-if(gz.k==='size')S.drag={k:'size',d,hx:gz.hx,hy:gz.hy,w0:d.w,h0:d.h,x0:d.x,y0:d.y}
-else if(gz.k==='rot')S.drag={k:'rot',d,r0:d.rot||0,a0:Math.atan2(wy-d.y,wx-d.x)}
-else S.drag={k:'move',d,ax:gz.ax,ox:wx-d.x,oy:wy-d.y}
+const W=wd(d)
+if(gz.k==='size')S.drag={k:'size',d,hx:gz.hx,hy:gz.hy,w0:d.w,h0:d.h,x0:W.x,y0:W.y,r0:W.rot||0}
+else if(gz.k==='rot')S.drag={k:'rot',d,r0:W.rot||0,a0:Math.atan2(wy-W.y,wx-W.x)}
+else S.drag={k:'move',d,ax:gz.ax,ox:wx-W.x,oy:wy-W.y}
 return
 }
 }
@@ -456,14 +486,16 @@ const hit=pick(wx,wy)
 if(hit){
 select(hit.id)
 snap()
-if(S.tool==='rotate')S.drag={k:'rot',d:hit,r0:hit.rot||0,a0:Math.atan2(wy-hit.y,wx-hit.x)}
-else S.drag={k:'move',d:hit,ax:'xy',ox:wx-hit.x,oy:wy-hit.y}
+const W=wd(hit)
+if(S.tool==='rotate'&&hit.shape!=='tilemap')S.drag={k:'rot',d:hit,r0:W.rot||0,a0:Math.atan2(wy-W.y,wx-W.x)}
+else S.drag={k:'move',d:hit,ax:'xy',ox:wx-W.x,oy:wy-W.y}
 }else select(null)
 })
 cv.addEventListener('pointermove',e=>{
 if(is3()){move3(e);return}
 const dr=S.drag
 if(!dr){hoverCursor2(e);return}
+if(dr.k==='tile'){const[wx,wy]=toWorld(e);VuePanels.tileMove(wx,wy);return}
 if(Math.abs(e.movementX)+Math.abs(e.movementY)>0)dr.moved=true
 if(dr.k==='pan'){
 S.cam.x=dr.cx-(e.clientX-dr.sx)/S.cam.zoom
@@ -471,34 +503,33 @@ S.cam.y=dr.cy-(e.clientY-dr.sy)/S.cam.zoom
 redraw()
 return
 }
-const[wx,wy]=toWorld(e),d=dr.d
+const[wx,wy]=toWorld(e),d=dr.d,W=wd(d)
 if(dr.k==='move'){
-let nx=dr.ax==='y'?d.x:gs(wx-dr.ox),ny=dr.ax==='x'?d.y:gs(wy-dr.oy)
+let nx=dr.ax==='y'?W.x:gs(wx-dr.ox),ny=dr.ax==='x'?W.y:gs(wy-dr.oy)
 if(dr.ax==='xy')[nx,ny]=alignGuides(d,nx,ny)
-d.x=nx;d.y=ny
+setW(d,{x:nx,y:ny})
 }else if(dr.k==='rot'){
-let r=dr.r0+(Math.atan2(wy-d.y,wx-d.x)-dr.a0)/D
+let r=dr.r0+(Math.atan2(wy-W.y,wx-W.x)-dr.a0)/D
 if(e.shiftKey||S.snapOn)r=Math.round(r/15)*15
-d.rot=Math.round(((r%360)+540)%360-180)
+setW(d,{rot:Math.round(((r%360)+540)%360-180)})
 }else if(dr.k==='size'){
-const a=-(d.rot||0)*D,dx=wx-dr.x0,dy=wy-dr.y0
+const a=-dr.r0*D,dx=wx-dr.x0,dy=wy-dr.y0
 const lx=dx*Math.cos(a)-dy*Math.sin(a),ly=dx*Math.sin(a)+dy*Math.cos(a)
 const alt=e.altKey,ax0=-dr.hx*dr.w0/2,ay0=-dr.hy*dr.h0/2
 let w=dr.hx?Math.max(2,gs(alt?Math.abs(lx)*2:Math.abs(lx-ax0))):dr.w0
 let hh=dr.hy?Math.max(2,gs(alt?Math.abs(ly)*2:Math.abs(ly-ay0))):dr.h0
 if(e.shiftKey&&dr.hx&&dr.hy){const k=Math.max(w/dr.w0,hh/dr.h0);w=Math.round(dr.w0*k);hh=Math.round(dr.h0*k)}
 const clx=alt?0:dr.hx?ax0+dr.hx*w/2:0,cly=alt?0:dr.hy?ay0+dr.hy*hh/2:0
-const ra=(d.rot||0)*D
+const ra=dr.r0*D
 d.w=w;d.h=hh
-d.x=r2(dr.x0+clx*Math.cos(ra)-cly*Math.sin(ra))
-d.y=r2(dr.y0+clx*Math.sin(ra)+cly*Math.cos(ra))
+setW(d,{x:dr.x0+clx*Math.cos(ra)-cly*Math.sin(ra),y:dr.y0+clx*Math.sin(ra)+cly*Math.cos(ra)})
 }
-S.game.refresh()
 syncInspector()
 redraw()
 })
 const end=()=>{
 if(is3()){up3();return}
+if(S.drag&&S.drag.k==='tile'){VuePanels.tileUp();return}
 if(S.drag&&S.drag.k==='pan'&&S.drag.moved&&S.drag.btn===2)S.ctxBlock=true
 if(S.drag&&S.drag.k!=='pan'){if(!S.drag.moved)S.undo.pop();scheduleSave()}
 S.drag=null
@@ -585,6 +616,11 @@ requestAnimationFrame(loop)
 }
 function select(id){
 S.sel=id
+const d=selData()
+if(S.tool==='paint'&&!(d&&d.shape==='tilemap'))S.tool='move'
+if(d&&d.shape==='tilemap'&&$('#tiles').classList.contains('on'))S.tool='paint'
+updateToolbar()
+VuePanels.onSelect()
 renderHier()
 buildInspector()
 redraw()
@@ -599,33 +635,60 @@ let i=2
 while(names.has(b+' '+i))i++
 return b+' '+i
 }
-function addEntity(kind){
+function addEntity(kind,asChild){
 snap()
 const t3=K3.some(k=>k[0]===kind)
 const d=t3?VueSample.kinds3[kind]():VueSample.kinds[kind]()
 d.name=uniqueName(d.name)
-if(is3()){
+const par=asChild?selData():null
+if(par){
+d.parent=par.id
+d.x=0;d.y=0
+if(t3){d.z=0;d.y=d.shape==='light'?2:(par.h||1)/2+(d.h||1)/2}else d.x=(par.w||32)/2+(d.w||32)/2+8
+}else if(is3()){
 const o=S.cam3
 d.x=gs(o.tx);d.z=gs(o.tz)
 d.y=d.shape==='light'?Math.max(4,o.ty+4):d.shape==='plane'?0:Math.max(d.h/2,gs(o.ty))
-}else{d.x=gs(S.cam.x);d.y=gs(S.cam.y)}
-scene().entities.push(d)
+}else if(kind==='tilemap'){d.x=gs(S.cam.x-S.cam.x%32);d.y=gs(S.cam.y-S.cam.y%32)}
+else{d.x=gs(S.cam.x);d.y=gs(S.cam.y)}
+if(kind==='tilemap'){
+if(!S.project.assets['tiles.png'])S.project.assets['tiles.png']={type:'image',data:VuePanels.defaultTileset()}
+d.tileset='tiles.png'
+d.ts=16
+d.tiles={}
+for(let x=-6;x<=6;x++){d.tiles[x+',3']=0;d.tiles[x+',4']=1}
+}
+const es=scene().entities
+if(par)es.splice(es.indexOf(par)+subtree(par).length,0,d)
+else es.push(d)
 S.sel=d.id
+if(kind==='tilemap'){S.game.loadAssets().then(()=>{redraw();VuePanels.render()});S.tool='paint';setBTab('tiles')}
 reloadScene()
 renderAll()
-toast('Added '+d.name,'ok')
+toast('Added '+d.name+(par?' inside '+par.name:''),'ok')
+}
+function subtree(d){
+const es=scene().entities,out=[d],ids=new Set([d.id])
+let grew=true
+while(grew){grew=false;for(const e of es)if(e.parent&&ids.has(e.parent)&&!ids.has(e.id)){ids.add(e.id);out.push(e);grew=true}}
+return out
+}
+function cloneTree(list,renameRoot){
+const map={},out=list.map(x=>clone(x))
+for(const c of out){const n=VueSample.uid();map[c.id]=n;c.id=n}
+for(const c of out)if(c.parent&&map[c.parent])c.parent=map[c.parent]
+if(renameRoot)out[0].name=uniqueName(out[0].name)
+return out
 }
 function dupEntity(){
 const d=selData()
 if(!d)return
 snap()
-const c=clone(d)
-c.id=VueSample.uid()
-c.name=uniqueName(d.name)
-if(is3())c.x+=1;else{c.x+=16;c.y+=16}
-const es=scene().entities
-es.splice(es.indexOf(d)+1,0,c)
-S.sel=c.id
+const cs=cloneTree(subtree(d),true)
+if(is3())cs[0].x+=1;else{cs[0].x+=16;cs[0].y+=16}
+const es=scene().entities,at=Math.max(...subtree(d).map(x=>es.indexOf(x)))+1
+es.splice(at,0,...cs)
+S.sel=cs[0].id
 reloadScene()
 renderAll()
 }
@@ -633,25 +696,42 @@ function delEntity(){
 const d=selData()
 if(!d)return
 snap()
-const es=scene().entities
-es.splice(es.indexOf(d),1)
+const kill=new Set(subtree(d))
+scene().entities=scene().entities.filter(e=>!kill.has(e))
 S.sel=null
 reloadScene()
 renderAll()
-toast('Deleted '+d.name)
+toast('Deleted '+d.name+(kill.size>1?' and '+(kill.size-1)+' child'+(kill.size>2?'ren':''):''))
 }
-function copyEntity(){const d=selData();if(!d)return;S.clip=clone(d);toast('Copied '+d.name)}
+function copyEntity(){const d=selData();if(!d)return;S.clip=subtree(d).map(clone);toast('Copied '+d.name)}
 function pasteEntity(){
 if(!S.clip)return
 snap()
-const c=clone(S.clip)
-c.id=VueSample.uid()
-c.name=uniqueName(c.name)
-if(is3()){c.x=gs(S.cam3.tx);c.z=gs(S.cam3.tz)}else{c.x=gs(S.cam.x);c.y=gs(S.cam.y)}
-scene().entities.push(c)
-S.sel=c.id
+const cs=cloneTree(S.clip,true)
+const root=cs[0]
+const pd=root.parent&&byId(root.parent)
+if(!pd){delete root.parent;if(is3()){root.x=gs(S.cam3.tx);root.z=gs(S.cam3.tz)}else{root.x=gs(S.cam.x);root.y=gs(S.cam.y)}}
+scene().entities.push(...cs)
+S.sel=root.id
 reloadScene()
 renderAll()
+}
+function reparent(d,np,before,after){
+if(np&&(np===d||subtree(d).indexOf(np)>=0))return false
+const W=wd(d),w={x:W.x,y:W.y,z:W.z,rot:W.rot,rx:W.rx,ry:W.ry,rz:W.rz}
+const pe=np?entOf(np):null
+if(np)d.parent=np.id;else delete d.parent
+const L=pe?VueRuntime.toLocal(pe,w,is3()):w
+d.x=r2(L.x);d.y=r2(L.y)
+if(is3()){d.z=r2(L.z);d.rx=r2(L.rx||0);d.ry=r2(L.ry||0);d.rz=r2(L.rz||0)}else d.rot=r2(L.rot||0)
+const es=scene().entities,tree=subtree(d)
+for(const x of tree)es.splice(es.indexOf(x),1)
+let at=es.length
+if(before)at=es.indexOf(before)
+else if(after){const t=subtree(after);at=Math.max(...t.map(x=>es.indexOf(x)))+1}
+else if(np){const t=subtree(np);at=Math.max(...t.map(x=>es.indexOf(x)))+1}
+es.splice(at,0,...tree)
+return true
 }
 function renameEntity(){
 const d=selData()
@@ -677,6 +757,7 @@ inp.addEventListener('pointerdown',e=>e.stopPropagation())
 inp.addEventListener('click',e=>e.stopPropagation())
 }
 function renderAll(){
+VuePanels.render()
 updateToolbar()
 renderScenes()
 renderHier()
@@ -692,6 +773,8 @@ $('#tSnap').classList.toggle('on',S.snapOn)
 $('#tGrid').classList.toggle('on',S.gridOn)
 $('#tSky').classList.toggle('on',S.skyOn)
 $('#tSky').style.display=t?'':'none'
+const sd=selData()
+$('#tPaint').style.display=!t&&((sd&&sd.shape==='tilemap')||S.tool==='paint')?'':'none'
 const sel=$('#snapSel'),opts=t?[0.1,0.25,0.5,1,2]:[1,4,8,16,32],cur=t?S.snap3:S.snap2
 sel.innerHTML=''
 for(const o of opts)sel.append(h('option',{value:o,text:t?o+' m':o+' px'}))
@@ -728,62 +811,88 @@ if(S.tab==='script')loadScriptView()
 function renderHier(){
 const box=$('#hier'),q=$('#hfilter').value.trim().toLowerCase()
 box.innerHTML=''
-const es=scene().entities
+const es=scene().entities,ids=new Set(es.map(e=>e.id)),kids={}
+for(const d of es){const p=d.parent&&ids.has(d.parent)?d.parent:'';(kids[p]||(kids[p]=[])).push(d)}
+if(!S.collapsed)S.collapsed=new Set()
 let shown=0
-for(const d of es){
-if(q&&d.name.toLowerCase().indexOf(q)<0&&!(d.tags||[]).some(t=>t.toLowerCase().indexOf(q)>=0))continue
+const rowOf=(d,depth)=>{
 shown++
+const has=!!(kids[d.id]&&kids[d.id].length),col=S.collapsed.has(d.id)
 const eye=h('button',{class:'ib'+(d.visible===false?' keep':''),title:d.visible===false?'Show':'Hide',html:ic(d.visible===false?'eyeoff':'eye',13),onclick:ev=>{ev.stopPropagation();snap();d.visible=d.visible===false;S.game.refresh();renderHier();redraw()}})
 const lock=h('button',{class:'ib'+(d.locked?' keep':''),title:d.locked?'Unlock':'Lock in viewport',html:ic('lock',13),onclick:ev=>{ev.stopPropagation();d.locked=!d.locked;markDirty();renderHier();redraw()}})
-const it=h('div',{class:'item'+(d.id===S.sel?' on':'')+(d.prefab||d.visible===false?' ghost':''),draggable:'true',title:d.prefab?'Prefab: spawned by scripts, not placed at start':null},
+const chev=h('span',{class:'chv'+(has?'':' none')+(col?' col':''),html:has?ic('chev',12):'',onclick:ev=>{ev.stopPropagation();if(!has)return;if(col)S.collapsed.delete(d.id);else S.collapsed.add(d.id);renderHier()}})
+const it=h('div',{class:'item'+(d.id===S.sel?' on':'')+(d.prefab||d.visible===false?' ghost':''),draggable:'true',style:'padding-left:'+(4+depth*14)+'px',title:d.prefab?'Prefab: spawned by scripts, not placed at start':null},
+chev,
 h('span',{class:'ti',html:ic(SHAPE_IC[d.shape]||'square',14)}),
 h('span',{class:'nm',text:d.name}),
 d.prefab?h('span',{class:'tagp',text:'prefab'}):null,
+d.sound?h('span',{class:'ti',title:'Audio source',html:ic('audio',12)}):null,
+d.anims&&Object.keys(d.anims).length?h('span',{class:'ti',title:'Animated',html:ic('film',12)}):null,
 d.script?h('span',{class:'ti',title:'Has '+d.script.mode+' script',html:ic(d.script.mode==='blocks'?'blocks':d.script.mode==='nodes'?'nodes':'code',12)}):null,
-h('span',{class:'sw2',style:'background:'+d.color}),
+d.shape!=='tilemap'?h('span',{class:'sw2',style:'background:'+d.color}):null,
 h('span',{class:'acts'},lock,eye))
 it.addEventListener('click',()=>select(d.id))
-it.addEventListener('dblclick',()=>{select(d.id);renameEntity()})
+it.addEventListener('dblclick',e=>{if(e.target.closest('.chv,.ib'))return;select(d.id);renameEntity()})
 it.addEventListener('contextmenu',e=>{e.preventDefault();select(d.id);entityMenu(e.clientX,e.clientY,d)})
 it.addEventListener('dragstart',e=>{S.dnd=d;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',d.id)})
-it.addEventListener('dragover',e=>{if(!S.dnd||S.dnd===d)return;e.preventDefault();const r=it.getBoundingClientRect(),after=e.clientY>r.top+r.height/2;it.classList.toggle('dropb',after);it.classList.toggle('dropt',!after)})
-it.addEventListener('dragleave',()=>{it.classList.remove('dropb','dropt')})
+it.addEventListener('dragover',e=>{
+if(!S.dnd||S.dnd===d||subtree(S.dnd).indexOf(d)>=0)return
+e.preventDefault()
+e.stopPropagation()
+const r=it.getBoundingClientRect(),k=(e.clientY-r.top)/r.height
+it.classList.toggle('dropt',k<0.28)
+it.classList.toggle('dropb',k>0.72)
+it.classList.toggle('dropin',k>=0.28&&k<=0.72)
+})
+it.addEventListener('dragleave',()=>it.classList.remove('dropb','dropt','dropin'))
 it.addEventListener('drop',e=>{
 e.preventDefault()
 e.stopPropagation()
 const src=S.dnd
 S.dnd=null
+const z=it.classList.contains('dropin')?'in':it.classList.contains('dropt')?'before':'after'
+it.classList.remove('dropb','dropt','dropin')
 if(!src||src===d)return
-const after=it.classList.contains('dropb')
 snap()
-es.splice(es.indexOf(src),1)
-es.splice(es.indexOf(d)+(after?1:0),0,src)
-reloadScene()
+const pd=d.parent?byId(d.parent):null
+const ok=z==='in'?reparent(src,d):z==='before'?reparent(src,pd,d):reparent(src,pd,null,d)
+if(!ok){S.undo.pop();return}
+if(z==='in')S.collapsed.delete(d.id)
+S.game.refresh()
 renderHier()
+buildInspector()
+redraw()
+if(z==='in')toast(src.name+' is now inside '+d.name,'ok')
 })
-it.addEventListener('dragend',()=>{S.dnd=null;for(const x of box.children)x.classList.remove('dropb','dropt')})
+it.addEventListener('dragend',()=>{S.dnd=null;for(const x of box.querySelectorAll('.item'))x.classList.remove('dropb','dropt','dropin')})
 box.append(it)
+if(has&&!col&&!q)for(const k of kids[d.id])rowOf(k,depth+1)
 }
+if(q){for(const d of es)if(d.name.toLowerCase().indexOf(q)>=0||(d.tags||[]).some(t=>t.toLowerCase().indexOf(q)>=0))rowOf(d,0)}
+else for(const d of kids['']||[])rowOf(d,0)
 if(!shown)box.append(h('div',{class:'hint',style:'padding:10px 8px',text:q?'No entities match "'+q+'"':'Empty scene. Press Shift+A or the + button to add something.'}))
 }
-function createItems(){
+function createItems(child){
 const t=is3()
-const list=(t?K3:K2).map(k=>({ic:SHAPE_IC[k[0]],label:k[1],fn:()=>addEntity(k[0])}))
-return[{head:'Create '+(t?'3D':'2D')}].concat(list)
+const list=(t?K3:K2).filter(k=>!(child&&k[0]==='tilemap')).map(k=>({ic:SHAPE_IC[k[0]],label:k[1],fn:()=>addEntity(k[0],child)}))
+return[{head:(child?'Create inside '+selData().name:'Create '+(t?'3D':'2D'))}].concat(list)
 }
 function entityMenu(x,y,d){
-showMenu($('#ctx'),x,y,[
+const items=[
 {ic:'edit',label:'Rename',kbd:'F2',fn:renameEntity},
 {ic:'copy',label:'Duplicate',kbd:'Ctrl+D',fn:dupEntity},
 {ic:'copy',label:'Copy',kbd:'Ctrl+C',fn:copyEntity},
 {ic:'copy',label:'Paste',kbd:'Ctrl+V',fn:pasteEntity,dis:!S.clip},
-{sep:1},
+{sep:1}]
+if(d.shape!=='tilemap')items.push({ic:'child',label:'Add child…',fn:()=>{const r=$('#ctx');showMenu(r,x,y,createItems(true))}})
+if(d.parent)items.push({ic:'unlink',label:'Unparent',fn:()=>{snap();reparent(d,null);S.game.refresh();renderHier();buildInspector();redraw()}})
+items.push(
 {ic:'frame',label:'Frame in view',kbd:'F',fn:()=>{setTab('scene');frameSel()}},
 {ic:'script',label:'Edit script',fn:()=>setTab('script')},
 {ic:'star',label:d.prefab?'Place in scene (not prefab)':'Make prefab',fn:()=>{snap();d.prefab=!d.prefab;reloadScene();renderAll()}},
 {sep:1},
-{ic:'trash',label:'Delete',kbd:'Del',fn:delEntity}
-])
+{ic:'trash',label:'Delete',kbd:'Del',fn:delEntity})
+showMenu($('#ctx'),x,y,items)
 }
 function viewportMenu(x,y,d){
 const items=createItems()
@@ -795,7 +904,7 @@ showMenu($('#ctx'),x,y,items)
 function sceneMenu(x,y,sc){
 showMenu($('#ctx'),x,y,[
 {ic:'edit',label:'Rename',fn:()=>renameScene(sc)},
-{ic:'copy',label:'Duplicate',fn:()=>{snap();const c=clone(sc);c.id=VueSample.uid();c.name=sc.name+' copy';for(const e of c.entities)e.id=VueSample.uid();S.project.scenes.push(c);switchScene(c.id)}},
+{ic:'copy',label:'Duplicate',fn:()=>{snap();const c=clone(sc);c.id=VueSample.uid();c.name=sc.name+' copy';const mp={};for(const e of c.entities){const n=VueSample.uid();mp[e.id]=n;e.id=n}for(const e of c.entities)if(e.parent)e.parent=mp[e.parent];S.project.scenes.push(c);switchScene(c.id)}},
 {ic:'star',label:'Set as start scene',dis:S.project.startScene===sc.id,fn:()=>{S.project.startScene=sc.id;markDirty();renderAll()}},
 {sep:1},
 {ic:'trash',label:'Delete scene',dis:S.project.scenes.length<2,fn:async()=>{
@@ -828,18 +937,45 @@ box.innerHTML=''
 const a=S.project.assets,ks=Object.keys(a)
 for(const k of ks){
 const im=a[k].type==='image'
-const it=h('div',{class:'asset',title:im?k+'\nClick to apply to the selected entity':k+'\nClick to preview',onclick:()=>useAsset(k)},
-h('div',{class:'at'},im?h('img',{src:a[k].data}):h('span',{html:ic('music',28)})),
+const wv=im?null:h('canvas',{class:'wave',width:160,height:160})
+const it=h('div',{class:'asset',title:im?k+'\nClick to apply to the selected entity':k+'\nClick to play, click again to stop',onclick:()=>useAsset(k)},
+h('div',{class:'at'},im?h('img',{src:a[k].data}):wv,im?null:h('span',{class:'aplay',html:ic(S.preview&&S.preview.k===k?'stop':'play',18)})),
 h('span',{text:k}),
 h('i',{class:'badge',text:im?'IMG':'SFX'}),
 h('button',{class:'ib del',title:'Delete asset',html:ic('trash',12),onclick:ev=>{ev.stopPropagation();delete S.project.assets[k];S.game.loadAssets().then(redraw);renderAssets();markDirty()}}))
 box.append(it)
 }
+requestAnimationFrame(()=>{for(const cv of box.querySelectorAll('canvas.wave'))waveOf(cv,cv.closest('.asset').querySelector('span:not(.aplay)').textContent)})
 box.append(h('div',{class:'adrop'},h('span',{html:ic('upload',26)}),h('b',{text:ks.length?'Drop more files here':'No assets yet'}),h('span',{text:'Drag PNG, JPG, GIF, WebP, SVG, WAV, MP3 or OGG anywhere in the window, or'}),h('button',{class:'btn sm',html:ic('folder',14)+'Browse files',onclick:importAssets})))
+}
+function waveOf(cv,k){
+const b=S.game.buffers[k]
+const c=cv.getContext('2d')
+c.clearRect(0,0,cv.width,cv.height)
+if(!b){c.fillStyle='#6b6385';c.font='600 13px Inter';c.textAlign='center';c.fillText('decoding…',cv.width/2,cv.height/2);return}
+const d=b.getChannelData(0),n=cv.width,step=Math.max(1,Math.floor(d.length/n)),mid=cv.height/2
+c.fillStyle='#9d5cff'
+for(let i=0;i<n;i++){let mn=1,mx=-1;for(let j=0;j<step;j+=Math.max(1,step>>5)){const v=d[i*step+j]||0;if(v<mn)mn=v;if(v>mx)mx=v}c.fillRect(i,mid+mn*mid*0.9,1,Math.max(1,(mx-mn)*mid*0.9))}
+c.fillStyle='rgba(236,232,246,0.85)';c.font='600 20px JetBrains Mono';c.textAlign='right';c.fillText(b.duration.toFixed(1)+'s',cv.width-8,cv.height-10)
+}
+async function addAsset(name,type,data){
+let nm=name,i=2
+while(S.project.assets[nm]&&S.project.assets[nm].data!==data)nm=name.replace(/(\.[^.]*)?$/,'_'+(i++)+'$1')
+S.project.assets[nm]={type,data}
+await S.game.loadAssets()
+renderAssets()
+markDirty()
+return nm
 }
 function useAsset(k){
 const a=S.project.assets[k]
-if(a.type!=='image'){S.game.play(k);return}
+if(a.type!=='image'){
+const was=S.preview&&S.preview.k===k
+if(S.preview){S.preview.h.stop();S.preview=null}
+if(!was){const hd=S.game.sfx(k,1);S.preview={k,h:hd};const t=setInterval(()=>{if(!S.game.sounds.has(hd)){clearInterval(t);if(S.preview&&S.preview.h===hd){S.preview=null;renderAssets()}}},250)}
+renderAssets()
+return
+}
 const d=selData()
 if(!d){toast('Select an entity first, then click an image to apply it');return}
 snap()
@@ -869,6 +1005,7 @@ renderAssets()
 redraw()
 markDirty()
 setBTab('assets')
+setTimeout(renderAssets,400)
 toast('Imported '+n+' asset'+(n>1?'s':''),'ok')
 }
 async function importAssets(){addFiles(await host.importAssets())}
@@ -894,16 +1031,19 @@ if(f.length)addFiles(f);else toast('Unsupported file type','err')
 }
 function setBTab(t){
 for(const b of $$('.btab'))b.classList.toggle('on',b.dataset.btab===t)
-$('#console').classList.toggle('on',t==='console')
-$('#assets').classList.toggle('on',t==='assets')
+for(const id of['console','assets','tiles','anim','cuts'])$('#'+id).classList.toggle('on',t===id)
 $('#conTools').classList.toggle('hide',t!=='console')
 $('#assetTools').classList.toggle('hide',t!=='assets')
+if(S.layout&&S.layout.bh<120){S.layout.bh=280;applyLayout(S.layout)}
+if(t==='tiles'){const d=selData();if(d&&d.shape==='tilemap'&&S.tool!=='paint'){S.tool='paint';updateToolbar();redraw()}}
+if(t==='tiles'||t==='anim'||t==='cuts')VuePanels.render(t)
 }
 function afterEdit(key){
 S.game.refresh()
 redraw()
 if(key==='name'||key==='color'||key==='visible'||key==='prefab'||key==='shape')renderHier()
-if(key==='shape'||key==='prefab'||key==='body')buildInspector()
+if(key==='shape'||key==='prefab'||key==='body'||key==='tileset'||key==='anim')buildInspector()
+if(key==='tileset'||key==='ts'){S.game.loadAssets().then(redraw);VuePanels.render()}
 if(key==='prefab')reloadScene()
 status()
 }
@@ -1023,14 +1163,17 @@ row('Tags',field(d,'tags','tags')),
 row('Prefab',field(d,'prefab','bool')),
 d.prefab?h('div',{class:'hint',text:'Prefabs are hidden at start and appear when a script calls vue.spawn("'+d.name+'").'}):null
 ]))
+const pd=d.parent?byId(d.parent):null,lp=pd?'Local position':'Position',lr=pd?'Local rotation':'Rotation'
+if(pd)box.append(h('div',{class:'phint',html:ic('child',13)},h('span',{text:'Inside '}),h('b',{text:pd.name,class:'lnk',onclick:()=>select(pd.id)}),h('span',{text:'. Moves with its parent.'}),h('button',{class:'ib',title:'Unparent',html:ic('unlink',13),onclick:()=>{snap();reparent(d,null);S.game.refresh();renderAll();redraw()}})))
+if(d.shape==='tilemap'){tilemapInspector(box,d);return}
 const tf=t3?[
-row('Position',vec(d,['x','y','z'],0.05)),
-row('Rotation',vec(d,['rx','ry','rz'],1)),
+row(lp,vec(d,['x','y','z'],0.05)),
+row(lr,vec(d,['rx','ry','rz'],1)),
 d.shape==='light'?row('Range',field(d,'w','num'),'w',d,0.1):row('Scale',d.shape==='plane'?vec(d,['w','d'],0.02,['X','Z']):vec(d,['w','h','d'],0.02))
 ]:[
-row('Position',vec(d,['x','y'],1)),
+row(lp,vec(d,['x','y'],1)),
 row('Size',vec(d,['w','h'],1,['W','H'])),
-row('Rotation',field(d,'rot','num'),'rot',d,1),
+row(lr,field(d,'rot','num'),'rot',d,1),
 row('Layer',field(d,'z','num'),'z',d,0.1)
 ]
 box.append(card('tf','Transform','move',tf))
@@ -1042,6 +1185,30 @@ if(d.shape==='text'){look.push(row('Text',field(d,'text','text')),row('Font size
 look.push(row(d.shape==='light'?'Intensity':'Opacity',field(d,'alpha','num'),'alpha',d,0.01))
 look.push(row('Visible',field(d,'visible','bool')))
 box.append(card('look',t3&&d.shape==='light'?'Light':'Appearance','palette',look))
+if(!t3&&d.anims&&Object.keys(d.anims).length){
+const an=Object.keys(d.anims)
+box.append(card('anim','Animation','film',[
+row('Default',field(d,'anim','sel',an.map(n=>[n,n+' ('+(d.anims[n].frames||[]).length+' frames)']))),
+h('button',{class:'btn sm',html:ic('film',13)+'Open animation editor',onclick:()=>setBTab('anim')})
+]))
+}
+if(d.sound!=null){
+const au=Object.keys(S.project.assets).filter(k=>S.project.assets[k].type==='audio')
+const sel=h('select')
+sel.append(h('option',{value:'',text:au.length?'Choose a sound…':'Import audio in Assets'}))
+for(const k of au)sel.append(h('option',{value:k,text:k}))
+sel.value=d.sound||''
+sel.addEventListener('change',()=>{snap();d.sound=sel.value;afterEdit('sound');renderHier()})
+if(d.soundVol==null)d.soundVol=1
+box.append(card('audio','Audio Source','audio',[
+row('Sound',sel),
+row('Volume',field(d,'soundVol','num'),'soundVol',d,0.01),
+row('Loop',field(d,'soundLoop','bool')),
+row('Play on start',field(d,'soundAuto','bool')),
+h('div',{class:'row2'},h('button',{class:'btn sm',html:ic('play',13)+'Preview',onclick:()=>{if(d.sound){S.game.stopSounds();S.game.sfx(d.sound,d.soundVol)}}}),h('button',{class:'btn sm',html:ic('stop',13)+'Stop',onclick:()=>S.game.stopSounds()})),
+h('div',{class:'hint',style:'margin-top:8px',text:'Scripts can call self.playSound() and self.stopSound().'})
+],h('button',{class:'ib',title:'Remove',html:ic('x',13),onclick:e=>{e.stopPropagation();snap();delete d.sound;delete d.soundVol;delete d.soundLoop;delete d.soundAuto;buildInspector();renderHier()}})))
+}
 if(d.body&&d.body!=='none'){
 const ph=[row('Body',field(d,'body','sel',[['static','Static: walls, floors'],['dynamic','Dynamic: falls, collides'],['trigger','Trigger: detects touches'],['none','None']]))]
 if(d.body==='dynamic')ph.push(row('Gravity',field(d,'gravityScale','num'),'gravityScale',d,0.05))
@@ -1058,10 +1225,29 @@ const add=h('button',{class:'addc',html:ic('plus',14)+'Add Component',onclick:()
 const r=add.getBoundingClientRect(),items=[]
 if(!d.body||d.body==='none')items.push({head:'Physics'},{ic:'physics',label:'Static body',fn:()=>{snap();d.body='static';afterEdit('body')}},{ic:'physics',label:'Dynamic body',fn:()=>{snap();d.body='dynamic';afterEdit('body')}},{ic:'physics',label:'Trigger',fn:()=>{snap();d.body='trigger';afterEdit('body')}})
 if(!d.script)items.push({head:'Behavior'},{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')},{ic:'nodes',label:'Node graph',fn:()=>newScript(d,'nodes')},{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')})
+if(d.sound==null||(!t3&&!d.anims))items.push({head:'Media'})
+if(d.sound==null)items.push({ic:'audio',label:'Audio source',fn:()=>{snap();d.sound='';d.soundVol=1;d.soundLoop=false;d.soundAuto=true;buildInspector();renderHier()}})
+if(!t3&&(!d.anims||!Object.keys(d.anims).length))items.push({ic:'film',label:'Sprite animation',fn:()=>setBTab('anim')})
+items.push({head:'Hierarchy'},{ic:'child',label:'Child entity…',fn:()=>{const rr=add.getBoundingClientRect();showMenu($('#ctx'),rr.left,rr.bottom+4,createItems(true),rr.width)}})
 if(!items.length)items.push({head:'All components added'})
 showMenu($('#ctx'),r.left,r.bottom+4,items,r.width)
 }})
 box.append(add)
+}
+function tilemapInspector(box,d){
+const e=entOf(d)
+const im=Object.keys(S.project.assets).filter(k=>S.project.assets[k].type==='image')
+box.append(card('tf','Transform','move',[row('Origin',vec(d,['x','y'],1)),row('Layer',field(d,'z','num'),'z',d,0.1)]))
+box.append(card('tm','Tilemap','map',[
+row('Tileset',field(d,'tileset','sel',[['','Colors only']].concat(im.map(k=>[k,k])))),
+row('Tile px',field(d,'ts','num'),'ts',d,1),
+row('Cell size',field(d,'cell','num'),'cell',d,1),
+row('Solid',field(d,'solid','bool')),
+h('div',{class:'hint',text:(e&&e.tiles?e.tiles.size:0)+' tiles. Solid tiles block dynamic bodies and trigger "touching" events.'}),
+h('button',{class:'btn sm primary',html:ic('brush',13)+'Paint tiles',onclick:()=>{setTool('paint');setBTab('tiles')}})
+]))
+if(d.script){const m=d.script.mode;box.append(card('scr','Script','script',[h('div',{class:'scard'},h('span',{class:'badge',text:m}),h('span',{style:'flex:1'}),h('button',{class:'btn sm primary',html:ic('edit',13)+'Open',onclick:()=>setTab('script')}))]))}
+else box.append(h('button',{class:'addc',html:ic('plus',14)+'Add script',onclick:e=>{const r=e.currentTarget.getBoundingClientRect();showMenu($('#ctx'),r.left,r.bottom+4,[{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')},{ic:'nodes',label:'Node graph',fn:()=>newScript(d,'nodes')},{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')}],r.width)}}))
 }
 function newScript(d,mode){
 snap()
@@ -1281,17 +1467,18 @@ redraw()
 if(t==='script')loadScriptView()
 }
 function compileEnv(){return{Blockly:window.Blockly,gen:Blockly.JavaScript,blocks:VueBlocks,nodes:VueNodes,transpile:s=>host.transpile(s)}}
-async function build(){
+async function build(preview){
 const r=await VueCompiler.compileProject(S.project,compileEnv())
+const proj=preview?Object.assign({},S.project,{_preview:preview}):S.project
 for(const e of r.errors){const i=e.indexOf(': ');log('error',i>0?e.slice(i+2):e,i>0?e.slice(0,i):'')}
 const rt=await host.runtimeSource()
 const three=S.project.scenes.some(s=>s.mode==='3d')?await host.threeSource():''
-return{html:VuePlayer.html(S.project,r.scripts,rt,S.project.name,three),errors:r.errors}
+return{html:VuePlayer.html(proj,r.scripts,rt,S.project.name,three),errors:r.errors}
 }
-async function play(){
-if(S.playing){stopGame();return}
+async function play(preview){
+if(S.playing){stopGame();if(typeof preview!=='string')return}
 if($('#clearPlay').checked)clearLog()
-const{html,errors}=await build()
+const{html,errors}=await build(typeof preview==='string'?preview:null)
 S.lastHtml=html
 S.playing=true
 S.paused=false
@@ -1428,7 +1615,7 @@ const rec=recent().slice(0,6).map(r=>({ic:'file',label:r.name+'  ·  '+r.path.sp
 return{
 file:[{ic:'sparkles',label:'New project…',kbd:'Ctrl+N',fn:()=>showHub('new')},{ic:'folder',label:'Open…',kbd:'Ctrl+O',fn:open},rec.length?{head:'Recent'}:null].concat(rec,[{sep:1},{ic:'save',label:'Save',kbd:'Ctrl+S',fn:()=>save(false)},{ic:'save',label:'Save as…',kbd:'Ctrl+Shift+S',fn:()=>save(true)},{ic:'export',label:'Export HTML game…',kbd:'Ctrl+E',fn:exportHtml},{sep:1},{ic:'home',label:'Project hub',fn:()=>showHub('new')}]),
 edit:[{ic:'undo',label:'Undo',kbd:'Ctrl+Z',fn:undo,dis:!S.undo.length},{ic:'redo',label:'Redo',kbd:'Ctrl+Y',fn:redo,dis:!S.redo.length},{sep:1},{ic:'copy',label:'Copy',kbd:'Ctrl+C',fn:copyEntity,dis:!S.sel},{ic:'copy',label:'Paste',kbd:'Ctrl+V',fn:pasteEntity,dis:!S.clip},{ic:'copy',label:'Duplicate',kbd:'Ctrl+D',fn:dupEntity,dis:!S.sel},{ic:'edit',label:'Rename',kbd:'F2',fn:renameEntity,dis:!S.sel},{ic:'trash',label:'Delete',kbd:'Del',fn:delEntity,dis:!S.sel},{sep:1},{ic:'plus',label:'Add entity…',kbd:'Shift+A',fn:()=>palette('create ')},{ic:'scene',label:'New scene…',fn:addScene},{sep:1},{ic:'command',label:'Command palette',kbd:'Ctrl+P',fn:()=>palette('')}],
-view:[{ic:'scene',label:'Scene workspace',kbd:'Ctrl+1',fn:()=>setTab('scene')},{ic:'script',label:'Script workspace',kbd:'Ctrl+2',fn:()=>setTab('script')},{sep:1},{ic:'grid',label:(S.gridOn?'Hide':'Show')+' grid',kbd:'G',fn:toggleGrid},{ic:'magnet',label:(S.snapOn?'Disable':'Enable')+' snapping',fn:toggleSnap},{ic:'frame',label:'Frame selection',kbd:'F',fn:()=>frameSel()},{ic:'frame',label:'Frame all',kbd:'Shift+F',fn:()=>frameSel(true)},{ic:'target',label:'Reset camera',fn:resetView},{sep:1},{ic:'terminal',label:'Console',fn:()=>setBTab('console')},{ic:'assets',label:'Assets',fn:()=>setBTab('assets')},{ic:'layers',label:'Reset layout',fn:resetLayout}],
+view:[{ic:'scene',label:'Scene workspace',kbd:'Ctrl+1',fn:()=>setTab('scene')},{ic:'script',label:'Script workspace',kbd:'Ctrl+2',fn:()=>setTab('script')},{sep:1},{ic:'grid',label:(S.gridOn?'Hide':'Show')+' grid',kbd:'G',fn:toggleGrid},{ic:'magnet',label:(S.snapOn?'Disable':'Enable')+' snapping',fn:toggleSnap},{ic:'frame',label:'Frame selection',kbd:'F',fn:()=>frameSel()},{ic:'frame',label:'Frame all',kbd:'Shift+F',fn:()=>frameSel(true)},{ic:'target',label:'Reset camera',fn:resetView},{sep:1},{ic:'terminal',label:'Console',fn:()=>setBTab('console')},{ic:'assets',label:'Assets',fn:()=>setBTab('assets')},{ic:'map',label:'Tile painter',fn:()=>setBTab('tiles')},{ic:'film',label:'Animation editor',fn:()=>setBTab('anim')},{ic:'video',label:'Cutscene editor',fn:()=>setBTab('cuts')},{ic:'layers',label:'Reset layout',fn:resetLayout}],
 help:[{ic:'keyboard',label:'Keyboard shortcuts',kbd:'?',fn:showKeys},{ic:'book',label:'Learn Vue Engine',fn:()=>showHub('learn')},{sep:1},{ic:'info',label:'About Vue Engine',fn:()=>dialog({title:'Vue Engine '+S.version,msg:'A 2D and 3D game creation engine with Blocks, Nodes and TypeScript. Icons by Lucide (ISC), 3D by three.js (MIT), Blocks by Blockly (Apache 2.0), code editor by Monaco (MIT), fonts Inter and JetBrains Mono (OFL).',buttons:[{label:'Close',value:1,primary:true}]})}]
 }
 }
@@ -1447,7 +1634,7 @@ const C=[
 ['Scene workspace','scene',()=>setTab('scene'),'Ctrl+1'],['Script workspace','script',()=>setTab('script'),'Ctrl+2'],
 ['Toggle grid','grid',toggleGrid,'G'],['Toggle snapping','magnet',toggleSnap,''],['Frame selection','frame',()=>frameSel(),'F'],['Frame all','frame',()=>frameSel(true),'Shift+F'],
 ['Pan tool','hand',()=>setTool('pan'),'Q'],['Move tool','move',()=>setTool('move'),'W'],['Rotate tool','rotate',()=>setTool('rotate'),'E'],['Scale tool','scale',()=>setTool('scale'),'R'],
-['New scene','scene',addScene,''],['Import assets','upload',importAssets,''],['Clear console','trash',clearLog,''],['Reset layout','layers',resetLayout,''],['Keyboard shortcuts','keyboard',showKeys,'?'],['Project hub','home',()=>showHub('new'),'']
+['New scene','scene',addScene,''],['Tile painter','map',()=>setBTab('tiles'),'B'],['Animation editor','film',()=>setBTab('anim'),''],['Cutscene editor','video',()=>setBTab('cuts'),''],['Add audio source','audio',()=>{const d=selData();if(d&&d.sound==null){snap();d.sound='';d.soundVol=1;d.soundAuto=true;buildInspector()}},''],['Import assets','upload',importAssets,''],['Clear console','trash',clearLog,''],['Reset layout','layers',resetLayout,''],['Keyboard shortcuts','keyboard',showKeys,'?'],['Project hub','home',()=>showHub('new'),'']
 ].map(c=>({label:c[0],ic:c[1],fn:c[2],kbd:c[3],kind:'Command'}))
 const cr=(is3()?K3:K2).map(k=>({label:'Create '+k[1],ic:SHAPE_IC[k[0]],fn:()=>{setTab('scene');addEntity(k[0])},kind:'Create'}))
 const en=[]
@@ -1501,7 +1688,7 @@ p.classList.add('on')
 fill()
 setTimeout(()=>{inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length)},0)
 }
-const KEYS=[['Play / stop','Ctrl+Enter'],['Save','Ctrl+S'],['Save as','Ctrl+Shift+S'],['Open','Ctrl+O'],['New project','Ctrl+N'],['Export','Ctrl+E'],['Command palette','Ctrl+P'],['Undo / redo','Ctrl+Z / Ctrl+Y'],['Copy / paste','Ctrl+C / Ctrl+V'],['Duplicate','Ctrl+D'],['Delete','Del'],['Rename','F2'],['Add entity','Shift+A'],['Pan / Move / Rotate / Scale','Q / W / E / R'],['Frame selection / all','F / Shift+F'],['Toggle grid','G'],['Nudge','Arrows (+Shift)'],['Pan 2D view','Space+drag, MMB'],['Orbit 3D view','RMB or Alt+LMB'],['Fly in 3D','Hold RMB + WASD QE'],['Snap 3D view','Click axis gizmo'],['Fine / coarse scrub','Shift / Ctrl + drag label'],['Scene / Script workspace','Ctrl+1 / Ctrl+2'],['Add node','Right-click or Space'],['Stop game','Esc'],['Shortcuts','?']]
+const KEYS=[['Play / stop','Ctrl+Enter'],['Save','Ctrl+S'],['Save as','Ctrl+Shift+S'],['Open','Ctrl+O'],['New project','Ctrl+N'],['Export','Ctrl+E'],['Command palette','Ctrl+P'],['Undo / redo','Ctrl+Z / Ctrl+Y'],['Copy / paste','Ctrl+C / Ctrl+V'],['Duplicate','Ctrl+D'],['Delete','Del'],['Rename','F2'],['Add entity','Shift+A'],['Pan / Move / Rotate / Scale','Q / W / E / R'],['Paint tiles (tilemap selected)','B, Shift erases, Alt picks'],['Make child','Drag onto middle of a row'],['Frame selection / all','F / Shift+F'],['Toggle grid','G'],['Nudge','Arrows (+Shift)'],['Pan 2D view','Space+drag, MMB'],['Orbit 3D view','RMB or Alt+LMB'],['Fly in 3D','Hold RMB + WASD QE'],['Snap 3D view','Click axis gizmo'],['Fine / coarse scrub','Shift / Ctrl + drag label'],['Scene / Script workspace','Ctrl+1 / Ctrl+2'],['Add node','Right-click or Space'],['Stop game','Esc'],['Shortcuts','?']]
 function showKeys(){
 const l=$('#keyList')
 l.innerHTML=''
@@ -1686,6 +1873,7 @@ if(k==='q')return setTool('pan')
 if(k==='w')return setTool('move')
 if(k==='e')return setTool('rotate')
 if(k==='r')return setTool('scale')
+if(k==='b'){const d=selData();if(d&&d.shape==='tilemap'){setTool('paint');setBTab('tiles')}return}
 if(k==='f'){frameSel(e.shiftKey);return}
 if(k==='g'){toggleGrid();return}
 const d=selData()
@@ -1736,6 +1924,9 @@ $('#tGrid').onclick=toggleGrid
 $('#tSky').onclick=()=>{S.skyOn=!S.skyOn;ls.set('vue.sky',S.skyOn);updateToolbar();redraw()}
 $('#snapSel').onchange=()=>{const v=num($('#snapSel').value);if(is3()){S.snap3=v;ls.set('vue.snap3',v)}else{S.snap2=v;ls.set('vue.snap2',v)}applyTC()}
 $('#hfilter').oninput=renderHier
+$('#tPaint').onclick=()=>setTool('paint')
+$('#hier').addEventListener('dragover',e=>{if(S.dnd&&e.target===$('#hier'))e.preventDefault()})
+$('#hier').addEventListener('drop',e=>{if(!S.dnd||e.target!==$('#hier'))return;e.preventDefault();const d=S.dnd;S.dnd=null;snap();reparent(d,null);S.game.refresh();renderHier();buildInspector();redraw()})
 $('#cfilter').oninput=renderLog
 $('#stErr').onclick=()=>setBTab('console')
 $('#keysClose').onclick=()=>$('#keys').classList.remove('on')
@@ -1758,7 +1949,9 @@ window.addEventListener('resize',()=>{if(S.ws)Blockly.svgResize(S.ws);if(S.code)
 new ResizeObserver(()=>{if(S.ws&&S.tab==='script')Blockly.svgResize(S.ws)}).observe($('#sbody'))
 setInterval(status,5000)
 }
+window.VueEd={S,h,ic,scene,is3,selData,entOf,snap,snapAll:snap,markDirty,scheduleSave,reloadScene,renderAll,renderHier,buildInspector,redraw,toast,dialog,setBTab,setTab,setTool,select,addEntity,addAsset,worldOf:wd,setW,scr,uid:()=>VueSample.uid(),refresh:()=>{S.game.refresh();redraw();buildInspector();markDirty()},showMenu:(x,y,items)=>showMenu($('#ctx'),x,y,items),play:n=>play(n)}
 window.vueBoot=async function(){
+VuePanels.init(window.VueEd)
 const r=VueBlocks.init(Blockly,Blockly.JavaScript,window.javascript.Order)
 S.toolbox=r.toolbox
 Blockly.dialog.setPrompt((msg,def,cb)=>{dialog({title:msg,input:def||'',buttons:[{label:'Cancel',value:null},{label:'OK',value:true,primary:true}]}).then(v=>cb(v))})

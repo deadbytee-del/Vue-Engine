@@ -7,6 +7,7 @@ const link=(...bs)=>{for(let i=0;i<bs.length-1;i++)bs[i].next={block:bs[i+1]};re
 const ws=(...tops)=>({blocks:{languageVersion:0,blocks:tops}})
 const ent=(o)=>Object.assign({id:uid(),name:'Entity',x:0,y:0,w:48,h:48,rot:0,shape:'rect',color:'#ffffff',image:'',text:'',fontSize:20,z:0,alpha:1,body:'none',gravityScale:1,tags:[],visible:true,prefab:false,script:null},o)
 const kinds={
+tilemap:()=>ent({name:'Tilemap',shape:'tilemap',x:0,y:0,w:32,h:32,cell:32,ts:16,tileset:'',tiles:{},solid:true,z:-1}),
 rect:()=>ent({name:'Box',shape:'rect',color:'#7aa2f7'}),
 circle:()=>ent({name:'Ball',shape:'circle',color:'#f7768e'}),
 sprite:()=>ent({name:'Sprite',shape:'sprite',color:'#ffffff'}),
@@ -232,14 +233,114 @@ const pts=[[-460,-320],[460,-320],[-460,320],[460,320],[0,-300],[0,300]]
 pts.forEach((q,i)=>sc.entities.push(ent({name:'Gem '+(i+1),x:q[0],y:q[1],w:22,h:22,color:'#4cc9f0',body:'trigger',tags:['gem'],rot:45,script:{mode:'blocks',code:'',blocks:JSON.parse(JSON.stringify(gem)),nodes:null}})))
 return p
 }
+function wav(notes,len,wave){
+const sr=22050,n=Math.floor(sr*len),data=new Uint8Array(44+n)
+const w=(o,str)=>{for(let i=0;i<str.length;i++)data[o+i]=str.charCodeAt(i)}
+const u32=(o,v)=>{data[o]=v&255;data[o+1]=v>>8&255;data[o+2]=v>>16&255;data[o+3]=v>>24&255}
+const u16=(o,v)=>{data[o]=v&255;data[o+1]=v>>8&255}
+w(0,'RIFF');u32(4,36+n);w(8,'WAVE');w(12,'fmt ');u32(16,16);u16(20,1);u16(22,1);u32(24,sr);u32(28,sr);u16(32,1);u16(34,8);w(36,'data');u32(40,n)
+const seg=n/notes.length
+for(let i=0;i<n;i++){
+const f=notes[Math.min(notes.length-1,Math.floor(i/seg))],t=i/sr,env=Math.pow(1-i/n,1.6)
+const ph=(t*f)%1,v=wave==='sine'?Math.sin(ph*Math.PI*2):ph<0.5?1:-1
+data[44+i]=128+Math.round(v*env*90)
+}
+let b=''
+for(let i=0;i<data.length;i++)b+=String.fromCharCode(data[i])
+return'data:audio/wav;base64,'+(typeof btoa!=='undefined'?btoa(b):Buffer.from(data).toString('base64'))
+}
+const heroCode=`export function start(): void {
+vue.vars.coins = 0
+vue.follow(self)
+}
+
+export function update(dt: number): void {
+let dir: number = 0
+if (vue.key("a") || vue.key("ArrowLeft")) dir -= 1
+if (vue.key("d") || vue.key("ArrowRight")) dir += 1
+self.vx = dir * 240
+if (dir !== 0) {
+self.flipX = dir < 0
+self.play("walk")
+} else {
+self.play("idle")
+}
+const jump: boolean = vue.pressed("space") || vue.pressed("w") || vue.pressed("ArrowUp")
+if (jump && self.grounded) {
+self.vy = -660
+vue.play("jump.wav", 0.5)
+}
+vue.hud("Coins", vue.vars.coins + " / 5")
+if (vue.vars.coins >= 5 && !self.data.won) {
+self.data.won = true
+vue.cutscene("Victory")
+}
+if (self.y > 900) vue.restart()
+}
+`
+function makeKit(){
+const p=blank()
+p.name='Adventure Kit'
+const sc=p.scenes[0]
+sc.name='Meadow'
+sc.bg='#7ec8f5'
+sc.cutscene='Intro'
+p.assets['coin.wav']={type:'audio',data:wav([988,1319],0.18)}
+p.assets['jump.wav']={type:'audio',data:wav([392,523,659],0.16,'sine')}
+const V=typeof window!=='undefined'&&window.VuePanels
+if(V){p.assets['tiles.png']={type:'image',data:V.defaultTileset()};p.assets['hero_sheet.png']={type:'image',data:V.sampleSheet()}}
+const tiles={}
+for(let x=-14;x<=30;x++){tiles[x+',4']=0;for(let y=5;y<=7;y++)tiles[x+','+y]=y===7?2:1}
+for(let x=-3;x<=1;x++)tiles[x+',1']=4
+for(let x=5;x<=9;x++)tiles[x+',-1']=4
+for(let x=13;x<=16;x++)tiles[x+',-3']=3
+for(let y=-6;y<=3;y++){tiles['-15,'+y]=2;tiles['31,'+y]=2}
+for(let x=20;x<=23;x++)tiles[x+',4']=5
+const coinBlocks=ws(
+bk('vue_on_update',{x:20,y:20,inputs:{DO:{block:bk('vue_change_rot',{inputs:{V:num(3)}})}}}),
+bk('vue_on_collide',{x:20,y:140,fields:{TAG:'player'},inputs:{DO:{block:link(
+bk('vue_change_global',{fields:{N:'coins'},inputs:{V:num(1)}}),
+bk('vue_play2',{fields:{N:'coin.wav',L:'false'},inputs:{V:num(0.7)}}),
+bk('vue_burst',{fields:{C:'#ffd34d'},inputs:{N:num(16)}}),
+bk('vue_destroy_self')
+)}}})
+)
+const hero=ent({name:'Hero',x:-240,y:96,w:40,h:40,shape:'sprite',color:'#9d5cff',body:'dynamic',tags:['player'],z:5,anims:{idle:{sheet:'hero_sheet.png',fw:32,fh:32,frames:[0,0,0,1,1,1],fps:4,loop:true},walk:{sheet:'hero_sheet.png',fw:32,fh:32,frames:[0,1,2,3,4,5,6,7],fps:12,loop:true}},anim:'idle',script:{mode:'code',code:heroCode,blocks:null,nodes:null}})
+const hat=ent({name:'Hat',parent:hero.id,x:0,y:-24,w:22,h:8,color:'#ff4d6a',z:6})
+const plume=ent({name:'Plume',parent:hat.id,x:8,y:-6,w:4,h:8,color:'#ffd34d',z:6})
+sc.entities.push(
+ent({name:'Ground',shape:'tilemap',x:0,y:0,w:32,h:32,cell:32,ts:16,tileset:'tiles.png',tiles,solid:true,tags:['ground'],z:-1}),
+hero,hat,plume,
+ent({name:'Sign',x:-240,y:20,w:320,h:30,shape:'text',text:'A/D to walk, Space to jump',fontSize:18,color:'#1d2a4a',z:-2})
+)
+const spots=[[-30,0],[230,-64],[470,-128],[690,96],[860,96]]
+spots.forEach((q,i)=>sc.entities.push(ent({name:'Coin '+(i+1),x:q[0],y:q[1],w:20,h:20,shape:'circle',color:'#ffd34d',body:'trigger',tags:['coin'],script:{mode:'blocks',code:'',blocks:JSON.parse(JSON.stringify(coinBlocks)),nodes:null}})))
+p.cutscenes=[
+{id:uid(),name:'Intro',letterbox:true,lock:true,skippable:true,steps:[
+{id:uid(),type:'camera',t:0,dur:0,x:600,y:-40,zoom:0.7},
+{id:uid(),type:'caption',t:0.2,dur:2.4,text:'Five coins are hidden in the meadow'},
+{id:uid(),type:'camera',t:0.6,dur:2.2,ease:'inout',x:-240,y:60,zoom:1.2},
+{id:uid(),type:'say',t:2.9,dur:1.6,target:'Hero',text:'Time to collect them!'},
+{id:uid(),type:'sound',t:2.9,dur:0,sound:'jump.wav',vol:0.6}
+]},
+{id:uid(),name:'Victory',letterbox:true,lock:true,skippable:true,steps:[
+{id:uid(),type:'sound',t:0,dur:0,sound:'coin.wav',vol:1},
+{id:uid(),type:'caption',t:0,dur:3,text:'All coins collected!'},
+{id:uid(),type:'say',t:0.4,dur:2,target:'Hero',text:'Woohoo!'},
+{id:uid(),type:'shake',t:0.2,dur:0.4,amount:5}
+]}
+]
+return p
+}
 const TEMPLATES=[
+{id:'kit',name:'Adventure Kit',kind:'2D',desc:'Tilemap level, animated hero, parenting, cutscenes and sound',make:makeKit},
 {id:'empty2',name:'Empty 2D',kind:'2D',desc:'A blank 2D scene',make:blank},
 {id:'empty3',name:'Empty 3D',kind:'3D',desc:'Ground, light and sky',make:blank3},
 {id:'plat',name:'Platformer',kind:'2D',desc:'Jump, collect coins, avoid the enemy',make:make},
 {id:'top',name:'Top-down Arena',kind:'2D',desc:'Grab gems while a chaser hunts you',make:makeTop},
 {id:'plat3',name:'3D Platformer',kind:'3D',desc:'Third-person controller with mouse look',make:make3}
 ]
-const api={make,make3,makeTop,blank,blank3,ent,kinds,kinds3,uid,playerCode,TEMPLATES}
+const api={make,make3,makeTop,makeKit,wav,blank,blank3,ent,kinds,kinds3,uid,playerCode,TEMPLATES}
 if(typeof module!=='undefined'&&module.exports)module.exports=api
 else root.VueSample=api
 })(typeof window!=='undefined'?window:globalThis)

@@ -1,5 +1,5 @@
 (function(root){
-const EPI=";(function(){for(const n of['start','update','collide','click','keypress'])if(typeof exports[n]==='function')on(n,exports[n]);})();"
+const EPI=";(function(){for(const n of['start','update','collide','click','keypress','animend'])if(typeof exports[n]==='function')on(n,exports[n]);})();"
 async function compileScript(s,env){
 if(!s)return{code:'',errors:[]}
 try{
