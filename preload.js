@@ -9,5 +9,8 @@ runtimeSource:()=>ipcRenderer.invoke('runtime:source'),
 readProject:p=>ipcRenderer.invoke('project:read',p),
 version:()=>ipcRenderer.invoke('app:version'),
 detach:(html,title)=>ipcRenderer.invoke('game:detach',html,title),
+port:o=>ipcRenderer.invoke('port:run',o),
+platform:()=>ipcRenderer.invoke('app:platform'),
+onPortProgress:f=>ipcRenderer.on('port:progress',(e,p)=>f(p)),
 threeSource:()=>ipcRenderer.invoke('three:source')
 })

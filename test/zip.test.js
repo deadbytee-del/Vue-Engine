@@ -1,0 +1,17 @@
+const {zip,walk}=require('../zipper.js')
+const fs=require('fs'),os=require('os'),path=require('path'),cp=require('child_process'),assert=require('assert')
+;(async()=>{
+const d=fs.mkdtempSync(path.join(os.tmpdir(),'vz'))
+const out=path.join(d,'t.zip')
+const big=Buffer.alloc(200000,7)
+await zip([{name:'Game/index.html',data:Buffer.from('<h1>hi</h1>')},{name:'Game/assets/a.bin',data:big},{name:'Game/run',data:Buffer.from('#!/bin/sh\necho ok\n'),exec:true},{name:'Game/x.js',src:__filename}],out)
+try{cp.execSync('unzip -v',{stdio:'ignore'})}catch(x){console.log('zip tests skipped (no unzip)');return}
+const t=cp.execSync('unzip -t '+out).toString()
+assert.ok(/No errors detected/.test(t),t)
+cp.execSync('unzip -q '+out+' -d '+d)
+assert.strictEqual(fs.readFileSync(path.join(d,'Game/index.html'),'utf8'),'<h1>hi</h1>')
+assert.ok(fs.readFileSync(path.join(d,'Game/assets/a.bin')).equals(big))
+assert.ok((fs.statSync(path.join(d,'Game/run')).mode&0o111)!==0,'exec bit kept')
+assert.ok(walk(d,'',[]).length>=5)
+console.log('zip tests passed')
+})().catch(e=>{console.error(e);process.exit(1)})

@@ -283,9 +283,9 @@ body.playing .panel{background:#140f20}
 .mi.dis{opacity:.4;pointer-events:none}
 .msep{height:1px;background:var(--line);margin:4px 6px}
 .mh{padding:6px 10px 3px;font-size:10.5px;color:var(--mute);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
-#palette,#dialog,#keys{position:fixed;inset:0;z-index:90;background:rgba(5,4,10,.55);backdrop-filter:blur(2px);display:none}
+#palette,#dialog,#keys,#port{position:fixed;inset:0;z-index:90;background:rgba(5,4,10,.55);backdrop-filter:blur(2px);display:none}
 #palette.on{display:block}
-#dialog.on,#keys.on{display:grid;place-items:center}
+#dialog.on,#keys.on,#port.on{display:grid;place-items:center}
 .pal-box{position:absolute;top:84px;left:50%;transform:translateX(-50%);width:620px;max-width:90vw;background:var(--bg2);border:1px solid var(--line-hi);border-radius:12px;box-shadow:0 24px 70px rgba(0,0,0,.6);overflow:hidden;animation:fade .12s ease-out}
 .pal-in{display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--line);color:var(--accent-hi)}
 .pal-in input{flex:1;height:48px;border:0;background:transparent;font-size:15px;box-shadow:none!important;padding:0}
@@ -421,3 +421,16 @@ kbd{font:11px var(--mono);background:var(--bg3);border:1px solid var(--line-hi);
 .asset .at{position:relative}
 .asset .wave{width:100%;height:100%}
 .asset .aplay{position:absolute;inset:auto auto 6px 6px;width:28px;height:28px;border-radius:50%;background:rgba(123,43,217,.9);color:#fff;display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+
+.dlg.port{width:620px}
+#portList{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.pcard{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;background:var(--bg1);border:1px solid var(--line);text-align:left;color:var(--text);transition:border-color .12s,background .12s}
+.pcard:hover{border-color:var(--line-hi);background:var(--bg3)}
+.pcard.on{border-color:var(--accent-hi);background:rgba(123,43,217,.16);box-shadow:0 0 0 1px var(--accent-hi)}
+.pcard .pi{width:38px;height:38px;border-radius:10px;background:rgba(123,43,217,.22);color:var(--accent-hi);display:grid;place-items:center;flex:none}
+.pcard .pt{flex:1;display:flex;flex-direction:column;gap:2px}
+.pcard small{color:var(--dim);line-height:1.4}
+.pcard em{font:12px var(--mono);color:var(--mute);font-style:normal}
+#portBar{height:6px;border-radius:3px;background:var(--bg3);overflow:hidden;margin:4px 0 12px}
+#portBar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7b2bd9,#9d5cff);transition:width .15s}
+.dlg.port .fld{grid-template-columns:110px 1fr}

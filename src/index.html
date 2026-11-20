@@ -74,7 +74,7 @@
 </div>
 <div class="tb-r">
 <span id="pname"></span><i id="dirty"></i>
-<button id="bExport" class="btn primary"><span data-ic="export"></span>Export</button>
+<button id="bExport" class="btn primary" title="Port your game (Ctrl+E)"><span data-ic="export"></span>Port</button>
 </div>
 </header>
 <aside id="left" class="panel">
@@ -178,6 +178,7 @@
 <div id="palette"><div class="pal-box"><div class="pal-in"><span data-ic="command"></span><input id="palIn" placeholder="Search commands, entities, scenes, assets…"></div><div id="palList"></div></div></div>
 <div id="dialog"><div class="dlg"><h3 id="dTitle"></h3><p id="dMsg"></p><input id="dInput"><div class="row" id="dBtns"></div></div></div>
 <div id="keys"><div class="dlg wide"><h3>Keyboard shortcuts</h3><div id="keyList"></div><div class="row"><button class="btn" id="keysClose">Close</button></div></div></div>
+<div id="port"><div class="dlg port"><h3>Port your game</h3><p>Pick where it should run. Everything is built from your current project, scripts compiled.</p><div id="portList"></div><div class="fld"><label>Game title</label><input id="portName"></div><div class="fld" id="portFsRow"><label>Fullscreen</label><input type="checkbox" class="sw" id="portFs"></div><div id="portBar"><i></i></div><div class="row"><button class="btn" id="portCancel">Cancel</button><button class="btn primary" id="portGo"><span data-ic="export"></span>Port</button></div></div></div>
 <div id="toasts"></div>
 <script src="../node_modules/blockly/blockly_compressed.js"></script>
 <script src="../node_modules/blockly/blocks_compressed.js"></script>
@@ -185,6 +186,7 @@
 <script src="../node_modules/blockly/msg/en.js"></script>
 <script src="../node_modules/monaco-editor/min/vs/loader.js"></script>
 <script src="icons.js"></script>
+<script src="vwr.js"></script>
 <script src="render3d.js"></script>
 <script src="runtime.js"></script>
 <script src="nodedefs.js"></script>

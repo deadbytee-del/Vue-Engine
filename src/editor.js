@@ -84,6 +84,7 @@ sv.classList.toggle('dirty',S.dirty)
 sv.querySelector('b').textContent=S.dirty?(S.path?'Unsaved changes':'Not saved to a file yet'):S.savedAt?'Saved · '+ago(S.savedAt):'Saved'
 const sc=scene(),d=selData()
 $('#stScene').textContent=sc.name+' · '+(is3()?'3D':'2D')+' · '+sc.entities.length+' entities'+(d?' · '+d.name+' selected':'')
+$('#stVer').textContent=(S.project.settings.core==='js'||!(window.VWR&&VWR.exports)?'JS core':'VWR core')+' · Vue Engine '+S.version
 const e=S.logs.filter(l=>l.level==='error').reduce((a,l)=>a+l.count,0),w=S.logs.filter(l=>l.level==='warn').reduce((a,l)=>a+l.count,0)
 $('#stErr').innerHTML=(e?'<span class="e">'+e+' error'+(e>1?'s':'')+'</span>':'')+(w?'<span class="w">'+w+' warning'+(w>1?'s':'')+'</span>':'')
 $('#pname').textContent=S.project.name
@@ -1303,7 +1304,9 @@ box.append(card('proj','Project','settings',[
 row('Title',bind(p,'name','text',status)),
 row('Resolution',h('div',{class:'vec',style:'grid-template-columns:repeat(2,1fr)'},axIn(p.settings,'width','W'),axIn(p.settings,'height','H'))),
 row('Pixel art',bind(p.settings,'pixelArt','bool',()=>{S.game.pixel=p.settings.pixelArt;S.game.ctx.imageSmoothingEnabled=!S.game.pixel})),
-row('Start scene',ss)
+row('Start scene',ss),
+row('Engine core',(()=>{const c=h('select');c.append(h('option',{value:'vwr',text:'VWR (WebAssembly, fastest)'}),h('option',{value:'js',text:'JavaScript'}));c.value=p.settings.core==='js'?'js':'vwr';c.addEventListener('change',()=>{snap();p.settings.core=c.value;status()});return c})()),
+h('div',{class:'hint',text:window.VWR&&VWR.exports?'VWR runs physics in a C++ and Rust core compiled to WebAssembly. Same results as JavaScript, about 1.5 to 2x faster on big scenes.':'VWR is not available here, so JavaScript runs physics.'})
 ]))
 box.append(h('div',{class:'hint',style:'padding:4px',text:'Select an entity to edit it. Shift+A adds one, Ctrl+P finds anything.'}))
 }
@@ -1613,7 +1616,7 @@ function recent(){return ls.get('vue.recent',[])}
 function menus(){
 const rec=recent().slice(0,6).map(r=>({ic:'file',label:r.name+'  ·  '+r.path.split(/[\\/]/).pop(),fn:()=>openPath(r.path)}))
 return{
-file:[{ic:'sparkles',label:'New project…',kbd:'Ctrl+N',fn:()=>showHub('new')},{ic:'folder',label:'Open…',kbd:'Ctrl+O',fn:open},rec.length?{head:'Recent'}:null].concat(rec,[{sep:1},{ic:'save',label:'Save',kbd:'Ctrl+S',fn:()=>save(false)},{ic:'save',label:'Save as…',kbd:'Ctrl+Shift+S',fn:()=>save(true)},{ic:'export',label:'Export HTML game…',kbd:'Ctrl+E',fn:exportHtml},{sep:1},{ic:'home',label:'Project hub',fn:()=>showHub('new')}]),
+file:[{ic:'sparkles',label:'New project…',kbd:'Ctrl+N',fn:()=>showHub('new')},{ic:'folder',label:'Open…',kbd:'Ctrl+O',fn:open},rec.length?{head:'Recent'}:null].concat(rec,[{sep:1},{ic:'save',label:'Save',kbd:'Ctrl+S',fn:()=>save(false)},{ic:'save',label:'Save as…',kbd:'Ctrl+Shift+S',fn:()=>save(true)},{ic:'export',label:'Port game…',kbd:'Ctrl+E',fn:openPort},{sep:1},{ic:'home',label:'Project hub',fn:()=>showHub('new')}]),
 edit:[{ic:'undo',label:'Undo',kbd:'Ctrl+Z',fn:undo,dis:!S.undo.length},{ic:'redo',label:'Redo',kbd:'Ctrl+Y',fn:redo,dis:!S.redo.length},{sep:1},{ic:'copy',label:'Copy',kbd:'Ctrl+C',fn:copyEntity,dis:!S.sel},{ic:'copy',label:'Paste',kbd:'Ctrl+V',fn:pasteEntity,dis:!S.clip},{ic:'copy',label:'Duplicate',kbd:'Ctrl+D',fn:dupEntity,dis:!S.sel},{ic:'edit',label:'Rename',kbd:'F2',fn:renameEntity,dis:!S.sel},{ic:'trash',label:'Delete',kbd:'Del',fn:delEntity,dis:!S.sel},{sep:1},{ic:'plus',label:'Add entity…',kbd:'Shift+A',fn:()=>palette('create ')},{ic:'scene',label:'New scene…',fn:addScene},{sep:1},{ic:'command',label:'Command palette',kbd:'Ctrl+P',fn:()=>palette('')}],
 view:[{ic:'scene',label:'Scene workspace',kbd:'Ctrl+1',fn:()=>setTab('scene')},{ic:'script',label:'Script workspace',kbd:'Ctrl+2',fn:()=>setTab('script')},{sep:1},{ic:'grid',label:(S.gridOn?'Hide':'Show')+' grid',kbd:'G',fn:toggleGrid},{ic:'magnet',label:(S.snapOn?'Disable':'Enable')+' snapping',fn:toggleSnap},{ic:'frame',label:'Frame selection',kbd:'F',fn:()=>frameSel()},{ic:'frame',label:'Frame all',kbd:'Shift+F',fn:()=>frameSel(true)},{ic:'target',label:'Reset camera',fn:resetView},{sep:1},{ic:'terminal',label:'Console',fn:()=>setBTab('console')},{ic:'assets',label:'Assets',fn:()=>setBTab('assets')},{ic:'map',label:'Tile painter',fn:()=>setBTab('tiles')},{ic:'film',label:'Animation editor',fn:()=>setBTab('anim')},{ic:'video',label:'Cutscene editor',fn:()=>setBTab('cuts')},{ic:'layers',label:'Reset layout',fn:resetLayout}],
 help:[{ic:'keyboard',label:'Keyboard shortcuts',kbd:'?',fn:showKeys},{ic:'book',label:'Learn Vue Engine',fn:()=>showHub('learn')},{sep:1},{ic:'info',label:'About Vue Engine',fn:()=>dialog({title:'Vue Engine '+S.version,msg:'A 2D and 3D game creation engine with Blocks, Nodes and TypeScript. Icons by Lucide (ISC), 3D by three.js (MIT), Blocks by Blockly (Apache 2.0), code editor by Monaco (MIT), fonts Inter and JetBrains Mono (OFL).',buttons:[{label:'Close',value:1,primary:true}]})}]
@@ -1629,7 +1632,7 @@ document.addEventListener('pointerdown',e=>{if(!(e.target.closest&&e.target.clos
 }
 function commands(){
 const C=[
-['New project','sparkles',()=>showHub('new'),'Ctrl+N'],['Open project','folder',open,'Ctrl+O'],['Save','save',()=>save(false),'Ctrl+S'],['Save as','save',()=>save(true),'Ctrl+Shift+S'],['Export HTML game','export',exportHtml,'Ctrl+E'],
+['New project','sparkles',()=>showHub('new'),'Ctrl+N'],['Open project','folder',open,'Ctrl+O'],['Save','save',()=>save(false),'Ctrl+S'],['Save as','save',()=>save(true),'Ctrl+Shift+S'],['Port game (HTML, web, PWA, desktop)','export',openPort,'Ctrl+E'],
 ['Play','play',play,'Ctrl+Enter'],['Stop','stop',stopGame,'Esc'],['Undo','undo',undo,'Ctrl+Z'],['Redo','redo',redo,'Ctrl+Y'],
 ['Scene workspace','scene',()=>setTab('scene'),'Ctrl+1'],['Script workspace','script',()=>setTab('script'),'Ctrl+2'],
 ['Toggle grid','grid',toggleGrid,'G'],['Toggle snapping','magnet',toggleSnap,''],['Frame selection','frame',()=>frameSel(),'F'],['Frame all','frame',()=>frameSel(true),'Shift+F'],
@@ -1688,7 +1691,7 @@ p.classList.add('on')
 fill()
 setTimeout(()=>{inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length)},0)
 }
-const KEYS=[['Play / stop','Ctrl+Enter'],['Save','Ctrl+S'],['Save as','Ctrl+Shift+S'],['Open','Ctrl+O'],['New project','Ctrl+N'],['Export','Ctrl+E'],['Command palette','Ctrl+P'],['Undo / redo','Ctrl+Z / Ctrl+Y'],['Copy / paste','Ctrl+C / Ctrl+V'],['Duplicate','Ctrl+D'],['Delete','Del'],['Rename','F2'],['Add entity','Shift+A'],['Pan / Move / Rotate / Scale','Q / W / E / R'],['Paint tiles (tilemap selected)','B, Shift erases, Alt picks'],['Make child','Drag onto middle of a row'],['Frame selection / all','F / Shift+F'],['Toggle grid','G'],['Nudge','Arrows (+Shift)'],['Pan 2D view','Space+drag, MMB'],['Orbit 3D view','RMB or Alt+LMB'],['Fly in 3D','Hold RMB + WASD QE'],['Snap 3D view','Click axis gizmo'],['Fine / coarse scrub','Shift / Ctrl + drag label'],['Scene / Script workspace','Ctrl+1 / Ctrl+2'],['Add node','Right-click or Space'],['Stop game','Esc'],['Shortcuts','?']]
+const KEYS=[['Play / stop','Ctrl+Enter'],['Save','Ctrl+S'],['Save as','Ctrl+Shift+S'],['Open','Ctrl+O'],['New project','Ctrl+N'],['Port game','Ctrl+E'],['Command palette','Ctrl+P'],['Undo / redo','Ctrl+Z / Ctrl+Y'],['Copy / paste','Ctrl+C / Ctrl+V'],['Duplicate','Ctrl+D'],['Delete','Del'],['Rename','F2'],['Add entity','Shift+A'],['Pan / Move / Rotate / Scale','Q / W / E / R'],['Paint tiles (tilemap selected)','B, Shift erases, Alt picks'],['Make child','Drag onto middle of a row'],['Frame selection / all','F / Shift+F'],['Toggle grid','G'],['Nudge','Arrows (+Shift)'],['Pan 2D view','Space+drag, MMB'],['Orbit 3D view','RMB or Alt+LMB'],['Fly in 3D','Hold RMB + WASD QE'],['Snap 3D view','Click axis gizmo'],['Fine / coarse scrub','Shift / Ctrl + drag label'],['Scene / Script workspace','Ctrl+1 / Ctrl+2'],['Add node','Right-click or Space'],['Stop game','Esc'],['Shortcuts','?']]
 function showKeys(){
 const l=$('#keyList')
 l.innerHTML=''
@@ -1796,11 +1799,88 @@ scheduleSave()
 status()
 toast('Saved '+p.split(/[\\/]/).pop(),'ok')
 }
-async function exportHtml(){
-const{html,errors}=await build()
-if(errors.length&&!await dialog({title:'Export with '+errors.length+' script error'+(errors.length>1?'s':'')+'?',msg:'Entities with broken scripts will do nothing in the exported game. Details are in the Console.',buttons:[{label:'Cancel',value:null},{label:'Export anyway',value:1,primary:true}]}))return
-const p=await host.exportHtml(html,S.project.name)
-if(p){log('info','Exported '+p);toast('Exported '+p.split(/[\\/]/).pop(),'ok')}
+const PORTS=[
+['html','Single HTML file','file','One self-contained .html. Double-click to play, email it, or drop it anywhere.','.html'],
+['web','Web game (ZIP)','export','index.html + game.js + assets folder. Upload straight to itch.io, Newgrounds or GitHub Pages.','.zip'],
+['pwa','Installable web app (ZIP)','gamepad','Web game with manifest, icons and offline cache. Players can install it on phones, tablets and desktops.','.zip'],
+['desktop','Desktop app','cube','A standalone app folder with its own executable for this computer\'s OS. No browser needed.','.zip'],
+['project','Vue project file','save','The editable source. Share it so others can open and remix your game in Vue Engine.','.vue']
+]
+let portSel='html'
+async function exportHtml(){openPort()}
+function openPort(){
+const box=$('#portList')
+box.innerHTML=''
+for(const p of PORTS){
+const it=h('button',{class:'pcard'+(p[0]===portSel?' on':''),onclick:()=>{portSel=p[0];openPort()}},h('span',{class:'pi',html:ic(p[2],20)}),h('span',{class:'pt'},h('b',{text:p[1]+(p[0]==='desktop'&&S.platform?' · '+({win32:'Windows',darwin:'macOS',linux:'Linux'}[S.platform]||S.platform):'')}),h('small',{text:p[3]})),h('em',{text:p[4]}))
+box.append(it)
+}
+$('#portName').value=$('#portName').value||S.project.name
+$('#portFsRow').style.display=portSel==='desktop'?'':'none'
+$('#portBar').style.display='none'
+$('#port').classList.add('on')
+}
+function closePort(){$('#port').classList.remove('on')}
+function dataParts(u){const m=/^data:([^;,]+)?(;base64)?,(.*)$/.exec(u||'');return m?{mime:m[1]||'',b64:!!m[2],data:m[3]}:null}
+function assetFiles(proj){
+const files=[],used=new Set()
+for(const k in proj.assets){
+const a=proj.assets[k],d=dataParts(a.data)
+if(!d)continue
+let nm=k.replace(/[^\w.\-]+/g,'_')||'asset',i=2
+while(used.has(nm))nm=nm.replace(/(\.[^.]*)?$/,'_'+(i++)+'$1')
+used.add(nm)
+files.push({name:'assets/'+nm,data:d.b64?d.data:btoa(unescape(encodeURIComponent(decodeURIComponent(d.data)))),b64:true})
+a.data='assets/'+nm
+}
+return files
+}
+function iconPng(src,size){
+return new Promise(res=>{
+const im=new Image()
+im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=size;const x=c.getContext('2d');x.fillStyle='#0a0910';x.fillRect(0,0,size,size);const k=Math.max(size/im.width,size/im.height);x.drawImage(im,(size-im.width*k)/2,(size-im.height*k)/2,im.width*k,im.height*k);res(c.toDataURL('image/png').split(',')[1])}
+im.onerror=()=>res(null)
+im.src=src
+})
+}
+async function runPort(){
+const target=portSel,name=($('#portName').value||S.project.name).trim()||'My Game'
+const r=await VueCompiler.compileProject(S.project,compileEnv())
+for(const e of r.errors){const i=e.indexOf(': ');log('error',i>0?e.slice(i+2):e,i>0?e.slice(0,i):'')}
+if(r.errors.length&&target!=='project'&&!await dialog({title:'Port with '+r.errors.length+' script error'+(r.errors.length>1?'s':'')+'?',msg:'Entities with broken scripts will do nothing in the ported game. Details are in the Console.',buttons:[{label:'Cancel',value:null},{label:'Port anyway',value:1,primary:true}]}))return
+const rt=await host.runtimeSource()
+const three=S.project.scenes.some(s=>s.mode==='3d')?await host.threeSource():''
+const proj=JSON.parse(JSON.stringify(S.project))
+proj.name=name
+delete proj.thumb
+let files=[]
+if(target==='html')files=[{name:'index.html',data:VuePlayer.html(proj,r.scripts,rt,name,three)}]
+else if(target==='project'){const sp=JSON.parse(JSON.stringify(S.project));sp.thumb=await thumb(S.project,320,180);files=[{name:'game.vue',data:JSON.stringify(sp)}]}
+else{
+const af=target==='desktop'?[]:assetFiles(proj)
+let extra=''
+if(target==='pwa')extra='<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#0a0910"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><script>if("serviceWorker"in navigator)addEventListener("load",function(){navigator.serviceWorker.register("sw.js")})</script>'
+const pt=VuePlayer.parts(proj,r.scripts,rt,name,three,extra)
+files=[{name:'index.html',data:pt.html},{name:'game.js',data:pt.js}].concat(af)
+if(target==='pwa'){
+const shot=await thumb(S.project,512,512)
+const i512=await iconPng(shot||'gem.png',512),i192=await iconPng(shot||'gem.png',192)
+if(i512)files.push({name:'icon-512.png',data:i512,b64:true})
+if(i192)files.push({name:'icon-192.png',data:i192,b64:true})
+files.push({name:'manifest.json',data:JSON.stringify({name,short_name:name.slice(0,12),start_url:'./index.html',display:'fullscreen',orientation:S.project.settings.width>=S.project.settings.height?'landscape':'portrait',background_color:'#000000',theme_color:'#0a0910',icons:[{src:'icon-192.png',sizes:'192x192',type:'image/png'},{src:'icon-512.png',sizes:'512x512',type:'image/png'}]},null,1)})
+const list=files.map(f=>'./'+f.name)
+files.push({name:'sw.js',data:'const C="vue-'+Date.now()+'",F='+JSON.stringify(['./'].concat(list))+';self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.addAll(F)))});self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>clients.claim())));self.addEventListener("fetch",e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))})'})
+}
+}
+const bar=$('#portBar')
+bar.style.display=''
+bar.firstChild.style.width='0%'
+$('#portGo').disabled=true
+try{
+const out=await host.port({target,name,files,width:S.project.settings.width,height:S.project.settings.height,fullscreen:$('#portFs').checked})
+if(out){closePort();log('info','Ported to '+out);toast('Ported '+name+' → '+out.split(/[\\/]/).pop(),'ok')}
+}catch(x){toast('Port failed: '+(x&&x.message||x),'err')}
+finally{$('#portGo').disabled=false;bar.style.display='none'}
 }
 const LAYOUT={lw:260,rw:310,bh:210}
 function applyLayout(L){
@@ -1849,7 +1929,7 @@ if(k==='s'){e.preventDefault();save(e.shiftKey);return}
 if(k==='enter'){e.preventDefault();play();return}
 if(k==='o'){e.preventDefault();open();return}
 if(k==='n'){e.preventDefault();showHub('new');return}
-if(k==='e'){e.preventDefault();exportHtml();return}
+if(k==='e'){e.preventDefault();openPort();return}
 if(k==='p'){e.preventDefault();palette('');return}
 if(k==='1'){e.preventDefault();setTab('scene');return}
 if(k==='2'){e.preventDefault();setTab('script');return}
@@ -1911,7 +1991,11 @@ $('#pStop').onclick=stopGame
 $('#pDetach').onclick=async()=>{const html=S.lastHtml;stopGame();if(html)await host.detach(html,S.project.name)}
 $('#resSel').onchange=()=>{S.res=$('#resSel').value;fitPlay()}
 new ResizeObserver(fitPlay).observe($('#playBox'))
-$('#bExport').onclick=exportHtml
+$('#bExport').onclick=openPort
+$('#portGo').onclick=runPort
+$('#portCancel').onclick=closePort
+$('#port').onpointerdown=e=>{if(e.target.id==='port')closePort()}
+if(host.onPortProgress)host.onPortProgress(p=>{const b=$('#portBar');if(b)b.firstChild.style.width=Math.round(p.i/p.n*100)+'%'})
 $('#bAddScene').onclick=addScene
 $('#bAddEnt').onclick=e=>{const r=e.currentTarget.getBoundingClientRect();showMenu($('#ctx'),r.left,r.bottom+4,createItems())}
 $('#bImport').onclick=importAssets
@@ -1963,6 +2047,7 @@ keys()
 canvasEvents()
 dropEvents()
 try{S.version=await host.version()}catch(x){}
+try{S.platform=await host.platform()}catch(x){}
 $('#stVer').textContent='Vue Engine '+S.version
 $('#hubVer').textContent='Version '+S.version
 const auto=ls.get('vue.autosave',null)

@@ -32,11 +32,26 @@ All three compile to the same runtime, so one project can mix them per entity.
 - Export any project as a single playable HTML file
 - Single portable `VueEngine.exe`, no installer
 
+## VWR core
+
+VWR (Vender WASM Rust) is Vue's native physics core. The collision solver is written in C++, the spatial hash broadphase in Rust, and both are linked into one 5 KB WebAssembly module (`vwr/`). It produces the exact same results as the JavaScript path and runs about 1.5 to 2x faster on large scenes. Switch it under Project → Engine core. Rebuild with `npm run build:vwr` (needs clang, wasm-ld and Rust with the wasm32 target).
+
+## Porting
+
+The Port button builds your game as:
+
+- a single HTML file
+- a web game ZIP (index.html, game.js, assets) for itch.io or GitHub Pages
+- an installable web app (PWA) ZIP with manifest, icons and offline cache
+- a desktop app folder with its own executable
+- a Vue project file for sharing the source
+
 ## Controls
 
 | Action | Key |
 | --- | --- |
 | Play | Ctrl+Enter |
+| Port game | Ctrl+E |
 | Save | Ctrl+S |
 | Undo / Redo | Ctrl+Z / Ctrl+Y |
 | Duplicate | Ctrl+D |

@@ -1,0 +1,87 @@
+extern "C" {
+unsigned vwr_grid_build(unsigned n,const double*x,const double*y,const double*w,const double*h,double cell);
+unsigned vwr_grid_query(double x0,double y0,double x1,double y1,unsigned*out,unsigned cap);
+}
+#define MAXS 131072
+#define MAXD 65536
+#define QCAP 4096
+static double SX[MAXS],SY[MAXS],SZ[MAXS],SW[MAXS],SH[MAXS],SD[MAXS];
+static double SPX[MAXS],SPW[MAXS];
+static double DX[MAXD],DY[MAXD],DZ[MAXD],DW[MAXD],DH[MAXD],DD[MAXD],DVX[MAXD],DVY[MAXD],DVZ[MAXD],DGS[MAXD];
+static unsigned char DGR[MAXD];
+static unsigned Q[QCAP];
+static int D3=0;
+static unsigned NS=0,NE=0;
+static inline double fabs_(double v){return v<0?-v:v;}
+extern "C" {
+double*vwr_sx(){return SX;}double*vwr_sy(){return SY;}double*vwr_sz(){return SZ;}
+double*vwr_sw(){return SW;}double*vwr_sh(){return SH;}double*vwr_sd(){return SD;}
+double*vwr_dx(){return DX;}double*vwr_dy(){return DY;}double*vwr_dz(){return DZ;}
+double*vwr_dw(){return DW;}double*vwr_dh(){return DH;}double*vwr_dd(){return DD;}
+double*vwr_dvx(){return DVX;}double*vwr_dvy(){return DVY;}double*vwr_dvz(){return DVZ;}
+double*vwr_dgs(){return DGS;}unsigned char*vwr_dgr(){return DGR;}
+unsigned vwr_max_static(){return MAXS;}
+unsigned vwr_max_dynamic(){return MAXD;}
+unsigned vwr_static(unsigned n,unsigned ne,int d3,double cell){
+if(n>MAXS)n=MAXS;
+NS=n;NE=ne;D3=d3;
+if(d3){for(unsigned i=0;i<n;i++){SPX[i]=SZ[i];SPW[i]=SD[i];}return vwr_grid_build(n,SX,SPX,SW,SPW,cell);}
+return vwr_grid_build(n,SX,SY,SW,SH,cell);
+}
+}
+static void res2(unsigned i,int ax){
+double x=DX[i],y=DY[i],w=DW[i],h=DH[i];
+unsigned n=vwr_grid_query(x-w*0.5,y-h*0.5,x+w*0.5,y+h*0.5,Q,QCAP);
+for(unsigned pass=0;pass<2;pass++)for(unsigned k=0;k<n;k++){
+unsigned s=Q[k];
+if((s<NE)!=(pass==0))continue;
+double sx=SX[s],sy=SY[s],sw=SW[s],sh=SH[s];
+x=DX[i];y=DY[i];
+if(!(fabs_(x-sx)*2<sw+w&&fabs_(y-sy)*2<sh+h))continue;
+if(ax){
+if(DVX[i]>0||(DVX[i]==0&&x<sx))DX[i]=sx-(sw+w)*0.5;else DX[i]=sx+(sw+w)*0.5;
+DVX[i]=0;
+}else{
+if(DVY[i]>0||(DVY[i]==0&&y<sy)){DY[i]=sy-(sh+h)*0.5;DGR[i]=1;}else DY[i]=sy+(sh+h)*0.5;
+DVY[i]=0;
+}
+}
+}
+static void res3(unsigned i,int ax){
+double w=DW[i],h=DH[i],d=DD[i];
+unsigned n=vwr_grid_query(DX[i]-w*0.5,DZ[i]-d*0.5,DX[i]+w*0.5,DZ[i]+d*0.5,Q,QCAP);
+for(unsigned k=0;k<n;k++){
+unsigned s=Q[k];
+double x=DX[i],y=DY[i],z=DZ[i];
+if(!(fabs_(x-SX[s])*2<w+SW[s]&&fabs_(y-SY[s])*2<h+SH[s]&&fabs_(z-SZ[s])*2<d+SD[s]))continue;
+if(ax==0){
+if(DVX[i]>0||(DVX[i]==0&&x<SX[s]))DX[i]=SX[s]-(SW[s]+w)*0.5;else DX[i]=SX[s]+(SW[s]+w)*0.5;
+DVX[i]=0;
+}else if(ax==2){
+if(DVZ[i]>0||(DVZ[i]==0&&z<SZ[s]))DZ[i]=SZ[s]-(SD[s]+d)*0.5;else DZ[i]=SZ[s]+(SD[s]+d)*0.5;
+DVZ[i]=0;
+}else{
+if(DVY[i]<0||(DVY[i]==0&&y>SY[s])){DY[i]=SY[s]+(SH[s]+h)*0.5;DGR[i]=1;}else DY[i]=SY[s]-(SH[s]+h)*0.5;
+DVY[i]=0;
+}
+}
+}
+extern "C" void vwr_step(unsigned n,double dt,double g){
+if(n>MAXD)n=MAXD;
+if(D3){
+for(unsigned i=0;i<n;i++){
+DVY[i]-=g*DGS[i]*dt;
+DX[i]+=DVX[i]*dt;res3(i,0);
+DZ[i]+=DVZ[i]*dt;res3(i,2);
+DGR[i]=0;
+DY[i]+=DVY[i]*dt;res3(i,1);
+}
+}else{
+for(unsigned i=0;i<n;i++){
+DVY[i]+=g*DGS[i]*dt;
+DX[i]+=DVX[i]*dt;res2(i,1);
+DGR[i]=0;
+DY[i]+=DVY[i]*dt;res2(i,0);
+}
+}
+}

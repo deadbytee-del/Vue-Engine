@@ -111,7 +111,7 @@ for(const k of this.tiles.keys()){const cx=Math.floor(k/65536)-OFF,cy=k%65536-OF
 this.tb=a>c?null:[a,b,c,d]
 }
 getTile(cx,cy){const v=this.tiles?this.tiles.get(pk(cx,cy)):undefined;return v==null?-1:v}
-setTile(cx,cy,i){if(!this.tiles)return;if(i==null||i<0)this.tiles.delete(pk(cx,cy));else this.tiles.set(pk(cx,cy),i|0);this.bounds()}
+setTile(cx,cy,i){if(!this.tiles)return;this.game.sDirty=true;if(i==null||i<0)this.tiles.delete(pk(cx,cy));else this.tiles.set(pk(cx,cy),i|0);this.bounds()}
 cellAt(wx,wy){return[Math.floor((wx-this.x)/this.cell),Math.floor((wy-this.y)/this.cell)]}
 tileAt(wx,wy){const c=this.cellAt(wx,wy);return this.getTile(c[0],c[1])}
 tileHit(o,ep){
@@ -689,7 +689,58 @@ const c=m.cell,x0=Math.floor((e.x-e.w/2-m.x)/c),x1=Math.floor((e.x+e.w/2-m.x-1e-
 for(let cx=x0;cx<=x1;cx++)for(let cy=y0;cy<=y1;cy++)if(m.tiles.has(pk(cx,cy)))this.rect(e,m.x+(cx+0.5)*c,m.y+(cy+0.5)*c,c,c,ax)
 }
 }
+vwr(){
+const V=root.VWR
+if(!V||!V.exports||(this.project.settings&&this.project.settings.core==='js'))return null
+if(!this.W){
+const x=V.exports,m=x.memory.buffer,F=(f,n)=>new Float64Array(m,x[f](),n),MS=x.vwr_max_static(),MD=x.vwr_max_dynamic()
+this.W={x,MS,MD,sx:F('vwr_sx',MS),sy:F('vwr_sy',MS),sz:F('vwr_sz',MS),sw:F('vwr_sw',MS),sh:F('vwr_sh',MS),sd:F('vwr_sd',MS),dx:F('vwr_dx',MD),dy:F('vwr_dy',MD),dz:F('vwr_dz',MD),dw:F('vwr_dw',MD),dh:F('vwr_dh',MD),dd:F('vwr_dd',MD),dvx:F('vwr_dvx',MD),dvy:F('vwr_dvy',MD),dvz:F('vwr_dvz',MD),dgs:F('vwr_dgs',MD),dgr:new Uint8Array(m,x.vwr_dgr(),MD),list:[],sn:-1}
+}
+return this.W
+}
+physW(dt){
+const W=this.vwr(),es=this.entities,d3=this.is3d
+let dirty=this.sDirty||W.d3!==d3,n=0
+for(let i=0;i<es.length;i++){
+const e=es[i]
+if(!e.alive||e.body!=='static')continue
+n++
+if(e._sx!==e.x||e._sy!==e.y||e._sw!==e.w||e._sh!==e.h||(d3&&(e._sz!==e.z||e._sd!==e.d))){dirty=true;e._sx=e.x;e._sy=e.y;e._sw=e.w;e._sh=e.h;e._sz=e.z;e._sd=e.d}
+}
+if(!d3)for(const m of this.tms)if(m.alive&&m.solid){n+=m.tiles.size;if(m._ox!==m.x||m._oy!==m.y||m._oc!==m.cell){dirty=true;m._ox=m.x;m._oy=m.y;m._oc=m.cell}}
+if(n!==W.sn)dirty=true
+if(n>W.MS)return false
+if(dirty){
+let k=0
+for(let i=0;i<es.length;i++){
+const e=es[i]
+if(!e.alive||e.body!=='static')continue
+W.sx[k]=e.x;W.sy[k]=e.y;W.sw[k]=e.w;W.sh[k]=e.h;W.sz[k]=e.z;W.sd[k]=e.d;k++
+}
+const ne=k
+if(!d3)for(const m of this.tms){
+if(!m.alive||!m.solid)continue
+const c=m.cell
+for(const key of m.tiles.keys()){const cx=Math.floor(key/65536)-OFF,cy=key%65536-OFF;W.sx[k]=m.x+(cx+0.5)*c;W.sy[k]=m.y+(cy+0.5)*c;W.sw[k]=c;W.sh[k]=c;W.sz[k]=0;W.sd[k]=0;k++}
+}
+W.x.vwr_static(k,ne,d3?1:0,this.cell)
+W.sn=n
+W.d3=d3
+this.sDirty=false
+}
+const L=W.list
+L.length=0
+for(let i=0;i<es.length;i++){const e=es[i];if(e.alive&&e.body==='dynamic'&&!e.par)L.push(e)}
+if(L.length>W.MD)return false
+for(let i=0;i<L.length;i++){const e=L[i];W.dx[i]=e.x;W.dy[i]=e.y;W.dz[i]=e.z;W.dw[i]=e.w;W.dh[i]=e.h;W.dd[i]=e.d;W.dvx[i]=e.vx;W.dvy[i]=e.vy;W.dvz[i]=e.vz;W.dgs[i]=e.gravityScale}
+W.x.vwr_step(L.length,dt,this.gravity)
+for(let i=0;i<L.length;i++){const e=L[i];e.x=W.dx[i];e.y=W.dy[i];e.z=W.dz[i];e.vx=W.dvx[i];e.vy=W.dvy[i];e.vz=W.dvz[i];e.grounded=W.dgr[i]===1}
+return true
+}
 physics(dt){
+if(this.vwr()&&this.physW(dt)){this.sgStale=true;return}
+if(this.sgStale){this.sDirty=true;this.sgStale=false}
+if(this.W)this.W.sn=-1
 const es=this.entities,g=this.gravity
 this.staticGrid()
 for(let i=0;i<es.length;i++){
@@ -704,6 +755,9 @@ this.resolve(e,false)
 }
 }
 physics3(dt){
+if(this.vwr()&&this.physW(dt)){this.sgStale=true;return}
+if(this.sgStale){this.sDirty=true;this.sgStale=false}
+if(this.W)this.W.sn=-1
 const es=this.entities,g=this.gravity
 this.staticGrid()
 for(let i=0;i<es.length;i++){
