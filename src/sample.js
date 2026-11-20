@@ -343,4 +343,4 @@ const TEMPLATES=[
 const api={make,make3,makeTop,makeKit,wav,blank,blank3,ent,kinds,kinds3,uid,playerCode,TEMPLATES}
 if(typeof module!=='undefined'&&module.exports)module.exports=api
 else root.VueSample=api
-})(typeof window!=='undefined'?window:globalThis)
+})(typeof window!=='undefined'?window:globalThis);

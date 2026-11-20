@@ -181,4 +181,4 @@ return{x:o.x+d.x*t,z:o.z+d.z*t}
 const api=Render3D
 if(typeof module!=='undefined'&&module.exports)module.exports=api
 else root.VueRender3D=api
-})(typeof window!=='undefined'?window:globalThis)
+})(typeof window!=='undefined'?window:globalThis);

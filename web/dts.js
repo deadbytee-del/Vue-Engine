@@ -51,4 +51,4 @@ export function collide(other: Entity): void {
 const api={dts,TEMPLATE}
 if(typeof module!=='undefined'&&module.exports)module.exports=api
 else root.VueDTS=api
-})(typeof window!=='undefined'?window:globalThis)
+})(typeof window!=='undefined'?window:globalThis);

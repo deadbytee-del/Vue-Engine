@@ -384,4 +384,4 @@ componentStyles:{workspaceBackgroundColour:'#0a0910',toolboxBackgroundColour:'#1
 const api={DEFS,HATS,init,compile,theme}
 if(typeof module!=='undefined'&&module.exports)module.exports=api
 else root.VueBlocks=api
-})(typeof window!=='undefined'?window:globalThis)
+})(typeof window!=='undefined'?window:globalThis);

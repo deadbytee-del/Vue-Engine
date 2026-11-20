@@ -7,7 +7,7 @@ const V={exports:null,version:'1.0.0',name:'VWR'}
 V.ready=(typeof WebAssembly==='undefined'?Promise.reject(new Error('no wasm')):WebAssembly.instantiate(bytes(),{})).then(r=>{V.exports=r.instance.exports;return V}).catch(()=>V)
 root.VWR=V
 if(typeof module!=='undefined'&&module.exports)module.exports=V
-})(typeof window!=='undefined'?window:globalThis)
+})(typeof window!=='undefined'?window:globalThis);
 `
 fs.writeFileSync(path.join(__dirname,'..','src','vwr.js'),src)
 console.log('vwr.wasm',fs.statSync(path.join(__dirname,'vwr.wasm')).size,'bytes')

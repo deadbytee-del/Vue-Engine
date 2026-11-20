@@ -272,10 +272,11 @@ if(a[k].type==='image'&&typeof Image!=='undefined'){
 const im=new Image()
 im.src=a[k].data
 this.images[k]=im
-ps.push(im.decode?im.decode().catch(()=>{}):new Promise(r=>{im.onload=im.onerror=r}))
+ps.push(Promise.race([im.decode?im.decode().catch(()=>{}):new Promise(r=>{im.onload=im.onerror=r}),new Promise(r=>setTimeout(r,4000))]))
 }else if(a[k].type==='audio'&&!this.buffers[k]&&typeof fetch!=='undefined'){
 const ac=this.audio(true)
-if(ac)ps.push(fetch(a[k].data).then(r=>r.arrayBuffer()).then(b=>new Promise((res,rej)=>ac.decodeAudioData(b,res,rej))).then(b=>{this.buffers[k]=b}).catch(()=>{}))
+if(ac)this.audioLoad=(this.audioLoad||Promise.resolve()).then(()=>fetch(a[k].data).then(r=>r.arrayBuffer()).then(b=>new Promise((res,rej)=>ac.decodeAudioData(b,res,rej))).then(b=>{this.buffers[k]=b}).catch(()=>{}))
+if(ac&&this.editor)ps.push(this.audioLoad)
 }
 }
 return Promise.all(ps)
@@ -1338,4 +1339,4 @@ const TILE_COLORS=['#5aa469','#8b5e3c','#7a7f8c','#b5523b','#3f7fbf','#a57c4b','
 const api={Game,Entity,STEP,norm,toLocal,mat,eul,EASE,pk,OFF}
 if(typeof module!=='undefined'&&module.exports)module.exports=api
 else root.VueRuntime=api
-})(typeof window!=='undefined'?window:globalThis)
+})(typeof window!=='undefined'?window:globalThis);

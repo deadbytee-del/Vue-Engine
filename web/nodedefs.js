@@ -164,4 +164,4 @@ return out
 const api={defs,KEYS,KEY_LIST,CAT_COLORS,compileGraph,literal}
 if(typeof module!=='undefined'&&module.exports)module.exports=api
 else root.VueNodes=api
-})(typeof window!=='undefined'?window:globalThis)
+})(typeof window!=='undefined'?window:globalThis);

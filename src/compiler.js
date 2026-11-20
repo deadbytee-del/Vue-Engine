@@ -31,4 +31,4 @@ return{scripts,errors}
 const api={compileScript,compileProject,EPI}
 if(typeof module!=='undefined'&&module.exports)module.exports=api
 else root.VueCompiler=api
-})(typeof window!=='undefined'?window:globalThis)
+})(typeof window!=='undefined'?window:globalThis);

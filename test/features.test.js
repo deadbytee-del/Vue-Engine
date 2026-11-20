@@ -170,5 +170,14 @@ step(g,30)
 assert.strictEqual(hero.animation,'walk')
 assert.ok(hero.x>-240+80,'hero walks')
 }
+{
+const fs=require('fs'),vm=require('vm')
+const main=fs.readFileSync(path.join(__dirname,'..','main.js'),'utf8'),web=fs.readFileSync(path.join(__dirname,'..','src','host-web.js'),'utf8')
+assert.ok(/join\('\\n;\\n'\)/.test(main)&&/join\('\\n;\\n'\)/.test(web),'runtime sources joined safely')
+const js=['vwr.js','runtime.js','render3d.js'].map(f=>fs.readFileSync(path.join(__dirname,'..','src',f),'utf8')).join('\n;\n')
+const w={console,atob,WebAssembly,Uint8Array};w.window=w
+vm.runInNewContext(js,w)
+assert.ok(w.VueRuntime&&w.VueRender3D&&w.VWR,'game runtime bundle evaluates')
+}
 console.log('feature tests passed')
 })().catch(e=>{console.error(e);process.exit(1)})

@@ -456,4 +456,4 @@ this.drawLinks()
 const api={NodeEditor}
 if(typeof module!=='undefined'&&module.exports)module.exports=api
 else root.VueNodeEditor=NodeEditor
-})(typeof window!=='undefined'?window:globalThis)
+})(typeof window!=='undefined'?window:globalThis);
