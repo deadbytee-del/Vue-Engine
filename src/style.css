@@ -14,7 +14,7 @@ input[type=color]{padding:0;height:26px;width:100%}
 #app{display:grid;grid-template-columns:250px 1fr 290px;grid-template-rows:46px 1fr 150px;height:100vh}
 #top{grid-column:1/4;display:flex;align-items:center;gap:14px;padding:0 12px;background:#141821;border-bottom:1px solid #232937}
 .brand{display:flex;align-items:center;gap:8px}
-.logo{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#5b6cff,#2fd3a5);color:#fff;font-weight:800}
+.logo{height:30px;width:auto;display:block}
 #pname{color:#8a93a8;margin-left:6px}
 .grp{display:flex;gap:6px}
 .grp.right{margin-left:auto}

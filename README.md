@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.png" width="420" alt="Vue Engine"></p>
+
 # Vue Engine
 
 A 2D game creation engine for Windows. Build games three ways and run them instantly.
