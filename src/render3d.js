@@ -40,10 +40,16 @@ setEditor(on){
 if(on===this.editor)return
 this.editor=on
 if(on&&!this.grid){
-this.grid=new this.T.GridHelper(200,200,0x6b7690,0x2d3445)
-this.grid.material.transparent=true
-this.grid.material.opacity=0.5
-this.scene.add(this.grid)
+const T=this.T,g=new T.Group()
+const minor=new T.GridHelper(400,400,0x241f33,0x241f33)
+const major=new T.GridHelper(400,40,0x3a3050,0x3a3050)
+for(const h of[minor,major]){h.material.transparent=true;h.material.opacity=h===minor?0.55:0.9;h.material.depthWrite=false;g.add(h)}
+const ax=(a,b,c)=>{const geo=new T.BufferGeometry().setFromPoints([a,b]);const l=new T.Line(geo,new T.LineBasicMaterial({color:c,transparent:true,opacity:0.7,depthWrite:false}));l.position.y=0.002;g.add(l)}
+ax(new T.Vector3(-200,0,0),new T.Vector3(200,0,0),0xff4d6a)
+ax(new T.Vector3(0,0,-200),new T.Vector3(0,0,200),0x4d8dff)
+g.renderOrder=-1
+this.grid=g
+this.scene.add(g)
 }
 if(this.grid)this.grid.visible=on
 }
@@ -79,6 +85,7 @@ m.userData.shape=e.shape
 this.scene.add(m)
 return m
 }
+meshOf(e){return this.map.get(e)||null}
 remove(e){
 const m=this.map.get(e)
 if(!m)return
@@ -129,7 +136,7 @@ setSelection(e){
 const m=e?this.map.get(e):null
 if(this.helper&&(!m||this.helper.userData.m!==m)){this.scene.remove(this.helper);this.helper=null}
 if(m&&!this.helper){
-this.helper=new this.T.BoxHelper(m,0x7a88ff)
+this.helper=new this.T.BoxHelper(m,0x9d5cff)
 this.helper.material.depthTest=false
 this.helper.renderOrder=999
 this.helper.userData.m=m
@@ -138,7 +145,8 @@ this.scene.add(this.helper)
 }
 render(c,bg){
 const T=this.T
-if(bg!==this.bg){this.scene.background=new T.Color(bg);this.scene.fog=new T.Fog(new T.Color(bg),60,220);this.bg=bg}
+if(bg!==this.bg){this.scene.background=new T.Color(bg);this.scene.fog=this.editor?null:new T.Fog(new T.Color(bg),60,220);this.bg=bg}
+if(this.grid)this.grid.visible=this.editor&&this.gridOn!==false
 const cam=this.cam
 cam.fov=c.fov||70
 cam.position.set(c.x,c.y,c.z)

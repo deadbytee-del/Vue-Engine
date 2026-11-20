@@ -122,16 +122,16 @@ this.canvas.height=h
 this.ctx.imageSmoothingEnabled=!this.pixel
 if(this.r3)this.r3.resize(w,h)
 }
-log(level,text){
-if(this.onlog)return this.onlog(level,text)
-if(root.parent&&root.parent!==root)root.parent.postMessage({vue:1,type:'log',level,text},'*')
+log(level,text,src){
+if(this.onlog)return this.onlog(level,text,src)
+if(root.parent&&root.parent!==root)root.parent.postMessage({vue:1,type:'log',level,text,src:src||''},'*')
 else if(root.console)console[level==='error'?'error':'log'](text)
 }
 err(x,e){
 const m=(e?e.name+': ':'')+(x&&x.message||x)
 if(this.errSeen.has(m))return
 this.errSeen.add(m)
-this.log('error',m)
+this.log('error',String(x&&x.message||x),e?e.name:'')
 }
 loadAssets(){
 const a=this.project.assets||{},ps=[]
@@ -271,6 +271,7 @@ play:n=>g.play(n),
 burst:(x,y,c,n)=>g.burst(x,y,c,n),
 shake:(a,d)=>{g.shakeA=+a||0;g.shakeT=d==null?0.3:+d},
 log:(...a)=>g.log('log',a.map(String).join(' ')),
+warn:(...a)=>g.log('warn',a.map(String).join(' ')),
 stop:()=>g.stop()
 }
 }
@@ -658,7 +659,8 @@ this.last=ts
 if(ft>0.1)ft=0.1
 this.acc+=ft
 let n=0
-while(this.acc>=STEP&&n<5){this.update(STEP);this.acc-=STEP;n++}
+if(this.paused){this.acc=0;if(this.stepReq){this.stepReq=false;this.update(STEP)}}
+while(!this.paused&&this.acc>=STEP&&n<5){this.update(STEP);this.acc-=STEP;n++}
 if(n===5)this.acc=0
 this.draw()
 this.fc++

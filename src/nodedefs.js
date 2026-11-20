@@ -74,7 +74,7 @@ distance:{title:'Distance To',cat:'Sensing',in:[P('name','str','Player')],out:[P
 getvar:{title:'Get Global',cat:'Sensing',in:[P('name','str','score')],out:[P('value','any')],x:(n,a)=>`(vue.vars[${a('name')}]??0)`},
 getlocal:{title:'Get Local',cat:'Sensing',in:[P('name','str','hp')],out:[P('value','any')],x:(n,a)=>`(self.data[${a('name')}]??0)`}
 }
-const CAT_COLORS={Events:'#d9534f',Flow:'#e8943a',Motion:'#4c8dff',Looks:'#9b6bff',Game:'#2fb36f',Sound:'#cf63cf',Data:'#6b7686',Math:'#3aa9a0',Logic:'#3aa9a0',Sensing:'#4ea6d6'}
+const CAT_COLORS={Events:'#e0457b',Flow:'#f5a524',Motion:'#4d8dff',Looks:'#9d5cff',Game:'#22c3a6',Sound:'#d65ad1',Data:'#8a83a3',Math:'#3ddc84',Logic:'#3ddc84',Sensing:'#38bdf8'}
 function literal(p,v){
 if(v===undefined||v===null)v=p.d
 const t=p.t

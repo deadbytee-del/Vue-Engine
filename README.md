@@ -14,7 +14,11 @@ All three compile to the same runtime, so one project can mix them per entity.
 
 - 2D and 3D scenes in one project, switchable per scene
 - 3D: Three.js rendering, shadows, lights, orbit camera editor, third-person and first-person cameras, mouse look, 3D collisions
-- Scene editor with move, resize, snapping, grid, undo and redo
+- Project hub with playable templates, recent projects and thumbnails
+- Scene editor with move, rotate and scale gizmos, smart guides, snapping, grid, undo and redo
+- 3D transform gizmos, axis view cube, orbit and fly camera
+- Command palette (Ctrl+P), resizable panels, filterable console, status bar
+- Play inside the editor with pause, step, resolution presets, or in its own window
 - Multiple scenes, prefabs and runtime spawning
 - Fixed timestep game loop, spatial hash collisions, static, dynamic and trigger bodies
 - Camera follow and shake, particles, HUD, sound beeps and audio assets
@@ -43,6 +47,10 @@ export function click(): void {}
 ```
 
 Globals: `vue` (input, find, spawn, camera, hud, beep, wait, go) and `self` (the entity).
+
+## Credits
+
+Icons by Lucide (ISC). 3D rendering by three.js (MIT). Blocks by Blockly (Apache 2.0). Code editor by Monaco (MIT). Fonts Inter and JetBrains Mono (OFL).
 
 ## Build
 

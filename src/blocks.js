@@ -1,6 +1,6 @@
 (function(root){
 const KEYS=(root.VueNodes||(typeof require!=='undefined'?require('./nodedefs.js'):null)).KEYS
-const C={ev:'#d9534f',mo:'#4c8dff',lo:'#9b6bff',co:'#e8943a',se:'#4ea6d6',so:'#cf63cf',ga:'#2fb36f'}
+const C={ev:'#e0457b',mo:'#4d8dff',lo:'#9d5cff',co:'#f5a524',se:'#38bdf8',so:'#d65ad1',ga:'#22c3a6'}
 const iv=(name,check)=>({type:'input_value',name,check})
 const dd=(name,opts)=>({type:'field_dropdown',name,options:opts})
 const ft=(name,text)=>({type:'field_input',name,text})
@@ -85,13 +85,13 @@ cat('Motion',C.mo,[blk('vue_change_x',{BY:5}),blk('vue_change_y',{BY:5}),blk('vu
 cat('Looks',C.lo,[blk('vue_color'),blk('vue_say',{T:'Hello!',S:2}),blk('vue_visible'),blk('vue_size',{W:32,H:32}),blk('vue_burst',{N:14}),blk('vue_shake',{A:6}),blk('vue_follow')]),
 cat('Control',C.co,[blk('vue_wait',{S:1}),blk('vue_forever'),blk('controls_repeat_ext',{TIMES:10}),blk('controls_whileUntil'),blk('controls_if'),blk('controls_flow_statements'),blk('vue_destroy_self'),blk('vue_destroy'),blk('vue_spawn',{X:0,Y:0}),blk('vue_go')]),
 cat('Sensing',C.se,[blk('vue_key_down'),blk('vue_grounded'),blk('vue_touching'),blk('vue_other'),blk('vue_other_tag'),blk('vue_self_prop'),blk('vue_mouse'),blk('vue_dist'),blk('vue_find'),blk('vue_get_prop'),blk('vue_time')]),
-cat('Sound','#cf63cf',[blk('vue_beep',{F:440,D:0.15}),blk('vue_play')]),
+cat('Sound',C.so,[blk('vue_beep',{F:440,D:0.15}),blk('vue_play')]),
 cat('Game',C.ga,[blk('vue_set_global',{V:0}),blk('vue_change_global',{V:1}),blk('vue_get_global'),blk('vue_hud',{V:0}),blk('vue_print',{V:'hello'}),blk('vue_random',{A:0,B:10})]),
 {kind:'sep'},
-cat('Logic','#3aa9a0',[blk('logic_compare'),blk('logic_operation'),blk('logic_negate'),blk('logic_boolean'),blk('logic_ternary')]),
-cat('Math','#3aa9a0',[blk('math_number'),blk('math_arithmetic'),blk('math_single'),blk('math_round'),blk('math_modulo'),blk('math_constrain'),blk('math_change')]),
-cat('Text','#59a05c',[blk('text'),blk('text_join')]),
-{kind:'category',name:'Variables',colour:'#e07a3a',custom:'VARIABLE'}
+cat('Logic','#3ddc84',[blk('logic_compare'),blk('logic_operation'),blk('logic_negate'),blk('logic_boolean'),blk('logic_ternary')]),
+cat('Math','#3ddc84',[blk('math_number'),blk('math_arithmetic'),blk('math_single'),blk('math_round'),blk('math_modulo'),blk('math_constrain'),blk('math_change')]),
+cat('Text','#ff9de2',[blk('text'),blk('text_join')]),
+{kind:'category',name:'Variables',colour:'#ff7a45',custom:'VARIABLE'}
 ]})
 function init(Blockly,gen,Order){
 Blockly.defineBlocksWithJsonArray(DEFS)
@@ -176,8 +176,8 @@ function theme(Blockly){
 return Blockly.Theme.defineTheme('vue',{
 name:'vue',
 base:Blockly.Themes.Zelos,
-blockStyles:{event_blocks:{colourPrimary:C.ev,colourSecondary:'#c94449',colourTertiary:'#b03a3e',hat:'cap'}},
-componentStyles:{workspaceBackgroundColour:'#12141a',toolboxBackgroundColour:'#1a1d25',toolboxForegroundColour:'#e6e8ee',flyoutBackgroundColour:'#20242d',flyoutForegroundColour:'#e6e8ee',flyoutOpacity:1,scrollbarColour:'#4a5060',scrollbarOpacity:0.5,insertionMarkerColour:'#ffffff',insertionMarkerOpacity:0.3,cursorColour:'#d0d0d0'}
+blockStyles:{event_blocks:{colourPrimary:C.ev,colourSecondary:'#c93a6b',colourTertiary:'#a8305a',hat:'cap'},logic_blocks:{colourPrimary:'#2fbf74',colourSecondary:'#27a564',colourTertiary:'#1f8a53'},math_blocks:{colourPrimary:'#2fbf74',colourSecondary:'#27a564',colourTertiary:'#1f8a53'},loop_blocks:{colourPrimary:C.co,colourSecondary:'#d98f1c',colourTertiary:'#b87814'},text_blocks:{colourPrimary:'#e86fbf',colourSecondary:'#cf5fab',colourTertiary:'#b44f94'},variable_blocks:{colourPrimary:'#ff7a45',colourSecondary:'#e86a38',colourTertiary:'#c9582c'},list_blocks:{colourPrimary:'#c06cff',colourSecondary:'#a95ae6',colourTertiary:'#8f48c4'},procedure_blocks:{colourPrimary:'#9d5cff',colourSecondary:'#874be0',colourTertiary:'#723cc0'}},
+fontStyle:{family:'Inter, system-ui, sans-serif',weight:'600',size:11},componentStyles:{workspaceBackgroundColour:'#0a0910',toolboxBackgroundColour:'#110f19',toolboxForegroundColour:'#ece8f6',flyoutBackgroundColour:'#171422',flyoutForegroundColour:'#ece8f6',flyoutOpacity:0.97,scrollbarColour:'#3a3050',scrollbarOpacity:0.5,insertionMarkerColour:'#ffffff',insertionMarkerOpacity:0.3,cursorColour:'#d0d0d0'}
 })
 }
 const api={DEFS,HATS,init,compile,theme}

@@ -1,5 +1,7 @@
 (function(root){
-const exec='#e6e8ee',data='#7dd3fc'
+const TC={exec:'#ece8f6',num:'#3ddc84',str:'#ff9de2',bool:'#ff4d6a',ent:'#4d8dff',any:'#b9b0d0',col:'#ffd34d',sel:'#b9b0d0'}
+const ic=(n,s)=>root.VueIcon?root.VueIcon(n,s):''
+const CATI={Events:'sparkles',Flow:'workflow',Motion:'move',Looks:'palette',Game:'gamepad',Sound:'music',Data:'tag',Math:'target',Logic:'target',Sensing:'eye'}
 class NodeEditor{
 constructor(el,defs,colors,onChange){
 this.el=el
@@ -12,45 +14,49 @@ this.zoom=1
 this.sel=null
 this.mode=null
 this.ports=new Map()
+this.pend=null
 el.classList.add('ne')
 el.tabIndex=0
-el.innerHTML='<div class="ne-world"><svg class="ne-links" width="1" height="1"></svg></div><div class="ne-bar"><input class="ne-add" list="ne-list" placeholder="Add node (type to search)"><datalist id="ne-list"></datalist><span class="ne-hint">Drag from a port to connect. Double-click a wire to cut it. Delete removes the selected node. Scroll to zoom, drag the background to pan.</span></div>'
+el.innerHTML='<div class="ne-world"><svg class="ne-links" width="1" height="1"></svg></div><div class="ne-hint">Right-click or drag a wire into empty space to add nodes · Alt-click a wire to cut · Del removes</div><div class="ne-pal"><div class="ne-pal-s">'+ic('search',14)+'<input placeholder="Search nodes"></div><div class="ne-pal-l"></div></div>'
 this.world=el.querySelector('.ne-world')
 this.svg=el.querySelector('.ne-links')
-this.add=el.querySelector('.ne-add')
-const dl=el.querySelector('#ne-list')
-this.labels={}
-for(const t in defs){
-const lab=defs[t].cat+' · '+defs[t].title
-this.labels[lab]=t
-const o=document.createElement('option')
-o.value=lab
-dl.appendChild(o)
-}
-this.add.addEventListener('change',()=>{
-const t=this.labels[this.add.value]
-if(t){
-const r=el.getBoundingClientRect()
-this.addNode(t,(r.width/2-this.pan.x)/this.zoom-80,(r.height/2-this.pan.y)/this.zoom-40)
-}
-this.add.value=''
+this.pal=el.querySelector('.ne-pal')
+this.pin=this.pal.querySelector('input')
+this.pl=this.pal.querySelector('.ne-pal-l')
+this.pin.addEventListener('input',()=>this.fill())
+this.pin.addEventListener('keydown',e=>{
+const items=Array.from(this.pl.querySelectorAll('.ne-pi'))
+let i=items.findIndex(x=>x.classList.contains('on'))
+if(e.key==='ArrowDown'){i=Math.min(items.length-1,i+1);e.preventDefault()}
+else if(e.key==='ArrowUp'){i=Math.max(0,i-1);e.preventDefault()}
+else if(e.key==='Enter'){if(items[i])this.pick(items[i].dataset.t);e.preventDefault();return}
+else if(e.key==='Escape'){this.closePal();e.preventDefault();return}
+else return
+items.forEach((x,j)=>x.classList.toggle('on',j===i))
+if(items[i])items[i].scrollIntoView({block:'nearest'})
 })
 el.addEventListener('pointerdown',e=>this.down(e))
 el.addEventListener('pointermove',e=>this.move(e))
 el.addEventListener('pointerup',e=>this.up(e))
 el.addEventListener('wheel',e=>this.wheel(e),{passive:false})
+el.addEventListener('contextmenu',e=>{
+e.preventDefault()
+if(e.target.closest('.ne-node,.ne-pal'))return
+this.pend=null
+this.openPal(e.clientX,e.clientY)
+})
 el.addEventListener('keydown',e=>{
 if(e.target.closest('input,select,textarea'))return
 if((e.key==='Delete'||e.key==='Backspace')&&this.sel!=null){this.removeNode(this.sel);e.preventDefault()}
+if(e.key===' '||e.key==='Tab'){const r=el.getBoundingClientRect();this.pend=null;this.openPal(r.left+r.width/2-140,r.top+r.height/3);e.preventDefault()}
+})
+el.addEventListener('click',e=>{
+const p=e.target.closest('.ne-link')
+if(p&&e.altKey){this.g.links.splice(+p.dataset.i,1);this.render();this.emit()}
 })
 el.addEventListener('dblclick',e=>{
 const p=e.target.closest('.ne-link')
-if(p){
-const i=+p.dataset.i
-this.g.links.splice(i,1)
-this.render()
-this.emit()
-}
+if(p){this.g.links.splice(+p.dataset.i,1);this.render();this.emit()}
 })
 this.applyView()
 }
@@ -60,16 +66,75 @@ if(!this.g.nodes)this.g.nodes=[]
 if(!this.g.links)this.g.links=[]
 if(!this.g.nid)this.g.nid=this.g.nodes.reduce((m,n)=>Math.max(m,n.id),0)+1
 this.sel=null
+this.closePal()
 this.render()
 }
 emit(){this.onChange(this.g)}
-applyView(){this.world.style.transform='translate('+this.pan.x+'px,'+this.pan.y+'px) scale('+this.zoom+')'}
-addNode(type,x,y){
-const n={id:this.g.nid++,type,x:Math.round(x),y:Math.round(y),v:{}}
+applyView(){
+this.world.style.transform='translate('+this.pan.x+'px,'+this.pan.y+'px) scale('+this.zoom+')'
+this.el.style.backgroundPosition=this.pan.x+'px '+this.pan.y+'px'
+this.el.style.backgroundSize=24*this.zoom+'px '+24*this.zoom+'px'
+}
+openPal(cx,cy){
+const r=this.el.getBoundingClientRect()
+this.palAt=[cx,cy]
+this.pal.style.left=Math.min(r.width-290,Math.max(8,cx-r.left))+'px'
+this.pal.style.top=Math.min(r.height-330,Math.max(8,cy-r.top))+'px'
+this.pal.classList.add('on')
+this.pin.value=''
+this.fill()
+setTimeout(()=>this.pin.focus(),0)
+}
+closePal(){this.pal.classList.remove('on');this.pend=null;this.temp=null;if(this.svg)this.drawLinks()}
+compat(t){
+const p=this.pend
+if(!p)return true
+const d=this.defs[t],list=p.dir==='out'?d.in:d.out
+return list.some(q=>!q.f&&((q.t==='exec')===(p.t==='exec')))
+}
+fill(){
+const q=this.pin.value.trim().toLowerCase()
+this.pl.innerHTML=''
+let cat=''
+const ts=Object.keys(this.defs).filter(t=>{const d=this.defs[t];return this.compat(t)&&(!q||(d.title+' '+d.cat).toLowerCase().indexOf(q)>=0)})
+ts.sort((a,b)=>{const A=this.defs[a],B=this.defs[b];return A.cat<B.cat?-1:A.cat>B.cat?1:0})
+let first=true
+for(const t of ts){
+const d=this.defs[t]
+if(d.cat!==cat&&!q){cat=d.cat;const h=document.createElement('div');h.className='ne-pc';h.textContent=cat;this.pl.appendChild(h)}
+const it=document.createElement('div')
+it.className='ne-pi'+(first?' on':'')
+first=false
+it.dataset.t=t
+it.innerHTML='<i style="background:'+(this.colors[d.cat]||'#666')+'"></i><span>'+d.title+'</span><em>'+d.cat+'</em>'
+it.addEventListener('pointerdown',e=>{e.stopPropagation();this.pick(t)})
+this.pl.appendChild(it)
+}
+if(!ts.length){const h=document.createElement('div');h.className='ne-pc';h.textContent='No matching nodes';this.pl.appendChild(h)}
+}
+pick(t){
+const r=this.el.getBoundingClientRect(),[cx,cy]=this.palAt
+const x=(cx-r.left-this.pan.x)/this.zoom,y=(cy-r.top-this.pan.y)/this.zoom
+const n={id:this.g.nid++,type:t,x:Math.round(x),y:Math.round(y-20),v:{}}
 this.g.nodes.push(n)
+const p=this.pend
+if(p){
+const d=this.defs[t]
+if(p.dir==='out'){
+const q=d.in.find(q=>!q.f&&((q.t==='exec')===(p.t==='exec')))
+if(q)this.g.links.push({a:p.node,ap:p.port,b:n.id,bp:q.n})
+if(p.t==='exec')this.g.links=this.g.links.filter(l=>!(l.a===p.node&&l.ap===p.port&&l.b!==n.id))
+}else{
+const q=d.out.find(q=>(q.t==='exec')===(p.t==='exec'))
+if(q){this.g.links=this.g.links.filter(l=>!(l.b===p.node&&l.bp===p.port));this.g.links.push({a:n.id,ap:q.n,b:p.node,bp:p.port})}
+n.x-=230
+}
+}
+this.closePal()
 this.sel=n.id
 this.render()
 this.emit()
+this.el.focus()
 }
 removeNode(id){
 this.g.nodes=this.g.nodes.filter(n=>n.id!==id)
@@ -92,6 +157,7 @@ this.drawLinks()
 portEl(n,p,dir){
 const s=document.createElement('span')
 s.className='ne-port '+dir+' '+(p.t==='exec'?'exec':'data')
+s.style.setProperty('--pc',TC[p.t]||TC.any)
 s.dataset.node=n.id
 s.dataset.port=p.n
 s.dataset.dir=dir
@@ -109,6 +175,7 @@ i.value=cur
 }else if(p.t==='bool'){
 i=document.createElement('input')
 i.type='checkbox'
+i.className='sw'
 i.checked=cur===true||cur==='true'
 }else{
 i=document.createElement('input')
@@ -133,10 +200,10 @@ el.className='ne-node'+(this.sel===n.id?' sel':'')
 el.dataset.id=n.id
 el.style.left=n.x+'px'
 el.style.top=n.y+'px'
+el.style.setProperty('--cc',this.colors[d.cat]||'#666')
 const h=document.createElement('div')
 h.className='ne-head'
-h.style.background=this.colors[d.cat]||'#555'
-h.textContent=d.title
+h.innerHTML='<span class="ne-ic">'+ic(CATI[d.cat]||'workflow',13)+'</span><span>'+d.title+'</span>'
 el.appendChild(h)
 const cols=document.createElement('div')
 cols.className='ne-cols'
@@ -187,10 +254,16 @@ this.g.links.forEach((l,i)=>{
 const a=this.ports.get(l.a+':'+l.ap+':out'),b=this.ports.get(l.b+':'+l.bp+':in')
 if(!a||!b)return
 const[x1,y1]=this.center(a),[x2,y2]=this.center(b)
+const c=TC[a.dataset.t]||TC.any,d=this.path(x1,y1,x2,y2)
+const glow=document.createElementNS(ns,'path')
+glow.setAttribute('d',d)
+glow.setAttribute('class','ne-glow')
+glow.setAttribute('stroke',c)
+svg.appendChild(glow)
 const p=document.createElementNS(ns,'path')
-p.setAttribute('d',this.path(x1,y1,x2,y2))
-p.setAttribute('class','ne-link')
-p.setAttribute('stroke',a.dataset.t==='exec'?exec:data)
+p.setAttribute('d',d)
+p.setAttribute('class','ne-link'+(a.dataset.t==='exec'?' ex':''))
+p.setAttribute('stroke',c)
 p.dataset.i=i
 svg.appendChild(p)
 })
@@ -211,10 +284,12 @@ for(const n of this.world.querySelectorAll('.ne-node'))n.classList.toggle('sel',
 }
 down(e){
 const t=e.target
-if(t.closest('.ne-bar'))return
+if(t.closest('.ne-pal'))return
+if(this.pal.classList.contains('on'))this.closePal()
+if(e.button===2)return
 if(t.classList.contains('ne-port')){
 this.el.focus()
-let node=+t.dataset.node,port=t.dataset.port,dir=t.dataset.dir
+let node=+t.dataset.node,port=t.dataset.port,dir=t.dataset.dir,ty=t.dataset.t
 if(dir==='in'){
 const i=this.g.links.findIndex(l=>l.b===node&&l.bp===port)
 if(i>=0){
@@ -223,11 +298,13 @@ this.g.links.splice(i,1)
 node=l.a
 port=l.ap
 dir='out'
+const src=this.ports.get(node+':'+port+':out')
+ty=src?src.dataset.t:ty
 this.render()
 this.emit()
 }
 }
-this.mode={k:'link',node,port,dir,t:t.dataset.t}
+this.mode={k:'link',node,port,dir,t:ty}
 this.el.setPointerCapture(e.pointerId)
 e.preventDefault()
 return
@@ -245,9 +322,11 @@ return
 if(t.closest('input,select'))return
 const nd=t.closest('.ne-node')
 if(nd){this.el.focus();this.select(+nd.dataset.id);return}
+if(t.closest('.ne-link'))return
 this.el.focus()
 this.select(null)
 this.mode={k:'pan',sx:e.clientX,sy:e.clientY,px:this.pan.x,py:this.pan.y}
+this.el.classList.add('panning')
 this.el.setPointerCapture(e.pointerId)
 }
 move(e){
@@ -259,8 +338,8 @@ this.pan.y=m.py+e.clientY-m.sy
 this.applyView()
 }else if(m.k==='drag'){
 const[x,y]=this.local(e)
-m.n.x=Math.round(x-m.ox)
-m.n.y=Math.round(y-m.oy)
+m.n.x=Math.round((x-m.ox)/8)*8
+m.n.y=Math.round((y-m.oy)/8)*8
 m.el.style.left=m.n.x+'px'
 m.el.style.top=m.n.y+'px'
 this.drawLinks()
@@ -275,19 +354,23 @@ this.drawLinks()
 up(e){
 const m=this.mode
 this.mode=null
+this.el.classList.remove('panning')
 if(!m)return
 try{this.el.releasePointerCapture(e.pointerId)}catch(x){}
 if(m.k==='drag')this.emit()
 if(m.k==='link'){
-this.temp=null
 const t=document.elementFromPoint(e.clientX,e.clientY)
 if(t&&t.classList.contains('ne-port')&&t.dataset.dir!==m.dir&&(t.dataset.t==='exec')===(m.t==='exec')&&+t.dataset.node!==m.node){
+this.temp=null
 const o=m.dir==='out'?{a:m.node,ap:m.port,b:+t.dataset.node,bp:t.dataset.port}:{a:+t.dataset.node,ap:t.dataset.port,b:m.node,bp:m.port}
 this.g.links=this.g.links.filter(l=>!(l.b===o.b&&l.bp===o.bp)&&!(m.t==='exec'&&l.a===o.a&&l.ap===o.ap))
 this.g.links.push(o)
 this.render()
 this.emit()
-}else this.drawLinks()
+}else if(!t||!t.closest('.ne-node')){
+this.pend={node:m.node,port:m.port,dir:m.dir,t:m.t}
+this.openPal(e.clientX,e.clientY)
+}else{this.temp=null;this.drawLinks()}
 }
 }
 wheel(e){

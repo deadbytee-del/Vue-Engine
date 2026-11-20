@@ -1,7 +1,7 @@
 {
  "name": "vue-engine",
  "productName": "Vue Engine",
- "version": "1.0.0",
+ "version": "1.1.0",
  "description": "Vue Engine - 2D game creation engine with blocks, node graphs and typed code",
  "main": "main.js",
  "author": "NexARC",
@@ -12,6 +12,8 @@
   "dist": "electron-builder --win portable --publish never"
  },
  "dependencies": {
+  "@fontsource/inter": "^5.1.0",
+  "@fontsource/jetbrains-mono": "^5.1.1",
   "blockly": "11.2.2",
   "monaco-editor": "0.52.2",
   "three": "^0.149.0",
@@ -35,7 +37,8 @@
    "node_modules/**/*",
    "!**/*.map",
    "!node_modules/monaco-editor/{esm,dev,min-maps}/**",
-   "!node_modules/three/{examples,src}/**"
+   "!node_modules/three/src/**",
+   "!node_modules/three/examples/**"
   ],
   "win": {
    "target": [

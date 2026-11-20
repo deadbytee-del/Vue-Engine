@@ -6,5 +6,8 @@ exportHtml:(html,name)=>ipcRenderer.invoke('export:html',html,name),
 importAssets:()=>ipcRenderer.invoke('assets:import'),
 transpile:src=>ipcRenderer.invoke('ts:transpile',src),
 runtimeSource:()=>ipcRenderer.invoke('runtime:source'),
+readProject:p=>ipcRenderer.invoke('project:read',p),
+version:()=>ipcRenderer.invoke('app:version'),
+detach:(html,title)=>ipcRenderer.invoke('game:detach',html,title),
 threeSource:()=>ipcRenderer.invoke('three:source')
 })

@@ -159,7 +159,87 @@ e3({name:'Lamp',shape:'light',x:0,y:12,z:-5,w:60,color:'#fff4d6'})
 )
 return p
 }
-const api={make,make3,blank,blank3,ent,kinds,kinds3,uid,playerCode}
+const topCode=`export function start(): void {
+vue.vars.gems = 0
+vue.follow(self)
+}
+
+export function update(dt: number): void {
+const speed: number = 220
+let dx: number = 0
+let dy: number = 0
+if (vue.key("a") || vue.key("ArrowLeft")) dx -= 1
+if (vue.key("d") || vue.key("ArrowRight")) dx += 1
+if (vue.key("w") || vue.key("ArrowUp")) dy -= 1
+if (vue.key("s") || vue.key("ArrowDown")) dy += 1
+const len: number = Math.hypot(dx, dy) || 1
+self.vx = dx / len * speed
+self.vy = dy / len * speed
+if (dx !== 0) self.flipX = dx < 0
+vue.hud("Gems", vue.vars.gems + " / 6")
+if (vue.vars.gems >= 6) self.say("You win!", 0.1)
+}
+`
+function makeTop(){
+const p=blank()
+p.name='Gem Dash'
+const sc=p.scenes[0]
+sc.name='Arena'
+sc.bg='#1d1a2b'
+sc.gravity=0
+const gem=ws(
+bk('vue_on_update',{x:20,y:20,inputs:{DO:{block:bk('vue_change_rot',{inputs:{V:num(3)}})}}}),
+bk('vue_on_collide',{x:20,y:140,fields:{TAG:'player'},inputs:{DO:{block:link(
+bk('vue_change_global',{fields:{N:'gems'},inputs:{V:num(1)}}),
+bk('vue_beep',{inputs:{F:num(988),D:num(0.08)}}),
+bk('vue_burst',{fields:{C:'#4cc9f0'},inputs:{N:num(16)}}),
+bk('vue_destroy_self')
+)}}})
+)
+const chase={nid:30,nodes:[
+{id:1,type:'update',x:40,y:40,v:{}},
+{id:2,type:'setvel',x:300,y:40,v:{}},
+{id:3,type:'mul',x:560,y:20,v:{b:90}},
+{id:4,type:'func',x:780,y:20,v:{fn:'sign'}},
+{id:5,type:'sub',x:1000,y:20,v:{}},
+{id:6,type:'getprop',x:1220,y:-20,v:{prop:'x'}},
+{id:7,type:'find',x:1440,y:20,v:{name:'Hero'}},
+{id:8,type:'getprop',x:1220,y:110,v:{prop:'x'}},
+{id:9,type:'mul',x:560,y:220,v:{b:90}},
+{id:10,type:'func',x:780,y:220,v:{fn:'sign'}},
+{id:11,type:'sub',x:1000,y:220,v:{}},
+{id:12,type:'getprop',x:1220,y:220,v:{prop:'y'}},
+{id:13,type:'getprop',x:1220,y:330,v:{prop:'y'}},
+{id:14,type:'collide',x:40,y:420,v:{tag:'player'}},
+{id:15,type:'shake',x:300,y:420,v:{amount:10,sec:0.3}},
+{id:16,type:'wait',x:560,y:420,v:{sec:0.3}},
+{id:17,type:'go',x:780,y:420,v:{scene:'Arena'}}
+],links:[
+{a:1,ap:'next',b:2,bp:'in'},
+{a:3,ap:'result',b:2,bp:'vx'},{a:4,ap:'result',b:3,bp:'a'},{a:5,ap:'result',b:4,bp:'a'},{a:6,ap:'value',b:5,bp:'a'},{a:7,ap:'entity',b:6,bp:'entity'},{a:8,ap:'value',b:5,bp:'b'},
+{a:9,ap:'result',b:2,bp:'vy'},{a:10,ap:'result',b:9,bp:'a'},{a:11,ap:'result',b:10,bp:'a'},{a:12,ap:'value',b:11,bp:'a'},{a:7,ap:'entity',b:12,bp:'entity'},{a:13,ap:'value',b:11,bp:'b'},
+{a:14,ap:'next',b:15,bp:'in'},{a:15,ap:'next',b:16,bp:'in'},{a:16,ap:'next',b:17,bp:'in'}
+]}
+const wall=(n,x,y,w,h)=>ent({name:n,x,y,w,h,color:'#3b3355',body:'static',z:-1})
+sc.entities.push(
+ent({name:'Floor',x:0,y:0,w:1200,h:800,color:'#25213a',z:-5}),
+wall('Wall N',0,-416,1232,32),wall('Wall S',0,416,1232,32),wall('Wall W',-616,0,32,800),wall('Wall E',616,0,32,800),
+wall('Pillar 1',-240,-120,80,80),wall('Pillar 2',240,120,80,80),wall('Pillar 3',240,-200,80,80),wall('Pillar 4',-240,200,80,80),
+ent({name:'Hero',x:0,y:0,w:32,h:32,shape:'circle',color:'#7bf1a8',body:'dynamic',gravityScale:0,tags:['player'],z:5,script:{mode:'code',code:topCode,blocks:null,nodes:null}}),
+ent({name:'Chaser',x:-480,y:-300,w:34,h:34,color:'#ff4d6a',body:'dynamic',gravityScale:0,tags:['enemy'],z:4,script:{mode:'nodes',code:'',blocks:null,nodes:chase}})
+)
+const pts=[[-460,-320],[460,-320],[-460,320],[460,320],[0,-300],[0,300]]
+pts.forEach((q,i)=>sc.entities.push(ent({name:'Gem '+(i+1),x:q[0],y:q[1],w:22,h:22,color:'#4cc9f0',body:'trigger',tags:['gem'],rot:45,script:{mode:'blocks',code:'',blocks:JSON.parse(JSON.stringify(gem)),nodes:null}})))
+return p
+}
+const TEMPLATES=[
+{id:'empty2',name:'Empty 2D',kind:'2D',desc:'A blank 2D scene',make:blank},
+{id:'empty3',name:'Empty 3D',kind:'3D',desc:'Ground, light and sky',make:blank3},
+{id:'plat',name:'Platformer',kind:'2D',desc:'Jump, collect coins, avoid the enemy',make:make},
+{id:'top',name:'Top-down Arena',kind:'2D',desc:'Grab gems while a chaser hunts you',make:makeTop},
+{id:'plat3',name:'3D Platformer',kind:'3D',desc:'Third-person controller with mouse look',make:make3}
+]
+const api={make,make3,makeTop,blank,blank3,ent,kinds,kinds3,uid,playerCode,TEMPLATES}
 if(typeof module!=='undefined'&&module.exports)module.exports=api
 else root.VueSample=api
 })(typeof window!=='undefined'?window:globalThis)
