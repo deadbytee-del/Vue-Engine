@@ -1,0 +1,9 @@
+const{contextBridge,ipcRenderer}=require('electron')
+contextBridge.exposeInMainWorld('host',{
+openProject:()=>ipcRenderer.invoke('project:open'),
+saveProject:(data,file)=>ipcRenderer.invoke('project:save',data,file),
+exportHtml:(html,name)=>ipcRenderer.invoke('export:html',html,name),
+importAssets:()=>ipcRenderer.invoke('assets:import'),
+transpile:src=>ipcRenderer.invoke('ts:transpile',src),
+runtimeSource:()=>ipcRenderer.invoke('runtime:source')
+})

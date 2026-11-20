@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Vue Engine</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+<header id="top">
+<div class="brand"><span class="logo">V</span><b>Vue Engine</b><span id="pname"></span></div>
+<div class="grp">
+<button id="bNew">New</button>
+<button id="bOpen">Open</button>
+<button id="bSave">Save</button>
+<button id="bSample">Sample</button>
+<button id="bExport">Export HTML</button>
+</div>
+<div class="grp">
+<button id="bUndo" title="Ctrl+Z">Undo</button>
+<button id="bRedo" title="Ctrl+Y">Redo</button>
+</div>
+<div class="tabs">
+<button data-tab="scene">Scene</button>
+<button data-tab="script">Script</button>
+<button data-tab="game">Game</button>
+</div>
+<div class="grp right">
+<button id="bPlay" class="play">&#9654; Play</button>
+<button id="bStop" class="stop">&#9632; Stop</button>
+</div>
+</header>
+<aside id="left">
+<section><h3>Scenes <button id="bAddScene" class="mini">+</button></h3><div id="scenes" class="list"></div></section>
+<section class="grow"><h3>Hierarchy <span class="mini-grp"><button id="bDup" class="mini" title="Ctrl+D">Dup</button><button id="bDel" class="mini" title="Delete">Del</button></span></h3><div id="hier" class="list"></div></section>
+<section><h3>Assets <button id="bImport" class="mini">Import</button></h3><div id="assets" class="assets"></div></section>
+</aside>
+<main id="center">
+<div id="viewScene" class="view">
+<div class="tools">
+<button data-add="rect">+ Rectangle</button>
+<button data-add="circle">+ Circle</button>
+<button data-add="sprite">+ Sprite</button>
+<button data-add="text">+ Text</button>
+<label><input type="checkbox" id="snap" checked> Snap</label>
+<label><input type="checkbox" id="grid" checked> Grid</label>
+<button id="bFrame">Reset view</button>
+<span id="zoomLbl"></span>
+</div>
+<div id="cvwrap"><canvas id="cv"></canvas></div>
+</div>
+<div id="viewScript" class="view">
+<div class="tools">
+<b id="sname"></b>
+<span class="modes">
+<button data-mode="blocks">Blocks</button>
+<button data-mode="nodes">Nodes</button>
+<button data-mode="code">Code</button>
+</span>
+<span class="note">The selected mode is the one that runs.</span>
+</div>
+<div id="sbody">
+<div id="blk"></div>
+<div id="nodes"></div>
+<div id="code"></div>
+<div id="sempty">Select an entity in the Scene tab or Hierarchy to edit its script.</div>
+</div>
+</div>
+<div id="viewGame" class="view">
+<iframe id="frame" sandbox="allow-scripts"></iframe>
+<div id="fps"></div>
+</div>
+</main>
+<aside id="right"><h3>Inspector</h3><div id="insp"></div></aside>
+<footer id="consolebar"><div class="chead"><b>Console</b><button id="bClear" class="mini">Clear</button></div><div id="console"></div></footer>
+</div>
+<div id="modal"><div class="box"><div id="mmsg"></div><input id="minput"><div class="row"><button id="mcancel">Cancel</button><button id="mok" class="play">OK</button></div></div></div>
+<script src="../node_modules/blockly/blockly_compressed.js"></script>
+<script src="../node_modules/blockly/blocks_compressed.js"></script>
+<script src="../node_modules/blockly/javascript_compressed.js"></script>
+<script src="../node_modules/blockly/msg/en.js"></script>
+<script src="../node_modules/monaco-editor/min/vs/loader.js"></script>
+<script src="runtime.js"></script>
+<script src="nodedefs.js"></script>
+<script src="blocks.js"></script>
+<script src="compiler.js"></script>
+<script src="player.js"></script>
+<script src="dts.js"></script>
+<script src="sample.js"></script>
+<script src="nodes.js"></script>
+<script src="editor.js"></script>
+</body>
+</html>

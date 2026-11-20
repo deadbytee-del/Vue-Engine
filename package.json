@@ -1,0 +1,49 @@
+{
+ "name": "vue-engine",
+ "productName": "Vue Engine",
+ "version": "1.0.0",
+ "description": "Vue Engine - 2D game creation engine with blocks, node graphs and typed code",
+ "main": "main.js",
+ "author": "NexARC",
+ "license": "MIT",
+ "scripts": {
+  "start": "electron .",
+  "test": "node test/engine.test.js",
+  "dist": "electron-builder --win portable --publish never"
+ },
+ "dependencies": {
+  "blockly": "11.2.2",
+  "monaco-editor": "0.52.2",
+  "typescript": "5.6.3"
+ },
+ "devDependencies": {
+  "electron": "33.2.1",
+  "electron-builder": "25.1.8"
+ },
+ "build": {
+  "appId": "dev.nexarc.vueengine",
+  "productName": "Vue Engine",
+  "directories": {
+   "output": "dist"
+  },
+  "files": [
+   "main.js",
+   "preload.js",
+   "src/**",
+   "build/icon.ico",
+   "node_modules/**/*",
+   "!**/*.map",
+   "!node_modules/monaco-editor/{esm,dev,min-maps}/**"
+  ],
+  "win": {
+   "target": [
+    "portable"
+   ],
+   "icon": "build/icon.ico",
+   "artifactName": "VueEngine.exe"
+  },
+  "portable": {
+   "artifactName": "VueEngine.exe"
+  }
+ }
+}
