@@ -295,6 +295,7 @@ animSel=nm
 ed.refresh();ed.buildInspector();ed.renderHier();renderAnim()
 }})
 const side=h('div',{class:'pp-side'},h('div',{class:'pp-h',html:ic('film',14)+'<b></b>'}),list,add)
+box.__side=side
 side.querySelector('.pp-h b').textContent=d.name+' animations'
 box.append(side)
 const a=animSel&&anims[animSel]
@@ -323,7 +324,8 @@ const tlb=h('div',{class:'pp-tb'},h('b',{text:'Timeline'}),h('span',{class:'hint
 h('button',{class:'btn sm',html:ic('listplus',13)+'All frames',onclick:()=>{const im=imgOf(a.sheet);if(!im||!im.naturalWidth)return;const n=Math.max(1,Math.floor(im.naturalWidth/a.fw))*Math.max(1,Math.floor(im.naturalHeight/a.fh));ed.snap();a.frames=Array.from({length:n},(_,i)=>i);ed.refresh();renderAnim()}}),
 h('button',{class:'btn sm',html:ic('reverse',13)+'Reverse',onclick:()=>{ed.snap();a.frames.reverse();ed.refresh();renderAnim()}}),
 h('button',{class:'btn sm',html:ic('trash',13)+'Clear',onclick:()=>{ed.snap();a.frames=[];frameSel=-1;ed.refresh();renderAnim()}}))
-const main=h('div',{class:'pp-main'},props,sheet,tlb,tl)
+side.append(props)
+const main=h('div',{class:'pp-main'},sheet,tlb,tl)
 const pv=h('canvas',{class:'apv',width:150,height:150})
 const pvl=h('div',{class:'hint',style:'text-align:center'})
 const prev=h('div',{class:'pp-prev'},h('div',{class:'pp-h',html:ic('play',14)+'Preview'}),pv,pvl,h('button',{class:'btn sm',html:ic(prevPlay?'pause':'play',13)+(prevPlay?'Pause':'Play'),onclick:()=>{prevPlay=!prevPlay;renderAnim()}}))
@@ -372,7 +374,7 @@ loop()
 function drawSheet(){
 const im=imgOf(a.sheet),c=scv.getContext('2d')
 if(!im||!im.naturalWidth){scv.width=420;scv.height=60;c.fillStyle='#6b6385';c.font='13px Inter';c.fillText(sheets.length?'Choose a sprite sheet above':'Import a sprite sheet in Assets, or click Sample',12,34);return}
-const k=Math.max(1,Math.min(4,Math.floor(150/im.naturalHeight)||1))
+const k=Math.max(1,Math.min(4,Math.floor(96/im.naturalHeight)||1))
 scv.width=im.naturalWidth*k;scv.height=im.naturalHeight*k
 c.imageSmoothingEnabled=false
 c.drawImage(im,0,0,scv.width,scv.height)
@@ -474,7 +476,8 @@ bar.addEventListener('pointerup',up)
 tl.append(row)
 })
 if(!cs.steps.length)tl.append(h('div',{class:'hint',style:'padding:16px',text:'Add steps with the button above. Steps that overlap play at the same time.'}))
-const main=h('div',{class:'pp-main'},props,tb,tl)
+side.append(props)
+const main=h('div',{class:'pp-main'},tb,tl)
 box.append(main)
 const st=cs.steps.find(s=>s.id===stepSel)
 const insp=h('div',{class:'pp-prev csi'})

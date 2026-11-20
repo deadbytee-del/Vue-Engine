@@ -1220,9 +1220,9 @@ c.beginPath()
 for(let x=Math.floor(l/S)*S;x<=r;x+=S){c.moveTo(x,t);c.lineTo(x,b)}
 for(let y=Math.floor(t/S)*S;y<=b;y+=S){c.moveTo(l,y);c.lineTo(r,y)}
 c.stroke()
-c.strokeStyle='rgba(255,77,106,0.5)'
+c.strokeStyle='rgba(255,77,106,0.28)'
 c.beginPath();c.moveTo(l,0);c.lineTo(r,0);c.stroke()
-c.strokeStyle='rgba(61,220,132,0.5)'
+c.strokeStyle='rgba(61,220,132,0.28)'
 c.beginPath();c.moveTo(0,t);c.lineTo(0,b);c.stroke()
 }
 loop(ts){

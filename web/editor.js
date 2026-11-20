@@ -1035,7 +1035,7 @@ for(const b of $$('.btab'))b.classList.toggle('on',b.dataset.btab===t)
 for(const id of['console','assets','tiles','anim','cuts'])$('#'+id).classList.toggle('on',t===id)
 $('#conTools').classList.toggle('hide',t!=='console')
 $('#assetTools').classList.toggle('hide',t!=='assets')
-if(S.layout&&S.layout.bh<120){S.layout.bh=280;applyLayout(S.layout)}
+if(S.layout&&S.layout.bh<120)toggleDock(true)
 if(t==='tiles'){const d=selData();if(d&&d.shape==='tilemap'&&S.tool!=='paint'){S.tool='paint';updateToolbar();redraw()}}
 if(t==='tiles'||t==='anim'||t==='cuts')VuePanels.render(t)
 }
@@ -1326,7 +1326,7 @@ return h('div',{class:'ax '+(['X','Y','Z'].indexOf(L)>=0?L:'W')},b,inp)
 }
 function ensureBlockly(){
 if(S.ws)return
-S.ws=Blockly.inject($('#blk'),{toolbox:S.toolbox,renderer:'zelos',theme:VueBlocks.theme(Blockly),grid:{spacing:28,length:2,colour:'#1f1a2c',snap:true},zoom:{controls:true,wheel:true,startScale:0.85,maxScale:2,minScale:0.35,pinch:true},trashcan:true,move:{scrollbars:true,drag:true,wheel:false},sounds:false})
+S.ws=Blockly.inject($('#blk'),{toolbox:S.toolbox,renderer:'zelos',theme:VueBlocks.theme(Blockly),grid:{spacing:28,length:2,colour:'#1f1a2c',snap:true},zoom:{controls:true,wheel:true,startScale:0.85,maxScale:2,minScale:0.35,pinch:true},trashcan:true,move:{scrollbars:true,drag:true,wheel:false},sounds:false,media:window.VUE_CDN&&VUE_CDN.blocklyMedia||'../node_modules/blockly/media/'})
 S.ws.addChangeListener(ev=>{
 if(ev.isUiEvent||S.loading)return
 const d=selData()
@@ -1417,7 +1417,7 @@ if(hasContent(s,cur)&&!hasContent(s,m)){
 const btns=[{label:'Cancel',value:null}]
 if(m==='code')btns.push({label:'Start empty',value:'empty'},{label:'Convert to Code',value:'convert',primary:true})
 else btns.push({label:'Switch',value:'switch',primary:true})
-const v=await dialog({title:'Switch '+d.name+' to '+(m==='code'?'Code':m==='nodes'?'Nodes':'Blocks')+'?',msg:m==='code'?'Convert turns your '+cur+' into equivalent code you can keep editing. Start empty keeps your '+cur+' saved, but only the code runs.':'Your '+cur+' stays saved, but only one mode runs at a time.',buttons:btns})
+const v=await dialog({title:'Switch '+d.name+' to '+(m==='code'?'Code':m==='nodes'?'Nodes':'Blocks')+'?',msg:m==='code'?'Convert turns your '+cur+' into equivalent code you can keep editing. Start empty keeps your '+cur+' saved, but only the code runs.':'Your '+(cur==='code'?'code stays':cur+' stay')+' saved, but only one mode runs at a time.',buttons:btns})
 if(!v)return
 snap()
 if(v==='convert'){
@@ -1444,6 +1444,10 @@ S.loading=true
 Blockly.Events.disable()
 S.ws.clear()
 if(s.blocks)Blockly.serialization.workspaces.load(s.blocks,S.ws)
+const tops=S.ws.getTopBlocks(true).map(b=>b.getBoundingRectangle())
+let ov=false
+for(let i=0;i<tops.length&&!ov;i++)for(let j=i+1;j<tops.length;j++){const a=tops[i],b=tops[j];if(a.left<b.right&&b.left<a.right&&a.top<b.bottom&&b.top<a.bottom){ov=true;break}}
+if(ov){S.ws.cleanUp();s.blocks=Blockly.serialization.workspaces.save(S.ws)}
 Blockly.Events.enable()
 S.loading=false
 Blockly.svgResize(S.ws)
@@ -1882,16 +1886,26 @@ if(out){closePort();log('info','Ported to '+out);toast('Ported '+name+' → '+ou
 }catch(x){toast('Port failed: '+(x&&x.message||x),'err')}
 finally{$('#portGo').disabled=false;bar.style.display='none'}
 }
-const LAYOUT={lw:260,rw:310,bh:210}
+const LAYOUT={lw:250,rw:300,bh:240}
 function applyLayout(L){
 const r=document.documentElement.style
 r.setProperty('--lw',L.lw+'px')
 r.setProperty('--rw',L.rw+'px')
 r.setProperty('--bh',L.bh+'px')
 }
-function resetLayout(){S.layout=Object.assign({},LAYOUT);ls.set('vue.layout',S.layout);applyLayout(S.layout)}
+function resetLayout(){S.layout=Object.assign({},LAYOUT);S.layout.bh=Math.round(Math.min(LAYOUT.bh,innerHeight*0.3));ls.set('vue.layout',S.layout);applyLayout(S.layout)}
+function toggleDock(force){
+const L=S.layout,open=L.bh>40
+if(force===true&&open)return
+if(open){L.bhPrev=L.bh;L.bh=31}else L.bh=Math.max(160,Math.min(L.bhPrev||LAYOUT.bh,Math.round(innerHeight*0.45)))
+applyLayout(L);ls.set('vue.layout',L)
+$('#bDock').innerHTML=ic(L.bh>40?'chev':'chevr',14)
+}
 function splitters(){
 S.layout=Object.assign({},LAYOUT,ls.get('vue.layout',{}))
+if(S.layout.bh>innerHeight*0.4)S.layout.bh=Math.round(innerHeight*0.3)
+if(S.layout.lw>innerWidth*0.3)S.layout.lw=LAYOUT.lw
+if(S.layout.rw>innerWidth*0.35)S.layout.rw=LAYOUT.rw
 applyLayout(S.layout)
 const mk=(id,key,dir,max,sign)=>{
 const el=$(id)
@@ -1992,6 +2006,9 @@ $('#pDetach').onclick=async()=>{const html=S.lastHtml;stopGame();if(html)await h
 $('#resSel').onchange=()=>{S.res=$('#resSel').value;fitPlay()}
 new ResizeObserver(fitPlay).observe($('#playBox'))
 $('#bExport').onclick=openPort
+$('#bDock').onclick=()=>toggleDock()
+$('#bDock').innerHTML=ic(S.layout.bh>40?'chev':'chevr',14)
+for(const b of $$('.btab'))b.addEventListener('dblclick',()=>toggleDock())
 $('#portGo').onclick=runPort
 $('#portCancel').onclick=closePort
 $('#port').onpointerdown=e=>{if(e.target.id==='port')closePort()}

@@ -1,6 +1,7 @@
 (function(root){
 const TC={exec:'#ece8f6',num:'#3ddc84',str:'#ff9de2',bool:'#ff4d6a',ent:'#4d8dff',any:'#b9b0d0',col:'#ffd34d',sel:'#b9b0d0'}
 const ic=(n,s)=>root.VueIcon?root.VueIcon(n,s):''
+const CORDER=['Events','Flow','Motion','Looks','Sound','Game','Sensing','Data','Math','Logic']
 const CATI={Events:'sparkles',Flow:'workflow',Motion:'move',Looks:'palette',Game:'gamepad',Sound:'music',Data:'tag',Math:'target',Logic:'target',Sensing:'eye'}
 class NodeEditor{
 constructor(el,defs,colors,onChange){
@@ -17,7 +18,7 @@ this.ports=new Map()
 this.pend=null
 el.classList.add('ne')
 el.tabIndex=0
-el.innerHTML='<div class="ne-world"><svg class="ne-links" width="1" height="1"></svg></div><div class="ne-hint">Right-click or drag a wire into empty space to add nodes · Alt-click a wire to cut · Del removes</div><div class="ne-pal"><div class="ne-pal-s">'+ic('search',14)+'<input placeholder="Search nodes"></div><div class="ne-pal-l"></div></div>'
+el.innerHTML='<div class="ne-empty"><div><b>Empty graph</b>Right-click or press Space to add your first node. Start with an event like On Start or On Update.</div></div><div class="ne-tools"><button class="ib" data-z="out" title="Zoom out">−</button><button class="ib" data-z="fit" title="Frame all (F)">⤢</button><button class="ib" data-z="in" title="Zoom in">+</button></div><div class="ne-world"><svg class="ne-links" width="1" height="1"></svg></div><div class="ne-hint">Right-click or drag a wire into empty space to add nodes · Alt-click a wire to cut · Del removes</div><div class="ne-pal"><div class="ne-pal-s">'+ic('search',14)+'<input placeholder="Search nodes"></div><div class="ne-pal-l"></div></div>'
 this.world=el.querySelector('.ne-world')
 this.svg=el.querySelector('.ne-links')
 this.pal=el.querySelector('.ne-pal')
@@ -39,15 +40,20 @@ el.addEventListener('pointerdown',e=>this.down(e))
 el.addEventListener('pointermove',e=>this.move(e))
 el.addEventListener('pointerup',e=>this.up(e))
 el.addEventListener('wheel',e=>this.wheel(e),{passive:false})
+for(const b of el.querySelectorAll('[data-z]'))b.addEventListener('click',()=>{const z=b.dataset.z;if(z==='fit')this.fit();else this.zoomBy(z==='in'?1.2:1/1.2)})
 el.addEventListener('contextmenu',e=>{
 e.preventDefault()
-if(e.target.closest('.ne-node,.ne-pal'))return
+if(e.target.closest('.ne-pal'))return
+const nd=e.target.closest('.ne-node')
+if(nd){this.nodeMenu(+nd.dataset.id,e.clientX,e.clientY);return}
 this.pend=null
 this.openPal(e.clientX,e.clientY)
 })
 el.addEventListener('keydown',e=>{
 if(e.target.closest('input,select,textarea'))return
 if((e.key==='Delete'||e.key==='Backspace')&&this.sel!=null){this.removeNode(this.sel);e.preventDefault()}
+if(e.key==='f'||e.key==='F'){this.fit();e.preventDefault()}
+if((e.ctrlKey||e.metaKey)&&e.key==='d'&&this.sel!=null){this.dup(this.sel);e.preventDefault()}
 if(e.key===' '||e.key==='Tab'){const r=el.getBoundingClientRect();this.pend=null;this.openPal(r.left+r.width/2-140,r.top+r.height/3);e.preventDefault()}
 })
 el.addEventListener('click',e=>{
@@ -60,6 +66,57 @@ if(p){this.g.links.splice(+p.dataset.i,1);this.render();this.emit()}
 })
 this.applyView()
 }
+zoomBy(k){
+const r=this.el.getBoundingClientRect(),cx=r.width/2,cy=r.height/2
+const z=Math.min(2,Math.max(0.3,this.zoom*k))
+this.pan.x=cx-(cx-this.pan.x)*(z/this.zoom)
+this.pan.y=cy-(cy-this.pan.y)*(z/this.zoom)
+this.zoom=z
+this.applyView()
+this.drawLinks()
+}
+fit(){
+const ns=this.world.querySelectorAll('.ne-node')
+if(!ns.length)return
+let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9
+for(const n of this.g.nodes){const el=this.world.querySelector('.ne-node[data-id="'+n.id+'"]');const w=el?el.offsetWidth:200,hh=el?el.offsetHeight:80;x0=Math.min(x0,n.x);y0=Math.min(y0,n.y);x1=Math.max(x1,n.x+w);y1=Math.max(y1,n.y+hh)}
+const r=this.el.getBoundingClientRect()
+const z=Math.min(1.2,Math.max(0.3,Math.min((r.width-80)/(x1-x0),(r.height-80)/(y1-y0))))
+this.zoom=z
+this.pan.x=(r.width-(x1-x0)*z)/2-x0*z
+this.pan.y=(r.height-(y1-y0)*z)/2-y0*z
+this.applyView()
+this.drawLinks()
+}
+dup(id){
+const n=this.g.nodes.find(q=>q.id===id)
+if(!n)return
+const c={id:this.g.nid++,type:n.type,x:n.x+30,y:n.y+30,v:JSON.parse(JSON.stringify(n.v||{}))}
+this.g.nodes.push(c)
+this.sel=c.id
+this.render()
+this.emit()
+}
+nodeMenu(id,cx,cy){
+this.select(id)
+let m=this.el.querySelector('.ne-menu')
+if(!m){m=document.createElement('div');m.className='ne-pal ne-menu';this.el.appendChild(m)}
+const r=this.el.getBoundingClientRect()
+m.innerHTML=''
+for(const it of[['copy','Duplicate','Ctrl+D',()=>this.dup(id)],['trash','Delete','Del',()=>this.removeNode(id)]]){
+const d=document.createElement('div')
+d.className='ne-pi'
+d.innerHTML=ic(it[0],14)+'<span>'+it[1]+'</span><em>'+it[2]+'</em>'
+d.addEventListener('pointerdown',e=>{e.stopPropagation();m.classList.remove('on');it[3]()})
+m.appendChild(d)
+}
+m.style.width='180px'
+m.style.left=Math.min(r.width-190,cx-r.left)+'px'
+m.style.top=Math.min(r.height-90,cy-r.top)+'px'
+m.classList.add('on')
+const off=e=>{if(!e.target.closest('.ne-menu')){m.classList.remove('on');document.removeEventListener('pointerdown',off,true)}}
+setTimeout(()=>document.addEventListener('pointerdown',off,true),0)
+}
 load(g){
 this.g=g||{nid:1,nodes:[],links:[]}
 if(!this.g.nodes)this.g.nodes=[]
@@ -68,6 +125,7 @@ if(!this.g.nid)this.g.nid=this.g.nodes.reduce((m,n)=>Math.max(m,n.id),0)+1
 this.sel=null
 this.closePal()
 this.render()
+if(this.g.nodes.length)requestAnimationFrame(()=>this.fit())
 }
 emit(){this.onChange(this.g)}
 applyView(){
@@ -97,7 +155,7 @@ const q=this.pin.value.trim().toLowerCase()
 this.pl.innerHTML=''
 let cat=''
 const ts=Object.keys(this.defs).filter(t=>{const d=this.defs[t];return this.compat(t)&&(!q||(d.title+' '+d.cat).toLowerCase().indexOf(q)>=0)})
-ts.sort((a,b)=>{const A=this.defs[a],B=this.defs[b];return A.cat<B.cat?-1:A.cat>B.cat?1:0})
+ts.sort((a,b)=>{const A=CORDER.indexOf(this.defs[a].cat),B=CORDER.indexOf(this.defs[b].cat);return A-B})
 let first=true
 for(const t of ts){
 const d=this.defs[t]
@@ -115,7 +173,8 @@ if(!ts.length){const h=document.createElement('div');h.className='ne-pc';h.textC
 pick(t){
 const r=this.el.getBoundingClientRect(),[cx,cy]=this.palAt
 const x=(cx-r.left-this.pan.x)/this.zoom,y=(cy-r.top-this.pan.y)/this.zoom
-const n={id:this.g.nid++,type:t,x:Math.round(x),y:Math.round(y-20),v:{}}
+const r2=this.el.getBoundingClientRect(),mx=(r2.width-240-this.pan.x)/this.zoom,my=(r2.height-140-this.pan.y)/this.zoom
+const n={id:this.g.nid++,type:t,x:Math.round(Math.min(x,mx)),y:Math.round(Math.min(y-20,my)),v:{}}
 this.g.nodes.push(n)
 const p=this.pend
 if(p){
@@ -145,6 +204,7 @@ this.emit()
 }
 linkedIn(id,port){return this.g.links.some(l=>l.b===id&&l.bp===port)}
 render(){
+this.el.querySelector('.ne-empty').style.display=this.g.nodes.length?'none':''
 for(const n of this.world.querySelectorAll('.ne-node'))n.remove()
 this.ports.clear()
 for(const n of this.g.nodes){
@@ -203,7 +263,13 @@ el.style.top=n.y+'px'
 el.style.setProperty('--cc',this.colors[d.cat]||'#666')
 const h=document.createElement('div')
 h.className='ne-head'
-h.innerHTML='<span class="ne-ic">'+ic(CATI[d.cat]||'workflow',13)+'</span><span>'+d.title+'</span>'
+const ei=d.in.find(p=>p.t==='exec'&&p.n==='in'),eo=d.out.find(p=>p.t==='exec'&&p.n==='next')
+if(ei)h.appendChild(this.portEl(n,ei,'in'))
+const tt=document.createElement('span')
+tt.className='ne-t'
+tt.innerHTML='<span class="ne-ic">'+ic(CATI[d.cat]||'workflow',13)+'</span><span>'+d.title+'</span>'
+h.appendChild(tt)
+if(eo)h.appendChild(this.portEl(n,eo,'out'))
 el.appendChild(h)
 const cols=document.createElement('div')
 cols.className='ne-cols'
@@ -211,6 +277,7 @@ const ci=document.createElement('div'),co=document.createElement('div')
 ci.className='ne-in'
 co.className='ne-out'
 for(const p of d.in){
+if(p.t==='exec'&&p.n==='in')continue
 const r=document.createElement('div')
 r.className='ne-row'
 if(!p.f)r.appendChild(this.portEl(n,p,'in'))
@@ -223,6 +290,7 @@ if(p.f||(p.t!=='exec'&&!this.linkedIn(n.id,p.n)))r.appendChild(this.field(n,p))
 ci.appendChild(r)
 }
 for(const p of d.out){
+if(p.t==='exec'&&p.n==='next')continue
 const r=document.createElement('div')
 r.className='ne-row'
 if(!(p.t==='exec'&&p.n==='next')){
@@ -235,7 +303,8 @@ co.appendChild(r)
 }
 cols.appendChild(ci)
 cols.appendChild(co)
-el.appendChild(cols)
+if(ci.children.length||co.children.length)el.appendChild(cols)
+else h.style.paddingBottom='10px'
 return el
 }
 center(el){
@@ -310,7 +379,7 @@ e.preventDefault()
 return
 }
 const head=t.closest('.ne-head')
-if(head){
+if(head&&!t.classList.contains('ne-port')){
 this.el.focus()
 const id=+head.parentNode.dataset.id,n=this.g.nodes.find(q=>q.id===id),[x,y]=this.local(e)
 this.select(id)

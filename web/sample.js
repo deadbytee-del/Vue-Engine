@@ -48,7 +48,7 @@ p.name='Vue Platformer'
 const sc=p.scenes[0]
 const coinBlocks=ws(
 bk('vue_on_update',{x:20,y:20,inputs:{DO:{block:bk('vue_change_rot',{inputs:{V:num(4)}})}}}),
-bk('vue_on_collide',{x:20,y:140,fields:{TAG:'player'},inputs:{DO:{block:link(
+bk('vue_on_collide',{x:20,y:200,fields:{TAG:'player'},inputs:{DO:{block:link(
 bk('vue_change_global',{fields:{N:'score'},inputs:{V:num(1)}}),
 bk('vue_beep',{inputs:{F:num(880),D:num(0.1)}}),
 bk('vue_burst',{fields:{C:'#ffd34d'},inputs:{N:num(14)}}),
@@ -121,7 +121,7 @@ p.name='Vue 3D Demo'
 const sc=p.scenes[0]
 const coinBlocks=ws(
 bk('vue_on_update',{x:20,y:20,inputs:{DO:{block:bk('vue_rotate3',{fields:{AX:'ry'},inputs:{V:num(4)}})}}}),
-bk('vue_on_collide',{x:20,y:140,fields:{TAG:'player'},inputs:{DO:{block:link(
+bk('vue_on_collide',{x:20,y:200,fields:{TAG:'player'},inputs:{DO:{block:link(
 bk('vue_change_global',{fields:{N:'score'},inputs:{V:num(1)}}),
 bk('vue_beep',{inputs:{F:num(880),D:num(0.1)}}),
 bk('vue_destroy_self')
@@ -190,7 +190,7 @@ sc.bg='#1d1a2b'
 sc.gravity=0
 const gem=ws(
 bk('vue_on_update',{x:20,y:20,inputs:{DO:{block:bk('vue_change_rot',{inputs:{V:num(3)}})}}}),
-bk('vue_on_collide',{x:20,y:140,fields:{TAG:'player'},inputs:{DO:{block:link(
+bk('vue_on_collide',{x:20,y:200,fields:{TAG:'player'},inputs:{DO:{block:link(
 bk('vue_change_global',{fields:{N:'gems'},inputs:{V:num(1)}}),
 bk('vue_beep',{inputs:{F:num(988),D:num(0.08)}}),
 bk('vue_burst',{fields:{C:'#4cc9f0'},inputs:{N:num(16)}}),
@@ -298,7 +298,7 @@ for(let y=-6;y<=3;y++){tiles['-15,'+y]=2;tiles['31,'+y]=2}
 for(let x=20;x<=23;x++)tiles[x+',4']=5
 const coinBlocks=ws(
 bk('vue_on_update',{x:20,y:20,inputs:{DO:{block:bk('vue_change_rot',{inputs:{V:num(3)}})}}}),
-bk('vue_on_collide',{x:20,y:140,fields:{TAG:'player'},inputs:{DO:{block:link(
+bk('vue_on_collide',{x:20,y:200,fields:{TAG:'player'},inputs:{DO:{block:link(
 bk('vue_change_global',{fields:{N:'coins'},inputs:{V:num(1)}}),
 bk('vue_play2',{fields:{N:'coin.wav',L:'false'},inputs:{V:num(0.7)}}),
 bk('vue_burst',{fields:{C:'#ffd34d'},inputs:{N:num(16)}}),

@@ -14,7 +14,7 @@ html=html.replace(/\.\.\/node_modules\/@fontsource\/inter\//g,cdn+'@fontsource/i
 .replace(/\.\.\/node_modules\/blockly\//g,cdn+'blockly@'+V.blockly+'/')
 .replace(/\.\.\/node_modules\/monaco-editor\//g,cdn+'monaco-editor@'+V.monaco+'/')
 .replace(/\.\.\/node_modules\/three\//g,cdn+'three@'+V.three+'/')
-html=html.replace('<script src="icons.js"></script>','<script>window.VUE_CDN='+JSON.stringify({monaco:cdn+'monaco-editor@'+V.monaco+'/min/',three:cdn+'three@'+V.three+'/build/three.min.js',ts:cdn+'typescript@'+V.ts+'/lib/typescript.js'})+'</script>\n<script src="host-web.js"></script>\n<script src="icons.js"></script>')
+html=html.replace('<script src="icons.js"></script>','<script>window.VUE_CDN='+JSON.stringify({monaco:cdn+'monaco-editor@'+V.monaco+'/min/',blocklyMedia:cdn+'blockly@'+V.blockly+'/media/',three:cdn+'three@'+V.three+'/build/three.min.js',ts:cdn+'typescript@'+V.ts+'/lib/typescript.js'})+'</script>\n<script src="host-web.js"></script>\n<script src="icons.js"></script>')
 if(/node_modules/.test(html))throw new Error('unmapped node_modules path')
 fs.writeFileSync(path.join(out,'index.html'),html)
 copy(path.join(root,'assets','logo.png'),path.join(out,'logo.png'))
