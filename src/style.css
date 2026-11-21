@@ -537,3 +537,15 @@ span:has(>svg.ic:only-child),div:has(>svg.ic:only-child){display:inline-flex;ali
 .rng input{flex:1;min-width:0;accent-color:var(--accent-hi)}
 .rng span{width:38px;text-align:right;color:var(--dim);font-size:11px}
 .subh{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);margin:12px 0 6px;padding-top:10px;border-top:1px solid var(--line)}
+.xlist{width:290px;flex:none;border-right:1px solid var(--line);overflow:auto;padding:6px}
+.xside{flex:1;min-width:0;overflow:auto;padding:14px 18px;display:flex;flex-direction:column;gap:12px}
+.xside .dh h2{font-size:16px}
+.xgh{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);padding:10px 8px 6px}
+.xnone{color:var(--dim);font-size:12px;padding:6px 8px}
+.xrow{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;cursor:pointer}
+.xrow:hover{background:var(--bg2)}
+.xrow.on{background:var(--bg3)}
+.xrow .et{flex:1}
+.xrow .et b{font-size:12.5px}
+.xrow .et small{font-size:11px}
+.ei.sm{width:28px;height:28px;border-radius:8px}

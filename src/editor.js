@@ -760,6 +760,7 @@ inp.addEventListener('pointerdown',e=>e.stopPropagation())
 inp.addEventListener('click',e=>e.stopPropagation())
 }
 function renderAll(){
+renderExtPane()
 VuePanels.render()
 updateToolbar()
 renderScenes()
@@ -1034,9 +1035,11 @@ if(f.length)addFiles(f);else toast('Unsupported file type','err')
 }
 function setBTab(t){
 for(const b of $$('.btab'))b.classList.toggle('on',b.dataset.btab===t)
-for(const id of['console','assets','tiles','anim','cuts'])$('#'+id).classList.toggle('on',t===id)
+for(const id of['console','assets','tiles','anim','cuts','exts'])$('#'+id).classList.toggle('on',t===id)
 $('#conTools').classList.toggle('hide',t!=='console')
 $('#assetTools').classList.toggle('hide',t!=='assets')
+$('#extTools').classList.toggle('hide',t!=='exts')
+if(t==='exts'){renderExtPane();if(!X.fresh)loadExt()}
 if(S.layout&&S.layout.bh<120)toggleDock(true)
 if(t==='tiles'){const d=selData();if(d&&d.shape==='tilemap'&&S.tool!=='paint'){S.tool='paint';updateToolbar();redraw()}}
 if(t==='tiles'||t==='anim'||t==='cuts')VuePanels.render(t)
@@ -1312,7 +1315,7 @@ row('Engine core',(()=>{const c=h('select');for(const[k,t]of CORES)c.append(h('o
 h('div',{class:'hint',text:window.VWR&&VWR.exports?(CORE_HINT[p.settings.core]||CORE_HINT.vwr):'WebAssembly is not available here, so the JavaScript core runs physics.'}),
 row('Smoothing',(()=>{const c=h('input',{type:'checkbox',class:'sw'});c.checked=p.settings.smooth!==false;c.addEventListener('change',()=>{snap();p.settings.smooth=c.checked});return c})()),
 h('div',{class:'hint',text:'Draws between physics steps so motion stays fluid on 120 and 144 Hz screens.'}),
-row('Extensions',h('div',{class:'xchips'},...(p.extensions||[]).map(id=>{const m=extMeta(id);return h('button',{class:'xchip',title:'Open '+(m?m.name:id),html:ic(m&&m.icon||'puzzle',12)+'<span>'+(m?m.name:id).replace(/[<>&]/g,'')+'</span>',onclick:()=>{showHub('ext');extOpen(id)}})}),h('button',{class:'xchip add',html:ic('plus',12)+'<span>Add</span>',onclick:()=>{X.tab='all';showHub('ext')}}))),
+row('Extensions',h('div',{class:'xchips'},...(p.extensions||[]).map(id=>{const m=extMeta(id);return h('button',{class:'xchip',title:'Open '+(m?m.name:id),html:ic(m&&m.icon||'puzzle',12)+'<span>'+(m?m.name:id).replace(/[<>&]/g,'')+'</span>',onclick:()=>{S.extSel=id;setBTab('exts')}})}),h('button',{class:'xchip add',html:ic('plus',12)+'<span>Add</span>',onclick:()=>setBTab('exts')}))),
 ]))
 box.append(h('div',{class:'hint',style:'padding:4px',text:'Select an entity to edit it. Shift+A adds one, Ctrl+P finds anything.'}))
 }
@@ -1679,7 +1682,7 @@ return{
 file:[{ic:'sparkles',label:'New project…',kbd:'Ctrl+N',fn:()=>showHub('home')},{ic:'folder',label:'Open…',kbd:'Ctrl+O',fn:open},rec.length?{head:'Recent'}:null].concat(rec,[{sep:1},{ic:'save',label:'Save',kbd:'Ctrl+S',fn:()=>save(false)},{ic:'save',label:'Save as…',kbd:'Ctrl+Shift+S',fn:()=>save(true)},{ic:'export',label:'Port game…',kbd:'Ctrl+E',fn:openPort},{sep:1},{ic:'home',label:'Project hub',fn:()=>showHub('home')}]),
 edit:[{ic:'undo',label:'Undo',kbd:'Ctrl+Z',fn:undo,dis:!S.undo.length},{ic:'redo',label:'Redo',kbd:'Ctrl+Y',fn:redo,dis:!S.redo.length},{sep:1},{ic:'copy',label:'Copy',kbd:'Ctrl+C',fn:copyEntity,dis:!S.sel},{ic:'copy',label:'Paste',kbd:'Ctrl+V',fn:pasteEntity,dis:!S.clip},{ic:'copy',label:'Duplicate',kbd:'Ctrl+D',fn:dupEntity,dis:!S.sel},{ic:'edit',label:'Rename',kbd:'F2',fn:renameEntity,dis:!S.sel},{ic:'trash',label:'Delete',kbd:'Del',fn:delEntity,dis:!S.sel},{sep:1},{ic:'plus',label:'Add entity…',kbd:'Shift+A',fn:()=>palette('create ')},{ic:'scene',label:'New scene…',fn:addScene},{sep:1},{ic:'command',label:'Command palette',kbd:'Ctrl+P',fn:()=>palette('')}],
 view:[{ic:'scene',label:'Scene workspace',kbd:'Ctrl+1',fn:()=>setTab('scene')},{ic:'script',label:'Script workspace',kbd:'Ctrl+2',fn:()=>setTab('script')},{sep:1},{ic:'grid',label:(S.gridOn?'Hide':'Show')+' grid',kbd:'G',fn:toggleGrid},{ic:'magnet',label:(S.snapOn?'Disable':'Enable')+' snapping',fn:toggleSnap},{ic:'frame',label:'Frame selection',kbd:'F',fn:()=>frameSel()},{ic:'frame',label:'Frame all',kbd:'Shift+F',fn:()=>frameSel(true)},{ic:'target',label:'Reset camera',fn:resetView},{sep:1},{ic:'terminal',label:'Console',fn:()=>setBTab('console')},{ic:'assets',label:'Assets',fn:()=>setBTab('assets')},{ic:'map',label:'Tile painter',fn:()=>setBTab('tiles')},{ic:'film',label:'Animation editor',fn:()=>setBTab('anim')},{ic:'video',label:'Cutscene editor',fn:()=>setBTab('cuts')},{ic:'layers',label:'Reset layout',fn:resetLayout}],
-help:[{ic:'keyboard',label:'Keyboard shortcuts',kbd:'?',fn:showKeys},{ic:'book',label:'Learn Vue Engine',fn:()=>showHub('home')},{sep:1},{ic:'puzzle',label:'Extensions',fn:()=>showHub('ext')},{ic:'info',label:'About Vue Engine',fn:()=>showHub('about')}]
+help:[{ic:'keyboard',label:'Keyboard shortcuts',kbd:'?',fn:showKeys},{ic:'book',label:'Learn Vue Engine',fn:()=>showHub('home')},{sep:1},{ic:'puzzle',label:'Extensions',fn:()=>setBTab('exts')},{ic:'info',label:'About Vue Engine',fn:()=>showHub('about')}]
 }
 }
 function wireMenus(){
@@ -1870,6 +1873,7 @@ const grid=$('#extGrid')
 if(!grid)return
 const n=Object.keys(X.inst).length
 $('#extCount').textContent=n?String(n):''
+renderExtPane()
 if(!$('#hub').classList.contains('on'))return
 const cat=X.cat||[]
 const cats=Array.from(new Set(cat.map(e=>e.cat)))
@@ -1890,9 +1894,10 @@ renderExt()
 try{await extCatalog(force)}catch(x){X.err=x.message||String(x)}
 renderExt()
 }
-function extOpen(id){
-const m=extMeta(id),d=$('#extDetail')
+function extBody(id,d,pane){
+const m=extMeta(id)
 if(!m)return
+const re=()=>pane?renderExtPane():extOpen(id)
 const inst=!!X.inst[id],p=S.project,used=!!(p&&(p.extensions||[]).includes(id))
 const cfg=p?((p.extConfig||{})[id]||{}):{}
 const setC=(k,v)=>{snap();p.extConfig=p.extConfig||{};p.extConfig[id]=p.extConfig[id]||{};p.extConfig[id][k]=v;markDirty()}
@@ -1910,18 +1915,48 @@ form.push(h('div',{class:'frow'},h('span',{text:k.replace(/([A-Z])/g,' $1').toLo
 }
 d.innerHTML=''
 d.append(
-h('div',{class:'dh'},h('span',{class:'ei big',html:ic(m.icon||'puzzle',26)}),h('div',{class:'et'},h('h2',{text:m.name}),h('small',{text:m.cat+' · version '+m.version+' · '+(m.size/1024).toFixed(1)+' KB'})),h('button',{class:'ib',html:ic('x',16),onclick:()=>d.classList.remove('on')})),
+h('div',{class:'dh'},h('span',{class:'ei big',html:ic(m.icon||'puzzle',26)}),h('div',{class:'et'},h('h2',{text:m.name}),h('small',{text:m.cat+' · version '+m.version+' · '+(m.size/1024).toFixed(1)+' KB'})),pane?null:h('button',{class:'ib',html:ic('x',16),onclick:()=>d.classList.remove('on')})),
 h('p',{class:'dd',text:m.desc}),
 h('div',{class:'dmeta'},h('span',{class:'badge',text:m.modes==='3d'?'3D scenes':'2D and 3D'}),h('span',{class:'badge',text:'vue.'+m.ns}),...(m.requires||[]).map(r=>h('span',{class:'badge',text:'Needs '+((extMeta(r)||{}).name||r)}))),
 h('div',{class:'dact'},
-!inst?h('button',{class:'btn pri',html:ic('download',14)+'Install',onclick:()=>extInstall(id).then(()=>extOpen(id)).catch(x=>toast('Download failed: '+x.message,'err'))}):extUpd(m)?h('button',{class:'btn pri',html:ic('refresh',14)+'Update to '+m.version,onclick:()=>extInstall(id).then(()=>extOpen(id))}):null,
-inst&&p?h('button',{class:'btn'+(used?'':' pri'),html:ic(used?'x':'check',14)+(used?'Turn off in project':'Use in '+p.name),onclick:()=>{extUse(id,!used);extOpen(id)}}):null,
-inst?h('button',{class:'btn ghost',html:ic('trash',14)+'Remove',onclick:()=>{extRemove(id);extOpen(id)}}):null),
+!inst?h('button',{class:'btn pri',html:ic('download',14)+'Install',onclick:()=>extInstall(id).then(re).catch(x=>toast('Download failed: '+x.message,'err'))}):extUpd(m)?h('button',{class:'btn pri',html:ic('refresh',14)+'Update to '+m.version,onclick:()=>extInstall(id).then(re)}):null,
+inst&&p?h('button',{class:'btn'+(used?'':' pri'),html:ic(used?'x':'check',14)+(used?'Turn off in project':'Use in '+p.name),onclick:()=>{extUse(id,!used);re()}}):null,
+inst?h('button',{class:'btn ghost',html:ic('trash',14)+'Remove',onclick:()=>{extRemove(id);re()}}):null),
 m.example?h('div',{class:'dsec'},h('h3',{text:'Example'}),h('pre',{class:'mono',text:m.example})):null,
 form.length?h('div',{class:'dsec'},h('h3',{text:used?'Settings for this project':'Settings (turn it on in a project to edit)'}),...form):null
 )
-d.classList.add('on')
 }
+function extOpen(id){const d=$('#extDetail');extBody(id,d);d.classList.add('on')}
+function renderExtPane(){
+const P=$('#exts')
+if(!P||!P.classList.contains('on'))return
+const cat=X.cat||[],q=(($('#extPQ')||{}).value||'').toLowerCase(),used=S.project?S.project.extensions||[]:[]
+const ids=Array.from(new Set(Object.keys(X.inst).concat(cat.map(m=>m.id))))
+const ok=m=>!q||(m.name+' '+m.cat+' '+m.desc+' '+m.ns).toLowerCase().includes(q)
+const inst=ids.filter(id=>X.inst[id]).map(extMeta).filter(m=>m&&ok(m)).sort((a,b)=>(used.includes(b.id)-used.includes(a.id))||a.name.localeCompare(b.name))
+const avail=cat.filter(m=>!X.inst[m.id]&&ok(m))
+if(!S.extSel||!extMeta(S.extSel))S.extSel=(inst[0]||avail[0]||{}).id
+const row=m=>{
+const on=used.includes(m.id),i=!!X.inst[m.id]
+const r=h('div',{class:'xrow'+(S.extSel===m.id?' on':''),onclick:()=>{S.extSel=m.id;renderExtPane()}},
+h('span',{class:'ei sm',html:ic(m.icon||'puzzle',15)}),
+h('div',{class:'et'},h('b',{text:m.name}),h('small',{text:m.cat+(extUpd(m)?' · update available':'')})))
+if(i){const c=h('input',{type:'checkbox',class:'sw',title:on?'On in this project':'Off in this project'});c.checked=on;c.onclick=e=>e.stopPropagation();c.onchange=()=>extUse(m.id,c.checked);r.append(c)}
+else r.append(h('button',{class:'btn sm',html:X.busy[m.id]?'…':ic('download',12),title:'Install',onclick:e=>{e.stopPropagation();extInstall(m.id).then(()=>{S.extSel=m.id;renderExtPane()}).catch(x=>toast('Download failed: '+x.message,'err'))}}))
+return r
+}
+const list=$('#extPL'),side=$('#extPD')
+list.innerHTML=''
+list.append(h('div',{class:'xgh',text:'Installed · '+inst.length+' · '+used.length+' on'}))
+if(!inst.length)list.append(h('div',{class:'xnone',text:'Nothing installed yet. Pick one below.'}))
+for(const m of inst)list.append(row(m))
+list.append(h('div',{class:'xgh',text:cat.length?'Available · '+avail.length:X.err?'Library offline':'Loading library…'}))
+for(const m of avail)list.append(row(m))
+side.innerHTML=''
+if(S.extSel)extBody(S.extSel,side,true)
+else side.append(h('div',{class:'xnone',text:'Select an extension.'}))
+}
+
 function tplCard(t){
 const th=h('div',{class:'th'},h('span',{class:'badge b'+t.kind[0],text:t.kind}))
 const c=h('button',{class:'card',onclick:()=>newFrom(t.make(),t.name)},th,h('div',{class:'cb'},h('b',{text:t.name}),h('small',{text:t.desc})))
@@ -2280,6 +2315,9 @@ $('#keys').onpointerdown=e=>{if(e.target.id==='keys')$('#keys').classList.remove
 $('#hubOpen').onclick=open
 $('#hubOpen2').onclick=open
 $('#projQ').oninput=renderRecent
+$('#extPQ').oninput=renderExtPane
+$('#extPAll').onclick=()=>showHub('ext')
+$('#extPRef').onclick=()=>{X.fresh=false;loadExt(true).then(()=>toast('Extension library is up to date','ok'))}
 $('#extQ').oninput=()=>{X.q=$('#extQ').value;renderExt()}
 $('#extRefresh').onclick=()=>{X.fresh=false;loadExt(true).then(()=>toast('Extension library is up to date','ok'))}
 for(const b of $$('#extTab button'))b.onclick=()=>{X.tab=b.dataset.t;renderExt()}

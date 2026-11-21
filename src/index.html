@@ -176,6 +176,7 @@
 <button class="btab" data-btab="tiles"><span data-ic="map"></span>Tiles</button>
 <button class="btab" data-btab="anim"><span data-ic="film"></span>Animation</button>
 <button class="btab" data-btab="cuts"><span data-ic="video"></span>Cutscenes</button>
+<button class="btab" data-btab="exts"><span data-ic="puzzle"></span>Extensions</button>
 <span style="flex:1"></span>
 <div class="ph-r" id="conTools">
 <button class="fchip on" data-lv="log"><span data-ic="info"></span><b id="cLog">0</b></button>
@@ -188,6 +189,11 @@
 <div class="ph-r hide" id="assetTools">
 <button class="btn sm" id="bImport"><span data-ic="upload"></span>Import</button>
 </div>
+<div class="ph-r hide" id="extTools">
+<div class="filter sm"><span data-ic="search"></span><input id="extPQ" placeholder="Search extensions"></div>
+<button class="ib" id="extPRef" title="Check for updates"><span data-ic="refresh"></span></button>
+<button class="btn sm" id="extPAll"><span data-ic="puzzle"></span>Browse all</button>
+</div>
 <button class="ib" id="bDock" title="Collapse or expand panel"></button>
 </div>
 <div id="console" class="bpane on"></div>
@@ -195,6 +201,7 @@
 <div id="tiles" class="bpane pp"></div>
 <div id="anim" class="bpane pp"></div>
 <div id="cuts" class="bpane pp"></div>
+<div id="exts" class="bpane pp"><div id="extPL" class="xlist"></div><div id="extPD" class="xside"></div></div>
 </section>
 <footer id="status">
 <span id="stSave"><i></i><b></b></span>
