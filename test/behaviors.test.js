@@ -148,4 +148,16 @@ assert.ok(top>2,'3D ball bounces')
 g4.keys.add('w')
 step(g4,400)
 assert.ok(g4.scores.blue>=1,'car pushes the ball into the goal')
+const g5=world([{name:'Floor',x:0,y:-0.5,z:0,w:60,h:1,d:60,body:'static'},{name:'Wall',x:10,y:2,z:0,w:1,h:4,d:20,body:'static'},{name:'Ball',shape:'sphere',x:0,y:8,z:0,w:2,h:2,d:2,body:'dynamic',beh:[Object.assign(BH.make('Ball',true),{bounce:0.8,drag:0})]}],true)
+let peak1=0,peak2=0,falling=false,bounces=0,last=8,py=8
+for(let i=0;i<600;i++){step(g5,1);const y=f(g5,'Ball').y;if(y>py&&falling){bounces++;falling=false}if(y<py)falling=true;if(bounces===1)peak1=Math.max(peak1,y);if(bounces===2)peak2=Math.max(peak2,y);py=y}
+assert.ok(peak1>1&&peak2>1&&Math.abs((peak2-1)/(peak1-1)-0.64)<0.2,'sphere restitution squared per bounce: '+peak1+' '+peak2)
+const b5=f(g5,'Ball');b5.x=0;b5.y=1;b5.z=0;b5.vx=12;b5.vy=0;b5.vz=0
+step(g5,60)
+assert.ok(b5.x<=8.01&&b5.vx<0,'sphere reflects off a wall and stays outside it')
+const g6=world([{name:'Floor',x:0,y:-0.5,z:0,w:60,h:1,d:60,body:'static'},{name:'Wall',x:10,y:2,z:0,w:1,h:4,d:20,body:'static'},{name:'Car',x:0,y:0.6,z:0,w:2,h:1,d:4,ry:-45,body:'dynamic',beh:[BH.make('Vehicle',true)]}],true)
+const c6=f(g6,'Car')
+c6.vx=20;c6.vz=0
+for(let i=0;i<90;i++){step(g6,1);const h=c6.ry*Math.PI/180;const hx=1*Math.abs(Math.cos(h))+2*Math.abs(Math.sin(h));assert.ok(c6.x+hx<=9.5+0.35,'car stays outside the wall, frame '+i)}
+assert.ok(c6.grounded,'car is grounded after the crash')
 console.log('behaviors tests passed ('+BH.NAMES.length+' behaviors)')

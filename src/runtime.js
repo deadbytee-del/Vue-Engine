@@ -1,6 +1,7 @@
 (function(root){
 const STEP=1/60,CELL=128,MAXP=2048,DEG=Math.PI/180,OFF=32768
 const BH=root.VueBehaviors||(typeof require!=='undefined'&&typeof module!=='undefined'?require('./behaviors.js'):null)
+const LIB=root.VueLib||(typeof require!=='undefined'&&typeof module!=='undefined'?require('./apilib.js'):null)
 const EXT=root.VueExt||(root.VueExt={list:{},register(d){this.list[d.id]=d;return d}})
 const norm=k=>{k=String(k).toLowerCase();return k===' '?'space':k}
 const pk=(x,y)=>(x+OFF)*65536+(y+OFF)
@@ -322,6 +323,7 @@ this.pcE=null
 this.hasBh=false
 this.scores={}
 this.ch={}
+this.ticks=[]
 this.vue=this.makeApi()
 this.loop=this.loop.bind(this)
 this.snapN=0
@@ -371,6 +373,8 @@ return s[0]
 loadScene(k){
 this.hasPc=false
 this.hasBh=false
+this.ticks=[]
+if(this.uiBox){this.uiBox.remove();this.uiBox=null}
 this.scores={}
 this.ch={}
 this.pcE=null
@@ -884,6 +888,7 @@ log:(...a)=>g.log('log',a.map(String).join(' ')),
 warn:(...a)=>g.log('warn',a.map(String).join(' ')),
 stop:()=>g.stop()
 }
+if(LIB)LIB.install(g,api)
 return api
 }
 audio(silent){
@@ -1177,6 +1182,8 @@ this.staticGrid()
 for(let i=0;i<es.length;i++){
 const e=es[i]
 if(!e.alive||e.body!=='dynamic'||e.par)continue
+if(e.shape==='sphere'){this.sph3(e,dt,g);continue}
+if(e._veh){this.obb3(e,dt,g);continue}
 e.vy-=g*e.gravityScale*dt
 e.x+=e.vx*dt
 this.res3(e,0)
@@ -1185,6 +1192,93 @@ this.res3(e,2)
 e.grounded=false
 e.y+=e.vy*dt
 this.res3(e,1)
+}
+}
+sph3(e,dt,g){
+const r=Math.min(e.w,e.h,e.d)/2,bn=e._ball?e._ball.bounce:0.5
+e.vy-=g*e.gravityScale*dt
+e.x+=e.vx*dt;e.y+=e.vy*dt;e.z+=e.vz*dt
+e.grounded=false
+for(let it=0;it<3;it++){
+const q=this.query(e,this.qr,this.sg)
+let any=false
+for(let i=0;i<q.length;i++){
+const s=q[i]
+if(s===e||!s.alive||!pcLayer(e,s))continue
+const hx=s.w/2,hy=s.h/2,hz=s.d/2
+const cx=clamp(e.x,s.x-hx,s.x+hx),cy=clamp(e.y,s.y-hy,s.y+hy),cz=clamp(e.z,s.z-hz,s.z+hz)
+let dx=e.x-cx,dy=e.y-cy,dz=e.z-cz
+const d2=dx*dx+dy*dy+dz*dz
+if(d2>=r*r)continue
+let nx,ny,nz,pen
+if(d2>1e-12){const d=Math.sqrt(d2);nx=dx/d;ny=dy/d;nz=dz/d;pen=r-d}
+else{
+const o=[[e.x-(s.x-hx),-1,0,0],[(s.x+hx)-e.x,1,0,0],[e.y-(s.y-hy),0,-1,0],[(s.y+hy)-e.y,0,1,0],[e.z-(s.z-hz),0,0,-1],[(s.z+hz)-e.z,0,0,1]].sort((a,b)=>a[0]-b[0])[0]
+nx=o[1];ny=o[2];nz=o[3];pen=r+o[0]
+}
+e.x+=nx*pen;e.y+=ny*pen;e.z+=nz*pen
+const vn=e.vx*nx+e.vy*ny+e.vz*nz
+if(vn<0){
+const b=-vn<(this.is3d?1.2:80)?0:bn
+const j=-(1+b)*vn
+e.vx+=nx*j;e.vy+=ny*j;e.vz+=nz*j
+const f=Math.max(0,1-0.25*dt)
+if(ny>0.7){e.vx*=f;e.vz*=f}
+}
+if(ny>0.7)e.grounded=true
+any=true
+}
+if(!any)break
+}
+}
+obb3(e,dt,g){
+const a=e.w/2,b=e.d/2
+e.vy-=g*e.gravityScale*dt
+e.x+=e.vx*dt;e.z+=e.vz*dt
+const h=(e.ry||0)*DEG,c=Math.cos(h),sn=Math.sin(h)
+const ax=[c,-sn],bx=[sn,c]
+const hx=a*Math.abs(c)+b*Math.abs(sn),hz=a*Math.abs(sn)+b*Math.abs(c)
+const w0=e.w,d0=e.d
+e.w=hx*2;e.d=hz*2
+const q=this.query(e,this.qr,this.sg).slice()
+e.w=w0;e.d=d0
+const sat=s=>{
+let best=null
+for(const n of[[1,0],[0,1],ax,bx]){
+const rc=a*Math.abs(ax[0]*n[0]+ax[1]*n[1])+b*Math.abs(bx[0]*n[0]+bx[1]*n[1])
+const rb=s.w/2*Math.abs(n[0])+s.d/2*Math.abs(n[1])
+const d=(e.x-s.x)*n[0]+(e.z-s.z)*n[1]
+const ov=rc+rb-Math.abs(d)
+if(ov<=0)return null
+if(!best||ov<best.ov)best={ov,n:[n[0]*(d<0?-1:1),n[1]*(d<0?-1:1)]}
+}
+return best
+}
+for(let it=0;it<3;it++){
+let any=false
+for(let i=0;i<q.length;i++){
+const s=q[i]
+if(s===e||!s.alive||!pcLayer(e,s)||Math.abs(e.y-s.y)*2>=e.h+s.h)continue
+const best=sat(s)
+if(!best)continue
+e.x+=best.n[0]*best.ov;e.z+=best.n[1]*best.ov
+const vn=e.vx*best.n[0]+e.vz*best.n[1]
+if(vn<0){e.vx-=vn*best.n[0]*1.25;e.vz-=vn*best.n[1]*1.25}
+any=true
+}
+if(!any)break
+}
+e.grounded=false
+e.y+=e.vy*dt
+for(let i=0;i<q.length;i++){
+const s=q[i]
+if(s===e||!s.alive||!pcLayer(e,s))continue
+if(Math.abs(e.y-s.y)*2>=e.h+s.h)continue
+const ht=sat(s)
+if(!ht||ht.ov<0.03)continue
+if(e.vy<0||(e.vy===0&&e.y>s.y)){e.y=s.y+(s.h+e.h)/2;e.grounded=true}
+else e.y=s.y-(s.h+e.h)/2
+e.vy=0
 }
 }
 res3(e,ax){
@@ -1381,6 +1475,7 @@ if(this.hasBh)this.bhUpdate(dt)
 if(this.is3d)this.physics3(dt);else this.physics(dt)
 if(this.hasPc)this.pcPost(dt)
 if(this.hasBh)this.bhPost(dt)
+if(this.ticks.length)for(let i=0;i<this.ticks.length;i++)this.ticks[i](dt)
 if(this.hier.length)this.updateHier()
 if(this.exts.length)this.hk('update',dt)
 this.events()

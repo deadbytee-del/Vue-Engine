@@ -20,6 +20,16 @@ const EASES=[['smooth','inout'],['linear','linear'],['ease in','in'],['ease out'
 const WAVES=[['square','square'],['sine','sine'],['triangle','triangle'],['sawtooth','sawtooth']]
 const BODIES=[['static','static'],['dynamic','dynamic'],['trigger','trigger'],['none','none']]
 const MOUSE=[['x','x'],['y','y'],['moved x','dx'],['moved y','dy']]
+const LIB=root.VueLib||(typeof require!=='undefined'?require('./apilib.js'):{LIST:[]})
+const LCAT={Math:['Math tools','ga'],Vectors:['Vectors','ga'],Lists:['List tools','ca'],Text:['Text tools','so'],Time:['Time','ti'],Tweens:['Animation','lo'],Physics:['Physics','mo'],Camera:['Camera','ca'],UI:['Screen UI','se'],Audio:['Sound tools','so'],Save:['Saving','co'],Effects:['Effects','ob'],Raycast:['Raycast','se'],Spawning:['Spawning','ga'],Collisions:['Touch events','ev']}
+const libDef=d=>{
+const fn=d.a.find(x=>x[1]==='fn')
+const args=d.a.filter(x=>x[1]!=='fn').map(x=>iv(x[0],x[1]==='Number'||x[1]==='String'||x[1]==='Boolean'?x[1]:null))
+const col=C[LCAT[d.cat][1]],id='vue_a_'+d.n
+if(d.t==='val')return val(id,d.label,args,col,d.ret==='Any'||d.ret==='Entity'?null:d.ret)
+if(fn)return cstmt(id,d.label.replace(/\s*%\d+$/,''),args,col)
+return stmt(id,d.label,args,col)
+}
 const DEFS=[
 stmt('vue_x_burst','burst %1 effect here',[dd('P',[['sparks','sparks'],['explosion','explosion'],['magic','magic'],['dust','dust'],['fire','fire'],['smoke','smoke']])],C.ex),
 stmt('vue_x_emit','attach %1 emitter to this',[dd('P',[['fire','fire'],['smoke','smoke'],['magic','magic'],['snow','snow']])],C.ex),
@@ -193,6 +203,7 @@ val('vue_random_int','random whole number from %1 to %2',[iv('A','Number'),iv('B
 val('vue_chance','%1 %% chance',[iv('P','Number')],C.ga,'Boolean'),
 val('vue_lerp','lerp from %1 to %2 by %3',[iv('A','Number'),iv('B','Number'),iv('K','Number')],C.ga,'Number')
 ]
+for(const d of LIB.LIST)DEFS.push(libDef(d))
 const HATS=['vue_on_beh','vue_on_start','vue_on_update','vue_on_key','vue_on_keyup','vue_on_anykey','vue_on_click','vue_on_collide','vue_on_msg','vue_on_animend','vue_forever']
 const blk=(type,inputs,fields)=>{
 const o={kind:'block',type}
@@ -229,6 +240,7 @@ cat('Conditions','#2fbf74',[blk('logic_compare'),blk('logic_operation'),blk('log
 cat('Numbers','#2fbf74',[blk('math_number'),blk('math_arithmetic',{A:1,B:1}),blk('math_single',{NUM:9}),blk('math_trig',{NUM:45}),blk('math_constant'),blk('math_number_property',{NUMBER_TO_CHECK:0}),blk('math_round',{NUM:3.1}),blk('math_on_list'),blk('math_modulo',{DIVIDEND:64,DIVISOR:10}),blk('math_constrain',{VALUE:50,LOW:1,HIGH:100}),blk('math_random_int',{FROM:1,TO:100}),blk('math_random_float'),blk('math_atan2',{X:1,Y:1})]),
 cat('Text','#e86fbf',[blk('text'),blk('text_join'),blk('text_append',{TEXT:''}),blk('text_length',{VALUE:'abc'}),blk('text_isEmpty',{VALUE:''}),blk('text_indexOf',{FIND:'abc'}),blk('text_charAt'),blk('text_getSubstring'),blk('text_changeCase',{TEXT:'abc'}),blk('text_trim',{TEXT:' abc '}),blk('text_count',{SUB:'a',TEXT:'banana'}),blk('text_replace',{FROM:'a',TO:'o',TEXT:'banana'}),blk('text_reverse',{TEXT:'abc'})]),
 cat('Lists','#c06cff',[blk('lists_create_empty'),blk('lists_create_with'),blk('lists_repeat',{NUM:5}),blk('lists_length'),blk('lists_isEmpty'),blk('lists_indexOf'),blk('lists_getIndex'),blk('lists_setIndex'),blk('lists_getSublist'),blk('lists_split',{DELIM:','}),blk('lists_sort'),blk('lists_reverse')]),
+...Object.entries(LCAT).map(([k,v])=>cat(v[0],C[v[1]],LIB.LIST.filter(d=>d.cat===k).map(d=>blk('vue_a_'+d.n,Object.fromEntries(d.a.filter(x=>(x[1]==='Number'||x[1]==='String')&&x[2]!==undefined).map(x=>[x[0],x[2]])))))),
 {kind:'category',name:'Variables',colour:'#ff7a45',custom:'VARIABLE'},
 {kind:'category',name:'My blocks',colour:'#8a8f98',custom:'PROCEDURE'}
 ]})
@@ -246,6 +258,13 @@ const S=(b,n)=>gen.statementToCode(b,n)
 const F=(b,n)=>b.getFieldValue(n)
 const J=JSON.stringify
 const A=Order.ATOMIC,FC=Order.FUNCTION_CALL,M=Order.MEMBER
+for(const d of LIB.LIST)G['vue_a_'+d.n]=b=>{
+const parts=d.a.map(x=>x[1]==='fn'?S(b,'DO'):x[1]==='Entity'?EN(b,x[0]):x[1]==='String'?T(b,x[0]):x[1]==='Any'?N(b,x[0]):V(b,x[0]))
+if(d.gen)return d.t==='val'?[d.gen(parts),FC]:d.gen(parts)
+const c='vue.'+d.n+'('+parts.join(',')+')'
+if(d.t==='val')return[c,FC]
+return(d.ret==='Any'&&/^\(.*\):Promise/.test(d.sig)?'await ':'')+c+';\n'
+}
 G.vue_on_start=b=>`on('start',${fnh('',S(b,'DO'))});\n`
 G.vue_on_update=b=>`on('update',${fnh('dt',S(b,'DO'))});\n`
 G.vue_on_key=b=>`on(${J('key:'+F(b,'KEY'))},${fnh('',S(b,'DO'))});\n`
