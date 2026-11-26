@@ -1,1 +1,1 @@
-window.VUE_BUILD={"date":"2026-11-26","news":[{"d":"2026-11-25","t":"Fix Home layout on narrow windows"},{"d":"2026-11-25","t":"Steady the MCP run test"},{"d":"2026-11-25","t":"Sentence case menu headings"}]}
+window.VUE_BUILD={"date":"2026-11-26","news":[{"d":"2026-11-25","t":"Model Studio: mesh editing, modifiers, sculpting, materials, OBJ/GLB import and export"},{"d":"2026-11-25","t":"Fix Home layout on narrow windows"},{"d":"2026-11-25","t":"Steady the MCP run test"}]}

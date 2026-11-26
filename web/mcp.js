@@ -74,7 +74,7 @@ const roots=(opt.roots||[]).map(r=>real(path.resolve(r)))
 const importRoots=(opt.importRoots||[]).map(r=>real(path.resolve(r)))
 const bridge=opt.bridge||null
 let ts=opt.ts||null
-const readRuntime=opt.runtimeSource||(()=>['vwr.js','behaviors.js','apilib.js','runtime.js','mesh.js','model3d.js','render3d.js'].map(f=>fs.readFileSync(path.join(__dirname,f),'utf8')).join('\n;\n'))
+const readRuntime=opt.runtimeSource||(()=>['vwr.js','behaviors.js','apilib.js','uilayer.js','runtime.js','mesh.js','model3d.js','render3d.js'].map(f=>fs.readFileSync(path.join(__dirname,f),'utf8')).join('\n;\n'))
 const readThree=opt.threeSource||(()=>{try{return fs.readFileSync(path.join(__dirname,'..','node_modules','three','build','three.min.js'),'utf8')}catch(e){return ''}})
 const extIndex=opt.extensionsIndex||(()=>{try{return JSON.parse(fs.readFileSync(path.join(__dirname,'..','extensions','index.json'),'utf8')).extensions}catch(e){return[]}})
 const cur=opt.cur||{file:null,project:null,scene:0}

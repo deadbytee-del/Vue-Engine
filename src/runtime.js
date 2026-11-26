@@ -1688,6 +1688,7 @@ this.drawHud(c)
 drawHud(c){
 const W=this.w,H=this.h
 c.setTransform(1,0,0,1,0,0)
+if(root.VueUI&&this.scene.ui&&this.scene.ui.length){const m=this.mouse;this.uiHit=root.VueUI.draw(c,this.scene.ui,W,H,this.vars,this.images,{x:m.sx,y:m.sy,live:!this.editor});c.setTransform(1,0,0,1,0,0);c.globalAlpha=1}
 c.globalAlpha=1
 if(this.lb>0.01){
 const bh=H*0.11*this.lb
@@ -1855,6 +1856,7 @@ this.keys.add(k)
 this.pressedSet.add(k)
 this.audio()
 if(this.cs&&this.cs.lock)return
+if(this.uiHit&&!this.editor){root.VueUI.click(this.uiHit,this);return}
 this.fireAll('key:'+k)
 this.fireAll('keypress',k)
 }

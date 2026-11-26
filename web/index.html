@@ -84,6 +84,7 @@
 <div class="ws">
 <button data-tab="scene"><span data-ic="scene"></span>Scene</button>
 <button data-tab="script"><span data-ic="script"></span>Script</button>
+<button data-tab="ui"><span data-ic="layout"></span>UI</button>
 <button data-tab="model"><span data-ic="studio"></span>Model</button>
 </div>
 </div>
@@ -132,6 +133,7 @@
 <div id="cvwrap"><canvas id="cv"></canvas><div id="vEmpty" class="empty hide"><h3>This scene is empty</h3><p>Add something to start building.</p><button class="btn primary" id="bAddFirst"><span data-ic="plus"></span><span id="vEmptyBtn">Add a sprite</span></button></div><div id="dropHint"><span data-ic="upload"></span>Drop images or audio to import them</div></div>
 </div>
 <div id="viewModel" class="view"></div>
+<div id="viewUI" class="view"></div>
 <div id="viewScript" class="view">
 <div class="vt">
 <div class="crumb" id="crumb"></div>
@@ -224,7 +226,7 @@
 <script type="text/plain" data-lazy="https://cdn.jsdelivr.net/npm/blockly@11.2.2/javascript_compressed.js"></script>
 <script type="text/plain" data-lazy="https://cdn.jsdelivr.net/npm/blockly@11.2.2/msg/en.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
-<script>window.VUE_VERSION="1.9.0";window.VUE_CDN={"monaco":"https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/","blocklyMedia":"https://cdn.jsdelivr.net/npm/blockly@11.2.2/media/","three":"https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js","ts":"https://cdn.jsdelivr.net/npm/typescript@5.6.3/lib/typescript.js"}</script>
+<script>window.VUE_VERSION="1.10.0";window.VUE_CDN={"monaco":"https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/","blocklyMedia":"https://cdn.jsdelivr.net/npm/blockly@11.2.2/media/","three":"https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js","ts":"https://cdn.jsdelivr.net/npm/typescript@5.6.3/lib/typescript.js"}</script>
 <script src="host-web.js"></script>
 <script src="icons.js"></script>
 <script src="buildinfo.js"></script>
@@ -234,6 +236,7 @@
 <script src="render3d.js"></script>
 <script src="behaviors.js"></script>
 <script src="apilib.js"></script>
+<script src="uilayer.js"></script>
 <script src="runtime.js"></script>
 <script src="nodedefs.js"></script>
 <script src="events.js"></script>
@@ -252,6 +255,7 @@
 <script src="panels.js"></script>
 <script src="assistui.js"></script>
 <script src="studio.js"></script>
+<script src="uied.js"></script>
 <script src="editor.js"></script>
 <script type="module">
 import*as T from'three'

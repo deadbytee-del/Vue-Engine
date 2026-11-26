@@ -1772,6 +1772,14 @@ if(selData()===d&&d.script.mode==='code'){S.code.set(s.code||'');S.code.layout()
 }
 if(!quiet){renderHier();buildInspector()}
 }
+let uiUp=false
+function showUIEd(){
+if(!uiUp){
+uiUp=true
+VueUIEd.init({scene,settings:()=>S.project.settings||{},assets:()=>S.project.assets,assetsChanged:renderAssets,scenes:()=>S.project.scenes,dirty:markDirty,snap},$('#viewUI'))
+}
+VueUIEd.show()
+}
 let studioUp=false
 function showStudio(){
 if(!studioUp){
@@ -1787,6 +1795,8 @@ for(const b of $$('.ws button'))b.classList.toggle('on',b.dataset.tab===t)
 $('#viewScene').classList.toggle('on',t==='scene')
 $('#viewScript').classList.toggle('on',t==='script')
 $('#viewModel').classList.toggle('on',t==='model')
+$('#viewUI').classList.toggle('on',t==='ui')
+if(t==='ui')showUIEd()
 if(t==='model')showStudio();else if(studioUp)VueStudio.hide()
 if(t==='scene'){
 const w=$('#cvwrap').clientWidth,hh=$('#cvwrap').clientHeight
@@ -2658,7 +2668,7 @@ function keys(){
 window.addEventListener('keydown',e=>{
 const t=e.target,ty=typing(t),k=e.key.toLowerCase()
 if($('#dialog').classList.contains('on')||$('#palette').classList.contains('on'))return
-if(S.tab==='model'&&!((e.ctrlKey||e.metaKey)&&'12pkon'.includes(k)))return
+if((S.tab==='model'||S.tab==='ui')&&!((e.ctrlKey||e.metaKey)&&'12pkon'.includes(k)))return
 if($('#keys').classList.contains('on')){if(k==='escape'||e.key==='?')$('#keys').classList.remove('on');return}
 if($('#hub').classList.contains('on')){if(k==='escape'&&S.project)hideHub();if((e.ctrlKey||e.metaKey)&&k==='o'){e.preventDefault();open()}return}
 if(S.drag&&S.drag.k==='orbit'&&k.length===1&&'wasdqe'.indexOf(k)>=0){S.fly.add(k);if(e.shiftKey)S.fly.add('shift');e.preventDefault();return}

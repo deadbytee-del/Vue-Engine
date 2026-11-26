@@ -851,3 +851,28 @@ body.ai-open #app{width:calc(100% - 380px)}
 .stmodel img,.stph{width:96px;height:96px;object-fit:contain;background:var(--bg0);border-radius:var(--r)}
 .asset .stu{position:absolute;top:4px;right:82px}
 #viewModel.on{display:block}
+.uied{position:absolute;inset:0;display:flex;background:var(--bg0)}
+.uil{width:220px;flex:none;border-right:1px solid var(--line);background:var(--bg1);overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:4px}
+.uig{display:flex;flex-wrap:wrap;gap:5px}
+.uir{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:var(--r);cursor:pointer;color:var(--dim)}
+.uir:hover{background:var(--bg3)}
+.uir.on{background:var(--fill);color:var(--onfill)}
+.uir span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uir i{font-style:normal;font-size:12px;opacity:.7}
+.uiw{flex:1;position:relative;overflow:hidden;min-width:0}
+.uis{position:absolute;left:50%;top:50%;transform-origin:center;overflow:hidden;box-shadow:0 0 0 1px var(--line-hi)}
+.uigrid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:80px 80px;pointer-events:none}
+.uiw2{position:absolute;box-sizing:border-box;cursor:move;user-select:none}
+.uiw2.sel{outline:2px solid #fff;outline-offset:1px}
+.uiw2.panel,.uiw2.text,.uiw2.image,.uiw2.button,.uiw2.bar{background-clip:padding-box}
+.uifill{height:100%}
+.uit{position:absolute;inset:0;display:flex;align-items:center;padding:0 10px;font-family:Inter,system-ui,sans-serif;white-space:nowrap;overflow:hidden;pointer-events:none}
+.uih{position:absolute;width:12px;height:12px;background:#fff;border:1px solid #000;border-radius:2px;z-index:2}
+.uih.nw{left:-7px;top:-7px;cursor:nwse-resize}.uih.n{left:calc(50% - 6px);top:-7px;cursor:ns-resize}.uih.ne{right:-7px;top:-7px;cursor:nesw-resize}.uih.e{right:-7px;top:calc(50% - 6px);cursor:ew-resize}.uih.se{right:-7px;bottom:-7px;cursor:nwse-resize}.uih.s{left:calc(50% - 6px);bottom:-7px;cursor:ns-resize}.uih.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.uih.w{left:-7px;top:calc(50% - 6px);cursor:ew-resize}
+.uii{width:272px;flex:none;border-left:1px solid var(--line);background:var(--bg1);overflow-y:auto;padding:0 10px 14px}
+.uii h4{margin:14px 0 6px;font-size:13px}
+.uii input[type=text],.uii input[type=number],.uii select{flex:1;min-width:0;height:26px;background:var(--bg0);border:1px solid var(--line);border-radius:var(--r);color:var(--text);padding:0 6px}
+.uii input[type=color]{width:44px;height:26px;padding:0;border:0;background:none}
+.uian{display:grid;grid-template-columns:repeat(3,18px);gap:3px}
+.uian button{width:18px;height:18px;border:1px solid var(--line-hi);background:var(--bg0);border-radius:3px;padding:0}
+.uian button.on{background:var(--fill)}
