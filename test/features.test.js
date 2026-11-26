@@ -150,7 +150,7 @@ assert.ok(Math.abs(t.x-105)<1e-6&&t.par===b)
 }
 {
 const Sample=src('sample.js'),Compiler=src('compiler.js'),ts=require('typescript')
-const env={Blockly,gen,blocks:Blocks,nodes:Nodes,transpile:async c=>{const r=ts.transpileModule(c,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020},reportDiagnostics:true});return{code:r.outputText,errors:(r.diagnostics||[]).map(d=>ts.flattenDiagnosticMessageText(d.messageText,'\n'))}}}
+const env={Blockly,gen,blocks:Blocks,nodes:Nodes,events:require('../src/events.js'),transpile:async c=>{const r=ts.transpileModule(c,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020},reportDiagnostics:true});return{code:r.outputText,errors:(r.diagnostics||[]).map(d=>ts.flattenDiagnosticMessageText(d.messageText,'\n'))}}}
 const p=Sample.makeKit()
 const r=await Compiler.compileProject(p,env)
 assert.deepStrictEqual(r.errors,[])

@@ -162,7 +162,7 @@ const c3=h3('capsule'),b3=h3('box')
 assert.ok(Math.abs(b3.y-(0.5+0.9))<0.01,'3d box rests on top')
 const r3=0.4,L3=0.9-r3,dd=1.3-1
 assert.ok(Math.abs(c3.y-(0.5+L3+Math.sqrt(r3*r3-dd*dd)))<0.02&&c3.y<b3.y-0.1,'3d capsule rests on corner '+c3.y)
-const env={Blockly:null,gen:null,blocks:null,nodes:Nodes,transpile:async s=>({code:s,errors:[]})}
+const env={Blockly:null,gen:null,blocks:null,nodes:Nodes,events:require('../src/events.js'),transpile:async s=>({code:s,errors:[]})}
 const code=Nodes.compileGraph({nid:3,nodes:[{id:1,type:'start',x:0,y:0,v:{}},{id:2,type:'playerctl',x:200,y:0,v:{preset:'FPS'}}],links:[{a:1,ap:'next',b:2,bp:'in'}]})
 assert.ok(/makePlayer\("FPS"\)/.test(code),'node compiles '+code)
 const code2=Nodes.compileGraph({nid:3,nodes:[{id:1,type:'start',x:0,y:0,v:{}},{id:2,type:'playerset',x:200,y:0,v:{prop:'speed',value:300}}],links:[{a:1,ap:'next',b:2,bp:'in'}]})

@@ -2,17 +2,17 @@
 
 # Vue Engine
 
-A 2D and 3D game engine for Windows and the browser. Make games with blocks, nodes or code.
+A 2D and 3D game engine for Windows and the browser. Make games with blocks, event sheets or code.
 
 - **Blocks**: Scratch-style drag and drop blocks
-- **Nodes**: visual node graphs with execution and data wires
+- **Events**: event sheets with rows of When, If and Do, plus groups, sub-events and local variables. Old node graphs keep running and show under a Legacy nodes tab, with a Convert to events button for simple ones
 - **Code**: typed TypeScript with live type checking in the editor
 
-All three compile to the same runtime, so one project can mix them per entity.
+All of them compile to the same runtime, so one project can mix them per entity.
 
 ## Interface modes
 
-Settings has a Beginner and an Advanced interface mode. New users start in Beginner: Blocks only, with Nodes, Code, physics tuning, engine core, atmosphere values and extension settings under Show advanced. Advanced shows everything. Switching modes never changes or removes scripts. The Home screen has a short checklist for first-time users.
+Settings has a Beginner and an Advanced interface mode. New users start in Beginner: Blocks only, with Code, physics tuning, engine core, atmosphere values and extension settings under Show advanced. Advanced shows everything. Switching modes never changes or removes scripts. The Home screen has a short checklist for first-time users.
 
 ## Features
 

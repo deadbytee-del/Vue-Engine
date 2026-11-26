@@ -863,7 +863,7 @@ h('span',{class:'nm',text:d.name}),
 d.prefab?h('span',{class:'tagp',text:'prefab'}):null,
 d.sound?h('span',{class:'ti',title:'Audio source',html:ic('audio',12)}):null,
 d.anims&&Object.keys(d.anims).length?h('span',{class:'ti',title:'Animated',html:ic('film',12)}):null,
-d.script?h('span',{class:'ti',title:'Has '+d.script.mode+' script',html:ic(d.script.mode==='blocks'?'blocks':d.script.mode==='nodes'?'nodes':'code',12)}):null,
+d.script?h('span',{class:'ti',title:'Has '+d.script.mode+' script',html:ic(MODE_IC[d.script.mode]||'code',12)}):null,
 d.shape!=='tilemap'?h('span',{class:'sw2',style:'background:'+d.color}):null,
 h('span',{class:'acts'},lock,eye))
 it.addEventListener('click',()=>select(d.id))
@@ -1267,15 +1267,15 @@ box.append(card('phys','Physics Body','physics',ph,h('button',{class:'ib',title:
 if(d.script){
 const m=d.script.mode
 box.append(card('scr','Script','script',[
-h('div',{class:'scard'},h('span',{class:'badge',html:ic(m==='blocks'?'blocks':m==='nodes'?'nodes':'code',12)+(m==='blocks'?'Blocks':m==='nodes'?'Nodes':'Code')}),h('span',{style:'flex:1'}),h('button',{class:'btn sm primary',html:ic('edit',13)+'Open',onclick:()=>setTab('script')})),
+h('div',{class:'scard'},h('span',{class:'badge',html:ic(MODE_IC[m]||'code',12)+(MODE_NAME[m]||'Code')}),h('span',{style:'flex:1'}),h('button',{class:'btn sm primary',html:ic('edit',13)+'Open',onclick:()=>setTab('script')})),
 h('div',{class:'hint',style:'margin-top:8px',text:'Only the '+m+' version runs. Switch modes in the Script workspace.'})
-],h('button',{class:'ib',title:'Remove script',html:ic('x',13),onclick:async e=>{e.stopPropagation();const ok=await dialog({title:'Remove script from '+d.name+'?',msg:'All Blocks, Nodes and Code for this entity are deleted. You can undo this.',buttons:[{label:'Cancel',value:null},{label:'Remove',value:1,danger:true,primary:true}]});if(ok){snap();d.script=null;buildInspector();renderHier()}}})))
+],h('button',{class:'ib',title:'Remove script',html:ic('x',13),onclick:async e=>{e.stopPropagation();const ok=await dialog({title:'Remove script from '+d.name+'?',msg:'All Blocks, Events and Code for this entity are deleted. You can undo this.',buttons:[{label:'Cancel',value:null},{label:'Remove',value:1,danger:true,primary:true}]});if(ok){snap();d.script=null;buildInspector();renderHier()}}})))
 }
 const add=h('button',{class:'addc',html:ic('plus',14)+'Add Component',onclick:()=>{
 const r=add.getBoundingClientRect(),items=[]
 if(!d.body||d.body==='none')items.push({head:'Physics'},{ic:'physics',label:'Static body',fn:()=>{snap();d.body='static';afterEdit('body')}},{ic:'physics',label:'Dynamic body',fn:()=>{snap();d.body='dynamic';afterEdit('body')}},{ic:'physics',label:'Trigger',fn:()=>{snap();d.body='trigger';afterEdit('body')}})
 if(!d.player)items.push({head:'Player'},...Object.keys(VueRuntime.PC_PRESETS).map(n=>({ic:'gamepad',label:'Player controller: '+n,fn:()=>attachPlayer(d,VueRuntime.pcPreset(n))})),...Object.keys(userPresets()).map(n=>({ic:'gamepad',label:'Player controller: '+n+' (mine)',fn:()=>attachPlayer(d,VueRuntime.pcNorm(userPresets()[n]))})))
-if(!d.script)items.push({head:'Behavior'},{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')},...(isBeg()&&!S.advOpen?[]:[{ic:'nodes',label:'Node graph',fn:()=>newScript(d,'nodes')},{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')}]))
+if(!d.script)items.push({head:'Behavior'},{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')},{ic:'events',label:'Event sheet',fn:()=>newScript(d,'events')},...(isBeg()&&!S.advOpen?[]:[{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')}]))
 if(d.sound==null||(!t3&&!d.anims))items.push({head:'Media'})
 if(d.sound==null)items.push({ic:'audio',label:'Audio source',fn:()=>{snap();d.sound='';d.soundVol=1;d.soundLoop=false;d.soundAuto=true;buildInspector();renderHier()}})
 if(!t3&&(!d.anims||!Object.keys(d.anims).length))items.push({ic:'film',label:'Sprite animation',fn:()=>setBTab('anim')})
@@ -1364,11 +1364,11 @@ h('div',{class:'hint',text:(e&&e.tiles?e.tiles.size:0)+' tiles. Solid tiles bloc
 h('button',{class:'btn sm primary',html:ic('brush',13)+'Paint tiles',onclick:()=>{setTool('paint');setBTab('tiles')}})
 ]))
 if(d.script){const m=d.script.mode;box.append(card('scr','Script','script',[h('div',{class:'scard'},h('span',{class:'badge',text:m}),h('span',{style:'flex:1'}),h('button',{class:'btn sm primary',html:ic('edit',13)+'Open',onclick:()=>setTab('script')}))]))}
-else box.append(h('button',{class:'addc',html:ic('plus',14)+'Add script',onclick:e=>{const r=e.currentTarget.getBoundingClientRect();showMenu($('#ctx'),r.left,r.bottom+4,[{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')}].concat(isBeg()&&!S.advOpen?[]:[{ic:'nodes',label:'Node graph',fn:()=>newScript(d,'nodes')},{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')}]),r.width)}}))
+else box.append(h('button',{class:'addc',html:ic('plus',14)+'Add script',onclick:e=>{const r=e.currentTarget.getBoundingClientRect();showMenu($('#ctx'),r.left,r.bottom+4,[{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')},{ic:'events',label:'Event sheet',fn:()=>newScript(d,'events')}].concat(isBeg()&&!S.advOpen?[]:[{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')}]),r.width)}}))
 }
 function newScript(d,mode){
 snap()
-d.script={mode,code:mode==='code'?VueDTS.TEMPLATE:'',blocks:null,nodes:null}
+d.script={mode,code:mode==='code'?VueDTS.TEMPLATE:'',blocks:null,nodes:null,events:mode==='events'?VueEvents.empty():null}
 buildInspector()
 renderHier()
 setTab('script')
@@ -1523,6 +1523,22 @@ const d=selData()
 if(d&&d.script&&d.script.mode==='blocks'){d.script.blocks=Blockly.serialization.workspaces.save(S.ws);if(S.ws.getTopBlocks(false).length)todo('block');markDirty()}
 })
 }
+const MODE_IC={blocks:'blocks',events:'events',nodes:'nodes',code:'code'},MODE_NAME={blocks:'Blocks',events:'Events',nodes:'Legacy nodes',code:'Code'}
+function ensureEvents(){
+if(S.ev)return
+S.ev=VueEventsUI.create($('#evs'),{h,ic,onChange:g=>{const d=selData();if(d&&d.script&&d.script.mode==='events'){d.script.events=g;if(VueEvents.count(g))todo('block');markDirty()}}})
+}
+function hasLegacy(){return S.project.scenes.some(sc=>sc.entities.some(e=>e.script&&hasContent(e.script,'nodes')))}
+function convertNodes(){
+const d=selData()
+if(!d||!d.script)return
+const r=VueEvents.fromNodes(d.script.nodes)
+if(!r.ok){dialog({title:'This graph cannot convert automatically',msg:'It uses wired values or flow nodes'+(r.unmapped.length?' ('+[...new Set(r.unmapped)].join(', ')+')':'')+'. It keeps running as it is. You can rebuild the parts you want in Events.',buttons:[{label:'OK',value:1,primary:true}]});return}
+snap()
+d.script.events=r.sheet
+showMode('events')
+toast('Converted to Events. The old graph is kept under Legacy nodes.','ok')
+}
 function ensureNodes(){
 if(S.ne)return
 S.ne=new VueNodeEditor($('#nodes'),VueNodes.defs,VueNodes.CAT_COLORS,g=>{
@@ -1572,6 +1588,7 @@ S.code={set:v=>{S.loading=true;ta.value=v;S.loading=false},layout:()=>{}}
 }
 function hasContent(s,m){
 if(m==='blocks')return!!(s.blocks&&s.blocks.blocks&&s.blocks.blocks.blocks&&s.blocks.blocks.blocks.length)
+if(m==='events')return VueEvents.count(s.events)>0
 if(m==='nodes')return!!(s.nodes&&s.nodes.nodes&&s.nodes.nodes.length)
 return!!(s.code&&s.code.trim())
 }
@@ -1580,28 +1597,31 @@ const c=$('#crumb')
 c.innerHTML=''
 c.append(h('span',{html:ic('scene',14)}),h('span',{text:scene().name}))
 if(d){c.append(h('span',{html:ic('chevr',13)}),h('span',{html:ic(SHAPE_IC[d.shape]||'square',14)}),h('b',{text:d.name}))
-if(d.script)c.append(h('span',{html:ic('chevr',13)}),h('span',{text:d.script.mode==='blocks'?'Blocks':d.script.mode==='nodes'?'Node graph':'script.ts'}))}
+if(d.script)c.append(h('span',{html:ic('chevr',13)}),h('span',{text:d.script.mode==='blocks'?'Blocks':d.script.mode==='events'?'Event sheet':d.script.mode==='nodes'?'Legacy nodes':'script.ts'}))}
 }
 function loadScriptView(){
 const d=selData()
-for(const id of['blk','nodes','code'])$('#'+id).classList.remove('on')
+for(const id of['blk','nodes','evs','code'])$('#'+id).classList.remove('on')
 crumb(d)
 const em=$('#sempty')
 const hasS=d&&d.script
 em.classList.toggle('on',!hasS)
 $('.modes').style.visibility=hasS?'':'hidden'
-const sv=!isBeg()||S.advOpen||(hasS&&(d.script.mode!=='blocks'||hasContent(d.script,'nodes')||hasContent(d.script,'code')))
-for(const b of $$('[data-mode=nodes],[data-mode=code]'))b.classList.toggle('hide',!sv)
+const sv=!isBeg()||S.advOpen||(hasS&&(d.script.mode==='code'||hasContent(d.script,'code')))
+for(const b of $$('[data-mode=code]'))b.classList.toggle('hide',!sv)
+const lg=hasS&&(hasLegacy()||d.script.mode==='nodes')
+$('[data-mode=nodes]').classList.toggle('hide',!lg)
+$('#bConvert').classList.toggle('hide',!(hasS&&d.script.mode==='nodes'))
 $('#bAdvModes').classList.toggle('hide',sv||!hasS)
 if(!hasS){
 const box=em.querySelector('.empty')
 box.innerHTML=''
 if(!d)box.append(h('span',{html:ic('script',32)}),h('h3',{text:'Nothing selected'}),h('p',{text:'Select an entity to edit its script.'}),h('button',{class:'btn',html:ic('scene',14)+'Go to Scene',onclick:()=>setTab('scene')}))
 else{
-const nb=h('button',{class:'btn',html:ic('nodes',14)+'Nodes',onclick:()=>newScript(d,'nodes')}),cb=h('button',{class:'btn',html:ic('code',14)+'Code',onclick:()=>newScript(d,'code')})
-const rowb=h('div',{style:'display:flex;gap:8px'},h('button',{class:'btn primary',html:ic('blocks',14)+'Add blocks',onclick:()=>newScript(d,'blocks')}))
-if(isBeg()&&!S.advOpen)rowb.append(h('button',{class:'btn ghost',text:'Show advanced',onclick:e=>{e.currentTarget.replaceWith(nb,cb)}}))
-else rowb.append(nb,cb)
+const nb=h('button',{class:'btn',html:ic('events',14)+'Events',onclick:()=>newScript(d,'events')}),cb=h('button',{class:'btn',html:ic('code',14)+'Code',onclick:()=>newScript(d,'code')})
+const rowb=h('div',{style:'display:flex;gap:8px'},h('button',{class:'btn primary',html:ic('blocks',14)+'Add blocks',onclick:()=>newScript(d,'blocks')}),nb)
+if(isBeg()&&!S.advOpen)rowb.append(h('button',{class:'btn ghost',text:'Show advanced',onclick:e=>{e.currentTarget.replaceWith(cb)}}))
+else rowb.append(cb)
 box.append(h('span',{html:ic('script',32)}),h('h3',{text:d.name+' has no script'}),h('p',{text:'Scripts decide what it does. Blocks snap together, no typing needed.'}),rowb)
 }
 return
@@ -1616,7 +1636,7 @@ if(hasContent(s,cur)&&!hasContent(s,m)){
 const btns=[{label:'Cancel',value:null}]
 if(m==='code')btns.push({label:'Start empty',value:'empty'},{label:'Convert to Code',value:'convert',primary:true})
 else btns.push({label:'Switch',value:'switch',primary:true})
-const v=await dialog({title:'Switch '+d.name+' to '+(m==='code'?'Code':m==='nodes'?'Nodes':'Blocks')+'?',msg:m==='code'?'Convert turns your '+cur+' into equivalent code you can keep editing. Start empty keeps your '+cur+' saved, but only the code runs.':'Your '+(cur==='code'?'code stays':cur+' stay')+' saved, but only one mode runs at a time.',buttons:btns})
+const v=await dialog({title:'Switch '+d.name+' to '+(MODE_NAME[m]||'Blocks')+'?',msg:m==='code'?'Convert turns your '+cur+' into equivalent code you can keep editing. Start empty keeps your '+cur+' saved, but only the code runs.':'Your '+(cur==='code'?'code stays':cur+' stay')+' saved, but only one mode runs at a time.',buttons:btns})
 if(!v)return
 snap()
 if(v==='convert'){
@@ -1634,7 +1654,7 @@ if(!d||!d.script)return
 const s=d.script
 s.mode=m
 for(const b of $$('[data-mode]'))b.classList.toggle('on',b.dataset.mode===m)
-const map={blocks:'blk',nodes:'nodes',code:'code'}
+const map={blocks:'blk',nodes:'nodes',events:'evs',code:'code'}
 for(const k in map)$('#'+map[k]).classList.toggle('on',k===m)
 crumb(d)
 if(m==='blocks'){
@@ -1652,6 +1672,10 @@ Blockly.Events.enable()
 S.loading=false
 Blockly.svgResize(S.ws)
 requestAnimationFrame(()=>{const bb=S.ws.getBlocksBoundingBox(),k=S.ws.scale;if(bb&&isFinite(bb.left))S.ws.scroll(28-bb.left*k,28-bb.top*k)})
+}else if(m==='events'){
+ensureEvents()
+if(!s.events)s.events=VueEvents.empty()
+S.ev.load(s.events)
 }else if(m==='nodes'){
 ensureNodes()
 if(!s.nodes)s.nodes={nid:1,nodes:[],links:[]}
@@ -1674,7 +1698,7 @@ redraw()
 }
 if(t==='script')loadScriptView()
 }
-async function compileEnv(need){if(need)await loadBlockly();return{Blockly:window.Blockly,gen:window.Blockly&&Blockly.JavaScript,blocks:VueBlocks,nodes:VueNodes,transpile:s=>host.transpile(s)}}
+async function compileEnv(need){if(need)await loadBlockly();return{Blockly:window.Blockly,gen:window.Blockly&&Blockly.JavaScript,blocks:VueBlocks,nodes:VueNodes,events:VueEvents,transpile:s=>host.transpile(s)}}
 async function build(preview){
 const r=await VueCompiler.compileProject(S.project,await compileEnv(usesBlocks()))
 const proj=preview?Object.assign({},S.project,{_preview:preview}):S.project
@@ -2173,7 +2197,7 @@ h('h3',{text:'Engine'}),
 it('Default engine core','Used by new projects. Each project can change it in the Inspector.',sel('core',CORES)),
 it('Smooth motion','New projects draw between physics steps so motion stays smooth on fast screens.',sw('smooth')),
 h('h3',{text:'Interface'}),
-it('Interface mode','Beginner shows Blocks and the basics. Advanced also shows Nodes, Code, physics and engine options.',sel('mode',[['beginner','Beginner'],['advanced','Advanced']],onModeChange)),
+it('Interface mode','Beginner shows Blocks and the basics. Advanced also shows Code, physics and engine options.',sel('mode',[['beginner','Beginner'],['advanced','Advanced']],onModeChange)),
 it('Interface size','Scales the whole editor.',sel('scale',[[90,'90%'],[100,'100%'],[110,'110%'],[125,'125%']])),
 it('Reduce motion','Turns off animations.',sw('calm')),
 it('Open last project on launch','Skip Home and return to your last project.',sw('reopen')),
@@ -2577,6 +2601,7 @@ setInterval(()=>{if(!document.hidden)status()},5000)
 $('#bUndo').onclick=undo
 $('#bRedo').onclick=redo
 $('#bSave').onclick=()=>save(false)
+$('#bConvert').onclick=convertNodes
 $('#bAdvModes').onclick=()=>{S.advOpen=true;ls.set('vue.advopen',true);loadScriptView()}
 $('#bAddFirst').onclick=()=>addEntity(is3()?'box':'sprite')
 initTips()

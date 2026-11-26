@@ -628,3 +628,34 @@ body.playing .ph,body.playing #tb{background:var(--bg2)}
 .todo>div:last-child{margin-left:auto;margin-top:0!important;display:flex;gap:6px;height:auto}
 @media (max-width:1100px){.homegrid{grid-template-columns:minmax(0,1fr)}.tstrip{grid-template-columns:repeat(2,minmax(0,1fr))}.hub-main{padding:16px 16px 32px}}
 @media (max-width:700px){#hub{grid-template-columns:56px 1fr}.hub-nav span+span{display:none}.hub-logo{width:36px;margin:4px auto 12px;object-fit:cover;object-position:left}}
+#evs{overflow:auto;background:var(--bg0)}
+.evbar{display:flex;gap:6px;padding:8px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg0);z-index:2}
+.evbody{padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.evwrap{display:flex;flex-direction:column;gap:4px}
+.evrow{display:grid;grid-template-columns:minmax(150px,1fr) minmax(160px,1.2fr) minmax(200px,1.6fr) auto;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.evrow>*{background:var(--bg1);padding:6px 8px;min-width:0}
+.evrow.off,.evgroup.off,.evc.off{opacity:.45}
+.evrow.sub .evwhen .evlab{color:var(--dim)}
+.evsubs{margin-left:22px;display:flex;flex-direction:column;gap:4px;border-left:2px solid var(--line);padding-left:8px}
+.evlab{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--accent);margin-bottom:4px}
+.evc{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:3px 0}
+.evt{font-weight:500}
+.evp{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--dim)}
+.evf{background:var(--bg2);border:1px solid var(--line);border-radius:4px;color:var(--text);padding:2px 5px;font:inherit;min-width:36px;max-width:160px}
+.evf.col{padding:0;width:28px;height:20px}
+.evneg{background:none;border:1px solid var(--line);border-radius:4px;color:var(--dim);font-size:10px;padding:1px 5px;cursor:pointer}
+.evneg.on{border-color:var(--accent);color:var(--accent)}
+.evadd{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.evtools{display:flex;flex-direction:column;gap:2px;justify-content:flex-start}
+.evgroup{border:1px solid var(--line);border-radius:6px;background:var(--bg0)}
+.evghead{display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--bg1);border-radius:6px 6px 0 0}
+.evghead .evtools{flex-direction:row;margin-left:auto}
+.evname{background:none;border:0;color:var(--text);font-weight:600;flex:1;min-width:0}
+.evgbody{padding:8px;display:flex;flex-direction:column;gap:6px}
+.evvar{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+.evpop{position:fixed;z-index:1000;width:320px;max-height:350px;display:flex;flex-direction:column;background:var(--bg1);border:1px solid var(--line);border-radius:6px}
+.evq{margin:6px;background:var(--bg2);border:1px solid var(--line);border-radius:4px;color:var(--text);padding:6px 8px;font:inherit}
+.evl{overflow:auto;padding:0 4px 6px}
+.evh{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);padding:8px 8px 2px}
+.evi{display:block;width:100%;text-align:left;background:none;border:0;color:var(--text);padding:5px 8px;border-radius:4px;cursor:pointer;font:inherit}
+.evi:hover{background:var(--bg3)}

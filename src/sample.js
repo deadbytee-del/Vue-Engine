@@ -1,4 +1,9 @@
 (function(root){
+const hit=sc=>({id:'h',k:'event',ev:{t:'collide',v:{tag:'player'}},conds:[],subs:[],acts:[{t:'shake',v:{amount:8,sec:0.3}},{t:'wait',v:{sec:0.25}},{t:'go',v:{scene:sc}}]})
+const sheet=rows=>({v:1,vars:[],rows})
+const sway=(r,sp)=>sheet([{id:'u',k:'event',ev:{t:'update',v:{}},conds:[],subs:[],acts:[{t:'sway',v:{rate:r,speed:sp}}]}])
+const swayHit=(r,sp,sc)=>{const o=sway(r,sp);o.rows.push(hit(sc));return o}
+const chaseHit=()=>({v:1,vars:[],rows:[{id:'u',k:'event',ev:{t:'update',v:{}},conds:[],subs:[],acts:[{t:'chaset',v:{name:'Hero',speed:90}}]},hit('Arena')]})
 let n=0
 const uid=()=>'i'+Date.now().toString(36)+(n++).toString(36)+Math.random().toString(36).slice(2,5)
 const bk=(type,o)=>Object.assign({type,id:uid()},o||{})
@@ -68,27 +73,6 @@ bk('vue_burst',{fields:{C:'#ffd34d'},inputs:{N:num(14)}}),
 bk('vue_destroy_self')
 )}}})
 )
-const enemyGraph={nid:20,nodes:[
-{id:1,type:'update',x:40,y:40,v:{}},
-{id:2,type:'setvx',x:300,y:40,v:{}},
-{id:3,type:'mul',x:560,y:40,v:{b:120}},
-{id:4,type:'func',x:780,y:20,v:{fn:'sin'}},
-{id:5,type:'mul',x:1000,y:20,v:{b:1.5}},
-{id:6,type:'time',x:1200,y:20,v:{}},
-{id:7,type:'collide',x:40,y:300,v:{tag:'player'}},
-{id:8,type:'shake',x:300,y:300,v:{amount:8,sec:0.3}},
-{id:9,type:'wait',x:560,y:300,v:{sec:0.25}},
-{id:10,type:'go',x:780,y:300,v:{scene:'Level 1'}}
-],links:[
-{a:1,ap:'next',b:2,bp:'in'},
-{a:3,ap:'result',b:2,bp:'vx'},
-{a:4,ap:'result',b:3,bp:'a'},
-{a:5,ap:'result',b:4,bp:'a'},
-{a:6,ap:'seconds',b:5,bp:'a'},
-{a:7,ap:'next',b:8,bp:'in'},
-{a:8,ap:'next',b:9,bp:'in'},
-{a:9,ap:'next',b:10,bp:'in'}
-]}
 sc.entities.push(
 ent({name:'Ground',x:0,y:260,w:1800,h:60,color:'#2f6f4f',body:'static',z:-1}),
 ent({name:'Platform A',x:-220,y:130,w:200,h:20,color:'#3d8b63',body:'static',z:-1}),
@@ -96,7 +80,7 @@ ent({name:'Platform B',x:160,y:30,w:220,h:20,color:'#3d8b63',body:'static',z:-1}
 ent({name:'Platform C',x:520,y:-60,w:200,h:20,color:'#3d8b63',body:'static',z:-1}),
 ent({name:'Player',x:-340,y:190,w:36,h:48,color:'#4cc9f0',body:'dynamic',tags:['player'],z:5,script:{mode:'code',code:playerCode,blocks:null,nodes:null}}),
 ent({name:'Coin 1',x:-220,y:90,w:22,h:22,shape:'circle',color:'#ffd34d',body:'trigger',tags:['coin'],script:{mode:'blocks',code:'',blocks:coinBlocks,nodes:null}}),
-ent({name:'Enemy',x:300,y:210,w:36,h:36,color:'#ef476f',body:'dynamic',tags:['enemy'],z:4,script:{mode:'nodes',code:'',blocks:null,nodes:enemyGraph}}),
+ent({name:'Enemy',x:300,y:210,w:36,h:36,color:'#ef476f',body:'dynamic',tags:['enemy'],z:4,script:{mode:'events',code:'',blocks:null,nodes:null,events:swayHit(1.5,120,'Level 1')}}),
 ent({name:'Hint',x:-330,y:90,w:420,h:30,shape:'text',text:'Arrows / WASD to move, Space to jump',fontSize:18,color:'#9aa4c4',z:-2})
 )
 const mk=(name,x,y)=>{const c=JSON.parse(JSON.stringify(sc.entities.find(e=>e.name==='Coin 1')));c.id=uid();c.name=name;c.x=x;c.y=y;return c}
@@ -140,27 +124,6 @@ bk('vue_beep',{inputs:{F:num(880),D:num(0.1)}}),
 bk('vue_destroy_self')
 )}}})
 )
-const hazardGraph={nid:20,nodes:[
-{id:1,type:'update',x:40,y:40,v:{}},
-{id:2,type:'setvx',x:300,y:40,v:{}},
-{id:3,type:'mul',x:560,y:40,v:{b:4}},
-{id:4,type:'func',x:780,y:20,v:{fn:'sin'}},
-{id:5,type:'mul',x:1000,y:20,v:{b:1.2}},
-{id:6,type:'time',x:1200,y:20,v:{}},
-{id:7,type:'collide',x:40,y:300,v:{tag:'player'}},
-{id:8,type:'shake',x:300,y:300,v:{amount:8,sec:0.3}},
-{id:9,type:'wait',x:560,y:300,v:{sec:0.25}},
-{id:10,type:'go',x:780,y:300,v:{scene:'World'}}
-],links:[
-{a:1,ap:'next',b:2,bp:'in'},
-{a:3,ap:'result',b:2,bp:'vx'},
-{a:4,ap:'result',b:3,bp:'a'},
-{a:5,ap:'result',b:4,bp:'a'},
-{a:6,ap:'seconds',b:5,bp:'a'},
-{a:7,ap:'next',b:8,bp:'in'},
-{a:8,ap:'next',b:9,bp:'in'},
-{a:9,ap:'next',b:10,bp:'in'}
-]}
 const plat=(n,x,y,z)=>e3({name:n,x,y,z,w:5,h:1,d:5,color:'#c9a35b',body:'static'})
 const coin=(n,x,y,z)=>e3({name:n,shape:'sphere',x,y,z,w:0.8,h:0.8,d:0.8,color:'#ffd34d',body:'trigger',tags:['coin'],script:{mode:'blocks',code:'',blocks:JSON.parse(JSON.stringify(coinBlocks)),nodes:null}})
 sc.entities.push(
@@ -168,7 +131,7 @@ plat('Platform A',4,1,-3),plat('Platform B',10,2.5,-8),plat('Platform C',4,4,-13
 e3({name:'Wall',x:0,y:2,z:-30,w:20,h:4,d:2,color:'#8b6f9c',body:'static'}),
 e3({name:'Player',x:0,y:1,z:6,w:1,h:2,d:1,color:'#4cc9f0',body:'dynamic',tags:['player'],script:{mode:'code',code:player3Code,blocks:null,nodes:null}}),
 coin('Coin 1',4,2.7,-3),coin('Coin 2',10,4.2,-8),coin('Coin 3',4,5.7,-13),coin('Coin 4',-3,7.2,-17),coin('Coin 5',-6,1,0),
-e3({name:'Hazard',x:-10,y:0.75,z:-4,w:1.5,h:1.5,d:1.5,color:'#ef476f',body:'dynamic',tags:['enemy'],script:{mode:'nodes',code:'',blocks:null,nodes:hazardGraph}}),
+e3({name:'Hazard',x:-10,y:0.75,z:-4,w:1.5,h:1.5,d:1.5,color:'#ef476f',body:'dynamic',tags:['enemy'],script:{mode:'events',code:'',blocks:null,nodes:null,events:swayHit(1.2,4,'World')}}),
 e3({name:'Lamp',shape:'light',x:0,y:12,z:-5,w:60,color:'#fff4d6'})
 )
 return p
@@ -210,37 +173,13 @@ bk('vue_burst',{fields:{C:'#4cc9f0'},inputs:{N:num(16)}}),
 bk('vue_destroy_self')
 )}}})
 )
-const chase={nid:30,nodes:[
-{id:1,type:'update',x:40,y:40,v:{}},
-{id:2,type:'setvel',x:300,y:40,v:{}},
-{id:3,type:'mul',x:560,y:20,v:{b:90}},
-{id:4,type:'func',x:780,y:20,v:{fn:'sign'}},
-{id:5,type:'sub',x:1000,y:20,v:{}},
-{id:6,type:'getprop',x:1220,y:-20,v:{prop:'x'}},
-{id:7,type:'find',x:1440,y:20,v:{name:'Hero'}},
-{id:8,type:'getprop',x:1220,y:110,v:{prop:'x'}},
-{id:9,type:'mul',x:560,y:220,v:{b:90}},
-{id:10,type:'func',x:780,y:220,v:{fn:'sign'}},
-{id:11,type:'sub',x:1000,y:220,v:{}},
-{id:12,type:'getprop',x:1220,y:220,v:{prop:'y'}},
-{id:13,type:'getprop',x:1220,y:330,v:{prop:'y'}},
-{id:14,type:'collide',x:40,y:420,v:{tag:'player'}},
-{id:15,type:'shake',x:300,y:420,v:{amount:10,sec:0.3}},
-{id:16,type:'wait',x:560,y:420,v:{sec:0.3}},
-{id:17,type:'go',x:780,y:420,v:{scene:'Arena'}}
-],links:[
-{a:1,ap:'next',b:2,bp:'in'},
-{a:3,ap:'result',b:2,bp:'vx'},{a:4,ap:'result',b:3,bp:'a'},{a:5,ap:'result',b:4,bp:'a'},{a:6,ap:'value',b:5,bp:'a'},{a:7,ap:'entity',b:6,bp:'entity'},{a:8,ap:'value',b:5,bp:'b'},
-{a:9,ap:'result',b:2,bp:'vy'},{a:10,ap:'result',b:9,bp:'a'},{a:11,ap:'result',b:10,bp:'a'},{a:12,ap:'value',b:11,bp:'a'},{a:7,ap:'entity',b:12,bp:'entity'},{a:13,ap:'value',b:11,bp:'b'},
-{a:14,ap:'next',b:15,bp:'in'},{a:15,ap:'next',b:16,bp:'in'},{a:16,ap:'next',b:17,bp:'in'}
-]}
 const wall=(n,x,y,w,h)=>ent({name:n,x,y,w,h,color:'#3b3355',body:'static',z:-1})
 sc.entities.push(
 ent({name:'Floor',x:0,y:0,w:1200,h:800,color:'#25213a',z:-5}),
 wall('Wall N',0,-416,1232,32),wall('Wall S',0,416,1232,32),wall('Wall W',-616,0,32,800),wall('Wall E',616,0,32,800),
 wall('Pillar 1',-240,-120,80,80),wall('Pillar 2',240,120,80,80),wall('Pillar 3',240,-200,80,80),wall('Pillar 4',-240,200,80,80),
 ent({name:'Hero',x:0,y:0,w:32,h:32,shape:'circle',color:'#7bf1a8',body:'dynamic',gravityScale:0,tags:['player'],z:5,script:{mode:'code',code:topCode,blocks:null,nodes:null}}),
-ent({name:'Chaser',x:-480,y:-300,w:34,h:34,color:'#ff4d6a',body:'dynamic',gravityScale:0,tags:['enemy'],z:4,script:{mode:'nodes',code:'',blocks:null,nodes:chase}})
+ent({name:'Chaser',x:-480,y:-300,w:34,h:34,color:'#ff4d6a',body:'dynamic',gravityScale:0,tags:['enemy'],z:4,script:{mode:'events',code:'',blocks:null,nodes:null,events:chaseHit()}})
 )
 const pts=[[-460,-320],[460,-320],[-460,320],[460,320],[0,-300],[0,300]]
 pts.forEach((q,i)=>sc.entities.push(ent({name:'Gem '+(i+1),x:q[0],y:q[1],w:22,h:22,color:'#4cc9f0',body:'trigger',tags:['gem'],rot:45,script:{mode:'blocks',code:'',blocks:JSON.parse(JSON.stringify(gem)),nodes:null}})))

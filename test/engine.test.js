@@ -21,7 +21,7 @@ const step=(g,n)=>{for(let i=0;i<n;i++)g.update(1/60)}
 const key=(g,k,down)=>{if(down){g.keys.add(k);g.pressedSet.add(k)}else g.keys.delete(k)}
 ;(async()=>{
 const project=Sample.make()
-const env={Blockly,gen,blocks:Blocks,nodes:Nodes,transpile}
+const env={Blockly,gen,blocks:Blocks,nodes:Nodes,events:require('../src/events.js'),transpile}
 const {scripts,errors}=await Compiler.compileProject(project,env)
 assert.deepStrictEqual(errors,[])
 assert.strictEqual(Object.keys(scripts).length,6)
