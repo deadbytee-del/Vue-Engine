@@ -1496,9 +1496,10 @@ function toolboxFor(tb){return Object.assign({},tb,{contents:isBeg()?tb.contents
 function loadBlockly(){
 if(blkP)return blkP
 blkP=new Promise((res,rej)=>{
-const ss=$$('script[data-lazy]')
+const ss=$$('script[data-lazy]'),amd=window.define
+window.define=undefined
 let n=ss.length
-for(const s of ss){const e=document.createElement('script');e.async=false;e.src=s.dataset.lazy;e.onload=()=>{if(--n===0)res()};e.onerror=()=>rej(new Error('Could not load Blockly'));document.head.append(e)}
+for(const s of ss){const e=document.createElement('script');e.async=false;e.src=s.dataset.lazy;e.onload=()=>{if(--n===0){window.define=amd;res()}};e.onerror=()=>{window.define=amd;rej(new Error('Could not load Blockly'))};document.head.append(e)}
 }).then(()=>{
 const r=VueBlocks.init(Blockly,Blockly.JavaScript,window.javascript.Order)
 S.toolboxAll=r.toolbox
