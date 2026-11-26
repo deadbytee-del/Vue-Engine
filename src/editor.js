@@ -1259,6 +1259,7 @@ h('div',{class:'hint',style:'margin-top:8px',text:'Scripts can call self.playSou
 ],h('button',{class:'ib',title:'Remove',html:ic('x',13),onclick:e=>{e.stopPropagation();snap();delete d.sound;delete d.soundVol;delete d.soundLoop;delete d.soundAuto;buildInspector();renderHier()}})))
 }
 if(d.player)box.append(playerCard(d))
+for(const b of d.beh||[])box.append(behCard(d,b))
 if(d.body&&d.body!=='none'){
 const ph=[row('Body',field(d,'body','sel',[['static','Static: walls, floors'],['dynamic','Dynamic: falls, collides'],['trigger','Trigger: detects touches'],['none','None']]))]
 if(d.body==='dynamic')ph.push(...advRows(row('Gravity',field(d,'gravityScale','num'),'gravityScale',d,0.05)))
@@ -1274,6 +1275,7 @@ h('div',{class:'hint',style:'margin-top:8px',text:'Only the '+m+' version runs. 
 const add=h('button',{class:'addc',html:ic('plus',14)+'Add Component',onclick:()=>{
 const r=add.getBoundingClientRect(),items=[]
 if(!d.body||d.body==='none')items.push({head:'Physics'},{ic:'physics',label:'Static body',fn:()=>{snap();d.body='static';afterEdit('body')}},{ic:'physics',label:'Dynamic body',fn:()=>{snap();d.body='dynamic';afterEdit('body')}},{ic:'physics',label:'Trigger',fn:()=>{snap();d.body='trigger';afterEdit('body')}})
+for(const c of BEH_CATS)items.push({head:c},...BH.NAMES.filter(n=>BH.BEH[n].cat===c&&!(d.beh||[]).some(b=>b.type===n)).map(n=>({ic:'gamepad',label:n,sub:BH.BEH[n].desc,fn:()=>addBeh(d,n)})),...Object.keys(userBeh()).filter(k=>BH.BEH[userBeh()[k].type].cat===c).map(k=>({ic:'gamepad',label:k+' (mine)',sub:BH.BEH[userBeh()[k].type].desc,fn:()=>addBeh(d,userBeh()[k].type,BH.norm(userBeh()[k]))})))
 if(!d.player)items.push({head:'Player'},...Object.keys(VueRuntime.PC_PRESETS).map(n=>({ic:'gamepad',label:'Player controller: '+n,fn:()=>attachPlayer(d,VueRuntime.pcPreset(n))})),...Object.keys(userPresets()).map(n=>({ic:'gamepad',label:'Player controller: '+n+' (mine)',fn:()=>attachPlayer(d,VueRuntime.pcNorm(userPresets()[n]))})))
 if(!d.script)items.push({head:'Behavior'},{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')},{ic:'events',label:'Event sheet',fn:()=>newScript(d,'events')},...(isBeg()&&!S.advOpen?[]:[{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')}]))
 if(d.sound==null||(!t3&&!d.anims))items.push({head:'Media'})
@@ -1284,6 +1286,43 @@ if(!items.length)items.push({head:'All components added'})
 showMenu($('#ctx'),r.left,r.bottom+4,items,r.width)
 }})
 box.append(add)
+}
+const BH=VueBehaviors,BEH_CATS=['Combat','Items','Level','Vehicles','Sports','Game rules','Story']
+const userBeh=()=>ls.get('vue.beh.presets',{})
+const human=k=>k.replace(/([A-Z])/g,' $1').replace(/^./,c=>c.toUpperCase())
+function addBeh(d,type,vals){
+snap()
+d.beh=(d.beh||[]).filter(x=>x.type!==type)
+d.beh.push(vals||BH.make(type,is3()))
+if((type==='Ball'||type==='Vehicle')&&(!d.body||d.body==='none'||d.body==='static'))d.body='dynamic'
+afterEdit('body')
+buildInspector()
+renderHier()
+}
+function behCard(d,b){
+const B=BH.BEH[b.type]
+Object.assign(b,BH.norm(b))
+const ctl=f=>{
+let el
+if(f.t==='bool'){el=h('input',{type:'checkbox',class:'sw'});el.checked=!!b[f.k];el.addEventListener('change',()=>{snap();b[f.k]=el.checked;markDirty();S.game.refresh()})}
+else if(f.t==='sel'){el=h('select');for(const[v,tx]of f.o)el.append(h('option',{value:v,text:tx}));el.value=b[f.k];el.addEventListener('change',()=>{snap();b[f.k]=el.value;markDirty();S.game.refresh()})}
+else{
+el=h('input',{type:f.t==='num'?'number':'text',spellcheck:'false'})
+if(f.t==='num')el.step='any'
+el.value=b[f.k]
+el.addEventListener('input',()=>{if(!S.editing){snap();S.editing=true}b[f.k]=f.t==='num'?num(el.value):el.value;markDirty()})
+el.addEventListener('change',()=>{S.editing=false;S.game.refresh()})
+}
+return el
+}
+const rw=f=>{const r=row(human(f.k),ctl(f));r.title=f.tip;return r}
+const basic=[h('div',{class:'hint',text:B.desc}),...B.fields.filter(f=>!f.adv).map(rw)]
+const mine=Object.keys(userBeh()).filter(k=>userBeh()[k].type===b.type)
+const pr=h('select',{title:'Load one of your saved presets'},h('option',{value:'',text:'Choose a preset'}),h('option',{value:'*',text:'Defaults'}),...mine.map(k=>h('option',{value:k,text:k})))
+pr.addEventListener('change',()=>{const v=pr.value;if(!v)return;snap();const i=d.beh.indexOf(b);d.beh[i]=v==='*'?BH.make(b.type,is3()):BH.norm(userBeh()[v]);markDirty();S.game.refresh();buildInspector()})
+const save=h('button',{class:'btn sm',html:ic('save',13)+'Save as preset',onclick:async()=>{const n=await dialog({title:'Preset name',input:d.name,buttons:[{label:'Cancel',value:null},{label:'Save',value:true,primary:true}]});if(n&&n.trim){const u=userBeh();u[n.trim()]=clone(b);ls.set('vue.beh.presets',u);toast('Saved preset '+n.trim(),'ok');buildInspector()}}})
+const adv=[...B.fields.filter(f=>f.adv).map(rw),row('Preset',pr),save]
+return card('beh'+b.type,b.type,'gamepad',[...basic,...advRows(adv)],h('button',{class:'ib',title:'Remove',html:ic('x',13),onclick:e=>{e.stopPropagation();snap();d.beh=d.beh.filter(x=>x!==b);if(!d.beh.length)delete d.beh;S.game.refresh();buildInspector();renderHier()}}))
 }
 const userPresets=()=>ls.get('vue.player.presets',{})
 function attachPlayer(d,obj){
@@ -1835,7 +1874,9 @@ if(!it)continue
 if(it.sep){el.append(h('div',{class:'msep'}));continue}
 if(it.head){el.append(h('div',{class:'mh',text:it.head}));continue}
 const m=h('div',{class:'mi'+(it.dis?' dis':''),html:ic(it.ic||'chevr',15)})
-m.append(h('span',{text:it.label}))
+const mt=h('span',{class:'mt'},h('span',{text:it.label}))
+if(it.sub)mt.append(h('small',{class:'msub',text:it.sub}))
+m.append(mt)
 if(it.kbd)m.append(h('kbd',{text:it.kbd}))
 m.addEventListener('click',()=>{closePops();if(it.fn)it.fn()})
 el.append(m)

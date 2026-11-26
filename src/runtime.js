@@ -1,5 +1,6 @@
 (function(root){
 const STEP=1/60,CELL=128,MAXP=2048,DEG=Math.PI/180,OFF=32768
+const BH=root.VueBehaviors||(typeof require!=='undefined'&&typeof module!=='undefined'?require('./behaviors.js'):null)
 const EXT=root.VueExt||(root.VueExt={list:{},register(d){this.list[d.id]=d;return d}})
 const norm=k=>{k=String(k).toLowerCase();return k===' '?'space':k}
 const pk=(x,y)=>(x+OFF)*65536+(y+OFF)
@@ -172,6 +173,8 @@ this.soundLoop=!!d.soundLoop
 this.soundAuto=!!d.soundAuto
 if(d.player&&!pcFull(d.player))Object.assign(d.player,pcNorm(d.player))
 this.pc=d.player||null
+this.bh=null
+if(d.beh&&d.beh.length&&BH&&this.game){this.bh=d.beh.map(BH.runtime).filter(Boolean);if(this.bh.length)this.game.hasBh=true;else this.bh=null}
 if(this.pc&&this.game)this.game.hasPc=true
 if(this.shape==='tilemap'){
 this.tileset=d.tileset||''
@@ -203,9 +206,10 @@ for(let cx=x0;cx<=x1;cx++)for(let cy=y0;cy<=y1;cy++)if(this.tiles.has(pk(cx,cy))
 return false
 }
 makePlayer(n){this.game.pcAttach(this,n)}
-get hp(){return this._pcs?this._pcs.hp:0}
-hurt(n){if(this._pcs)this.game.pcHurt(this,+n||0)}
-heal(n){if(this._pcs)this._pcs.hp=Math.min(this.pc.health.max,this._pcs.hp+(+n||0))}
+get hp(){return this._hb?this._hb._s.hp:this._pcs?this._pcs.hp:0}
+hurt(n){if(this._hb)this.game.bhHurt(this,+n||0);else if(this._pcs)this.game.pcHurt(this,+n||0)}
+heal(n){if(this._hb)this._hb._s.hp=Math.min(this._hb.max,this._hb._s.hp+(+n||0));else if(this._pcs)this._pcs.hp=Math.min(this.pc.health.max,this._pcs.hp+(+n||0))}
+attachBehavior(t,o){return this.game.bhAttach(this,t,o)}
 hasTag(t){return this.tags.indexOf(t)>=0}
 addTag(t){if(!this.hasTag(t))this.tags.push(String(t))}
 removeTag(t){const i=this.tags.indexOf(t);if(i>=0)this.tags.splice(i,1)}
@@ -315,6 +319,9 @@ this.vol=1
 this.pcNull={}
 this.hasPc=false
 this.pcE=null
+this.hasBh=false
+this.scores={}
+this.ch={}
 this.vue=this.makeApi()
 this.loop=this.loop.bind(this)
 this.snapN=0
@@ -363,6 +370,9 @@ return s[0]
 }
 loadScene(k){
 this.hasPc=false
+this.hasBh=false
+this.scores={}
+this.ch={}
 this.pcE=null
 const sc=this.findScene(k)
 this.scene=sc
@@ -505,6 +515,50 @@ for(let i=0;i<l.length;i++)this.call(l[i],e,a,b)
 fireAll(n,a,b){
 const es=this.entities
 for(let i=0;i<es.length;i++){const e=es[i];if(e.alive&&e.hd&&e.hd[n])this.fire(e,n,a,b)}
+}
+bhAttach(e,t,o){
+if(!e||!BH||!BH.BEH[t])return null
+const r=BH.runtime(Object.assign(BH.make(t,this.is3d),o||{},{type:t}))
+if(!e.bh)e.bh=[]
+e.bh=e.bh.filter(x=>x.type!==t)
+e.bh.push(r)
+this.hasBh=true
+return r
+}
+bhHurt(e,n){
+const b=e._hb,s=b._s
+if(s.inv>0||s.hp<=0||n<=0)return
+s.hp=Math.max(0,s.hp-n)
+s.inv=b.invuln
+s.since=0
+this.fire(e,'beh:hurt',n)
+if(s.hp<=0){
+this.fire(e,'beh:death')
+if(b.onDeath==='destroy')e.destroy()
+else if(b.onDeath==='respawn'){this.vue.respawn(e);s.hp=b.max}
+}
+}
+bhUpdate(dt){
+const es=this.entities
+for(let i=0;i<es.length;i++){
+const e=es[i]
+if(!e.alive||!e.bh)continue
+if(!e._st)e._st=[e.x,e.y,e.z]
+if(e._tp>0)e._tp-=dt
+for(let j=0;j<e.bh.length;j++){
+const b=e.bh[j],B=BH.BEH[b.type]
+if(!b._i){b._i=1;if(B.init)B.init(this,e,b)}
+if(B.upd)B.upd(this,e,b,dt)
+}
+}
+}
+bhPost(dt){
+const es=this.entities
+for(let i=0;i<es.length;i++){
+const e=es[i]
+if(!e.alive||!e.bh)continue
+for(let j=0;j<e.bh.length;j++){const b=e.bh[j],B=BH.BEH[b.type];if(B.post&&b._i)B.post(this,e,b,dt)}
+}
 }
 pcAttach(e,n){
 if(!e)return
@@ -733,6 +787,41 @@ get time(){return g.time},
 get player(){return g.pcE&&g.pcE.pc?g.pcE.pc:g.pcNull},
 get playerEntity(){return g.pcE||null},
 playerPreset:(e,n)=>g.pcAttach(ent(e),n),
+behavior:(e,t,o)=>g.bhAttach(ent(e),t,o),
+behaviors:()=>BH?BH.NAMES.slice():[],
+channel:(n,on)=>{g.ch[n]=on===undefined?true:!!on},
+get scores(){return g.scores},
+score:(t,by)=>{g.scores[t]=(g.scores[t]||0)+(by==null?1:+by);return g.scores[t]},
+give:(e,k,n)=>{e=ent(e);if(!e)return;e._inv=e._inv||{};e._inv[k]=(e._inv[k]||0)+(n==null?1:+n)},
+take:(e,k,n)=>{e=ent(e);if(!e||!e._inv)return false;n=n==null?1:+n;if((e._inv[k]||0)<n)return false;e._inv[k]-=n;return true},
+itemCount:(e,k)=>{e=ent(e);return e&&e._inv&&e._inv[k]||0},
+respawn:e=>{
+e=ent(e)
+if(!e)return
+const p=e._cp||e._st||(e._pcs?[e._pcs.sx,e._pcs.sy,e._pcs.sz]:null)
+if(!p)return
+e.x=p[0];e.y=p[1];if(g.is3d)e.z=p[2];e.vx=0;e.vy=0;e.vz=0
+if(e._hb)e._hb._s.hp=e._hb.max
+else if(e._pcs)e._pcs.hp=e.pc.health.max
+},
+shoot:(e,w)=>{
+e=ent(e)
+if(!e||!w||!w.prefab)return null
+const s=w._s||(w._s={cd:0,ammo:-1})
+if(s.cd>0||s.ammo===0)return null
+s.cd=w.rate||0
+if(s.ammo>0)s.ammo--
+const is3=g.is3d
+const ang=w.angle!=null?w.angle:is3?(e.ry||0):e._pcs?(String(e.pc.type).indexOf('topdown')===0?Math.atan2(e._pcs.dy,e._pcs.dx)/DEG:(e._pcs.face<0?180:0)):(e.rot||0)
+const a=ang*DEG,off=w.offset==null?24:w.offset
+const fx=is3?-Math.sin(a):Math.cos(a),fy=is3?0:Math.sin(a),fz=is3?-Math.cos(a):0
+const n=g.spawn(w.prefab,e.x+fx*off,e.y+fy*off,is3?e.z+fz*off:undefined)
+if(!n)return null
+if(is3)n.ry=ang;else n.rot=ang
+n._owner=e
+g.fire(e,'beh:shoot',n)
+return n
+},
 playerPresets:()=>Object.keys(PC_PRESETS),
 get dt(){return STEP},
 get width(){return g.w},
@@ -1279,8 +1368,10 @@ if(k>=1){tw.splice(i,1);w.res()}
 }
 if(this.cs)this.csUpdate(dt)
 if(this.hasPc)this.pcUpdate(dt)
+if(this.hasBh)this.bhUpdate(dt)
 if(this.is3d)this.physics3(dt);else this.physics(dt)
 if(this.hasPc)this.pcPost(dt)
+if(this.hasBh)this.bhPost(dt)
 if(this.hier.length)this.updateHier()
 if(this.exts.length)this.hk('update',dt)
 this.events()

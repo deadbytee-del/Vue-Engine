@@ -1,6 +1,7 @@
 (function(root){
 const N=typeof module!=='undefined'&&module.exports?require('./nodedefs.js'):root.VueNodes
 const J=JSON.stringify
+const BEHN=(root.VueBehaviors||(typeof require!=='undefined'?require('./behaviors.js'):{NAMES:[]})).NAMES
 const ND=N.defs
 const OPS=['==','!=','<','>','<=','>='].map(o=>[o,o])
 const fp=(n,t,d,o)=>({n,t,d,o,f:1})
@@ -30,6 +31,11 @@ EV.goal={title:'When a goal is scored',cat:'Behaviors',in:[],args:['ball'],ev:()
 EV.enter={title:'When something enters this zone',cat:'Behaviors',in:[],args:['other'],ev:()=>'beh:enter'}
 EV.opened={title:'When this opens',cat:'Behaviors',in:[],args:[],ev:()=>'beh:open'}
 EV.checkpoint={title:'When a checkpoint is reached',cat:'Behaviors',in:[],args:['who'],ev:()=>'beh:checkpoint'}
+EV.shoot={title:'When this shoots',cat:'Behaviors',in:[],args:['shot'],ev:()=>'beh:shoot'}
+EV.hit={title:'When this hits something',cat:'Behaviors',in:[],args:['other'],ev:()=>'beh:hit'}
+EV.win={title:'When a team wins',cat:'Behaviors',in:[],args:['team'],ev:()=>'beh:win'}
+EV.timeup={title:'When time runs out',cat:'Behaviors',in:[],args:[],ev:()=>'beh:timeup'}
+EV.dialogue={title:'When it finishes talking',cat:'Behaviors',in:[],args:[],ev:()=>'beh:dialogue'}
 const C=(title,params,x,cat)=>({title,cat:cat||'Common',in:params,x})
 const COND={
 key:C('Key is held',[fp('key','sel','space',N.KEYS)],(v,a)=>`vue.key(${a('key')})`,'Input'),
@@ -61,6 +67,7 @@ ACT.setg=A('Set global variable',[fp('name','str','score'),pp('value','any',0)],
 ACT.addg=A('Change global variable',[fp('name','str','score'),pp('by','num',1)],(v,a)=>`vue.vars[${a('name')}]=(+vue.vars[${a('name')}]||0)+${a('by')};\n`)
 ACT.setl=A('Set local variable',[fp('name','str','count'),pp('value','any',0)],(v,a)=>`${/^[A-Za-z_]\w*$/.test(v.name||'count')?v.name||'count':'count'}=${a('value')};\n`)
 ACT.addl=A('Change local variable',[fp('name','str','count'),pp('by','num',1)],(v,a)=>{const n=/^[A-Za-z_]\w*$/.test(v.name||'count')?v.name||'count':'count';return`${n}=(+${n}||0)+${a('by')};\n`})
+ACT.beh=A('Give this a behavior',[fp('type','sel','Health',BEHN.map(n=>[n,n]))],(v,a)=>`self.attachBehavior(${a('type')});\n`,'Behaviors')
 ACT.hurtt=A('Hurt entity',[pp('entity','ent','Player'),pp('amount','num',10)],(v,a)=>`{const t=${a('entity')};if(t)t.hurt(${a('amount')});}\n`,'Behaviors')
 ACT.healt=A('Heal entity',[pp('entity','ent','self'),pp('amount','num',10)],(v,a)=>`{const t=${a('entity')};if(t)t.heal(${a('amount')});}\n`,'Behaviors')
 ACT.respawn=A('Respawn at checkpoint',[pp('entity','ent','self')],(v,a)=>`vue.respawn(${a('entity')});\n`,'Behaviors')

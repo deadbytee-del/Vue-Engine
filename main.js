@@ -20,7 +20,7 @@ if(!ts)return{code:'',errors:['TypeScript compiler is not available']}
 const r=ts.transpileModule(String(src),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,strict:false,esModuleInterop:false},reportDiagnostics:true})
 return{code:r.outputText,errors:(r.diagnostics||[]).map(d=>ts.flattenDiagnosticMessageText(d.messageText,'\n'))}
 })
-ipcMain.handle('runtime:source',()=>['vwr.js','runtime.js','render3d.js'].map(f=>fs.readFileSync(path.join(__dirname,'src',f),'utf8')).join('\n;\n'))
+ipcMain.handle('runtime:source',()=>['vwr.js','behaviors.js','runtime.js','render3d.js'].map(f=>fs.readFileSync(path.join(__dirname,'src',f),'utf8')).join('\n;\n'))
 ipcMain.handle('three:source',()=>fs.readFileSync(path.join(__dirname,'node_modules','three','build','three.min.js'),'utf8'))
 ipcMain.handle('shell:show',(e,p)=>{try{shell.showItemInFolder(p);return true}catch(x){return false}})
 ipcMain.handle('project:read',(e,p)=>{try{return{path:p,data:fs.readFileSync(p,'utf8')}}catch(x){return null}})
