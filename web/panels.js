@@ -53,7 +53,7 @@ c.beginPath();c.ellipse(o+16,29,9,2,0,0,7);c.fill()
 const l1=Math.sin(ph)*4,l2=-l1
 c.fillStyle='#3b2a6b'
 c.fillRect(o+11+l1,22-b,3,6);c.fillRect(o+18+l2,22-b,3,6)
-c.fillStyle='#9d5cff'
+c.fillStyle='#f0944a'
 c.beginPath();c.ellipse(o+16,16-b,10*sq,10/sq,0,0,7);c.fill()
 c.fillStyle='#c9a6ff'
 c.beginPath();c.ellipse(o+12,12-b,3,2,-0.5,0,7);c.fill()
@@ -373,19 +373,19 @@ pvl.textContent='Frame '+(i+1)+' / '+n+' · '+a.fps+' fps'
 loop()
 function drawSheet(){
 const im=imgOf(a.sheet),c=scv.getContext('2d')
-if(!im||!im.naturalWidth){scv.width=420;scv.height=60;c.fillStyle='#6b6385';c.font='13px Inter';c.fillText(sheets.length?'Choose a sprite sheet above':'Import a sprite sheet in Assets, or click Sample',12,34);return}
+if(!im||!im.naturalWidth){scv.width=420;scv.height=60;c.fillStyle='#86827a';c.font='13px Inter';c.fillText(sheets.length?'Choose a sprite sheet above':'Import a sprite sheet in Assets, or click Sample',12,34);return}
 const k=Math.max(1,Math.min(4,Math.floor(96/im.naturalHeight)||1))
 scv.width=im.naturalWidth*k;scv.height=im.naturalHeight*k
 c.imageSmoothingEnabled=false
 c.drawImage(im,0,0,scv.width,scv.height)
 const cols=Math.max(1,Math.floor(im.naturalWidth/a.fw)),rows=Math.max(1,Math.floor(im.naturalHeight/a.fh))
-c.strokeStyle='rgba(157,92,255,0.7)'
+c.strokeStyle='rgba(240,148,74,0.7)'
 c.lineWidth=1
 c.font='600 10px Inter'
 for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
 c.strokeRect(x*a.fw*k+0.5,y*a.fh*k+0.5,a.fw*k-1,a.fh*k-1)
 c.fillStyle='rgba(10,9,16,0.7)';c.fillRect(x*a.fw*k+1,y*a.fh*k+1,16,12)
-c.fillStyle='#ece8f6';c.fillText(String(y*cols+x),x*a.fw*k+3,y*a.fh*k+10)
+c.fillStyle='#e6e3dd';c.fillText(String(y*cols+x),x*a.fw*k+3,y*a.fh*k+10)
 }
 }
 }

@@ -1,14 +1,14 @@
 {
  "name": "vue-engine",
  "productName": "Vue Engine",
- "version": "1.5.0",
+ "version": "1.6.0",
  "description": "Vue Engine - 2D game creation engine with blocks, node graphs and typed code",
  "main": "main.js",
  "author": "NexARC",
  "license": "MIT",
  "scripts": {
   "start": "electron .",
-  "test": "node test/engine.test.js && node test/features.test.js && node test/vwr.test.js && node test/ext.test.js && node test/zip.test.js",
+  "test": "node test/engine.test.js && node test/features.test.js && node test/vwr.test.js && node test/ext.test.js && node test/zip.test.js && node test/player.test.js",
   "dist": "electron-builder --win portable --publish never",
   "build:vwr": "sh vwr/build.sh"
  },

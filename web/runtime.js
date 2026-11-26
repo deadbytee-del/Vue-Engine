@@ -32,6 +32,63 @@ return{x:T[0]*dx+T[1]*dy+T[2]*dz,y:T[3]*dx+T[4]*dy+T[5]*dz,z:T[6]*dx+T[7]*dy+T[8
 const a=-p.rot*DEG,dx=w.x-p.x,dy=w.y-p.y
 return{x:dx*Math.cos(a)-dy*Math.sin(a),y:dx*Math.sin(a)+dy*Math.cos(a),rot:(w.rot||0)-p.rot}
 }
+const SHAPES2=new Set(['pill','rrect','triangle','hexagon','star','ring','arrow'])
+const LOOPS=new Map()
+const arcPts=(cx,cy,rx,ry,a0,a1,n,out)=>{for(let i=0;i<=n;i++){const a=a0+(a1-a0)*i/n;out.push([cx+Math.cos(a)*rx,cy+Math.sin(a)*ry])}}
+function shapeLoops(s,w,h){
+w=Math.abs(w);h=Math.abs(h)
+const key=s+'|'+w+'|'+h
+let r=LOOPS.get(key)
+if(r)return r
+const a=w/2,b=h/2,L=[],P=Math.PI
+if(s==='pill'){const p=[],q=Math.min(a,b);if(h>=w){arcPts(0,-b+q,q,q,P,2*P,12,p);arcPts(0,b-q,q,q,0,P,12,p)}else{arcPts(-a+q,0,q,q,P/2,P*1.5,12,p);arcPts(a-q,0,q,q,-P/2,P/2,12,p)}L.push(p)}
+else if(s==='rrect'){const q=Math.min(a,b)*0.4,p=[];arcPts(a-q,-b+q,q,q,-P/2,0,6,p);arcPts(a-q,b-q,q,q,0,P/2,6,p);arcPts(-a+q,b-q,q,q,P/2,P,6,p);arcPts(-a+q,-b+q,q,q,P,P*1.5,6,p);L.push(p)}
+else if(s==='triangle')L.push([[0,-b],[a,b],[-a,b]])
+else if(s==='hexagon'){const p=[];for(let i=0;i<6;i++){const t=i*P/3;p.push([Math.cos(t)*a,Math.sin(t)*b])}L.push(p)}
+else if(s==='star'){const p=[];for(let i=0;i<10;i++){const t=-P/2+i*P/5,k=i%2?0.45:1;p.push([Math.cos(t)*a*k,Math.sin(t)*b*k])}L.push(p)}
+else if(s==='ring'){const o=[],n=[];arcPts(0,0,a,b,0,2*P,32,o);arcPts(0,0,a*0.6,b*0.6,0,2*P,32,n);L.push(o,n)}
+else if(s==='arrow')L.push([[-a,-b*0.3],[a*0.1,-b*0.3],[a*0.1,-b],[a,0],[a*0.1,b],[a*0.1,b*0.3],[-a,b*0.3]])
+else{const p=[];arcPts(0,0,a,b,0,2*P,32,p);L.push(p)}
+if(LOOPS.size>300)LOOPS.clear()
+LOOPS.set(key,L)
+return L
+}
+const capHit2=(c,o,ep)=>{
+const v=c.h>=c.w,r=(v?c.w:c.h)/2,L=(v?c.h:c.w)/2-r,dx=Math.max(0,Math.abs(c.x-o.x)-o.w/2-ep),dy=Math.max(0,Math.abs(c.y-o.y)-o.h/2-ep),gx=v?dx:Math.max(0,dx-L),gy=v?Math.max(0,dy-L):dy
+return gx*gx+gy*gy<(r-0.001)*(r-0.001)
+}
+const capHit3=(c,o,ep)=>{
+const r=Math.min(c.w,c.d)/2,L=c.h/2-r,dx=Math.max(0,Math.abs(c.x-o.x)-o.w/2-ep),dz=Math.max(0,Math.abs(c.z-o.z)-o.d/2-ep),dy=Math.max(0,Math.abs(c.y-o.y)-o.h/2-ep),gy=Math.max(0,dy-L)
+return dx*dx+dz*dz+gy*gy<(r-0.001)*(r-0.001)
+}
+const PC_COMMON={type:'platformer',speed:240,accel:1800,friction:2200,maxSpeed:420,jumpHeight:120,jumps:1,coyote:0.1,buffer:0.12,gravityScale:1,airControl:0.6,runMult:1.6,crouch:true,
+dash:{on:false,speed:620,time:0.15,cooldown:0.6},mass:1,bounce:0,grip:1,layers:[],
+cam:{follow:true,zoom:1,smooth:0.12,lookAhead:40,deadzone:[0,0],bounds:null,dist:8,fov:70,height:1.6,sens:0.12},
+keys:{left:['a','arrowleft'],right:['d','arrowright'],up:['w','arrowup'],down:['s','arrowdown'],jump:['space','w','arrowup'],dash:['x'],run:['shift'],crouch:['s','arrowdown']},
+pad:true,touch:true,health:{max:100,respawn:true,rx:null,ry:null},anims:{idle:'idle',run:'run',jump:'jump',fall:'fall'}}
+const PC_TYPE={
+platformer:{},
+topdown4:{speed:170,accel:1400,friction:1800,maxSpeed:300,gravityScale:0,airControl:1,jumps:0,crouch:false,cam:{lookAhead:0}},
+topdown8:{type:'topdown8',speed:200,accel:1400,friction:1800,maxSpeed:340,gravityScale:0,airControl:1,jumps:0,crouch:false,cam:{lookAhead:0}},
+fps:{speed:6,accel:50,friction:40,maxSpeed:10,jumpHeight:1.4,gravityScale:1,airControl:0.4,runMult:1.7,jumps:1,crouch:false,dash:{speed:14,time:0.15,cooldown:0.8},cam:{follow:true,dist:0,height:1.6,fov:75,sens:0.12,lookAhead:0},keys:{jump:['space']}},
+tps:{speed:6,accel:50,friction:40,maxSpeed:10,jumpHeight:1.4,gravityScale:1,airControl:0.4,runMult:1.7,jumps:1,crouch:false,dash:{speed:14,time:0.15,cooldown:0.8},cam:{follow:true,dist:7,height:1.6,fov:70,sens:0.12,lookAhead:0},keys:{jump:['space']}}
+}
+const PC_PRESETS={'Platformer':{type:'platformer'},'Top-down RPG':{type:'topdown4'},'Shooter':{type:'topdown8',speed:230,dash:{on:true}},'FPS':{type:'fps'},'Racer-lite':{type:'topdown8',speed:380,accel:420,friction:160,maxSpeed:560,mass:2}}
+const deep=(a,b)=>{
+const o=Array.isArray(a)?a.slice():Object.assign({},a)
+if(b)for(const k in b){const v=b[k];o[k]=v&&typeof v==='object'&&!Array.isArray(v)&&a&&a[k]&&typeof a[k]==='object'&&!Array.isArray(a[k])?deep(a[k],v):Array.isArray(v)?v.slice():v&&typeof v==='object'?deep({},v):v}
+return o
+}
+function pcNorm(o){
+o=o||{}
+const t=PC_TYPE[o.type]?o.type:'platformer'
+return deep(deep(PC_COMMON,PC_TYPE[t]),Object.assign({},o,{type:t}))
+}
+const pcFull=o=>!!(o.keys&&o.health&&o.dash&&o.anims&&o.cam&&o.cam.deadzone&&o.cam.sens!=null&&o.layers)
+function pcPreset(n){return pcNorm(PC_PRESETS[n]||{type:'platformer'})}
+const pcAp=(v,t,a)=>v<t?Math.min(t,v+a):Math.max(t,v-a)
+const pcAny=(l,s)=>{for(let i=0;i<l.length;i++)if(s.has(norm(l[i])))return true;return false}
+const pcLayer=(e,s)=>{const l=e.pc&&e.pc.layers;if(!l||!l.length)return true;for(let i=0;i<l.length;i++)if(s.tags.indexOf(l[i])>=0)return true;return false}
 class Entity{
 constructor(d,game){
 this._x=0;this._y=0;this._z=0;this._w=0;this._h=0;this._d=0
@@ -113,6 +170,9 @@ this.sound=d.sound||''
 this.soundVol=d.soundVol==null?1:d.soundVol
 this.soundLoop=!!d.soundLoop
 this.soundAuto=!!d.soundAuto
+if(d.player&&!pcFull(d.player))Object.assign(d.player,pcNorm(d.player))
+this.pc=d.player||null
+if(this.pc&&this.game)this.game.hasPc=true
 if(this.shape==='tilemap'){
 this.tileset=d.tileset||''
 this.ts=d.ts||16
@@ -142,6 +202,10 @@ const s=this.cell,x0=Math.floor((o.x-o.w/2-ep-this.x)/s),x1=Math.floor((o.x+o.w/
 for(let cx=x0;cx<=x1;cx++)for(let cy=y0;cy<=y1;cy++)if(this.tiles.has(pk(cx,cy)))return true
 return false
 }
+makePlayer(n){this.game.pcAttach(this,n)}
+get hp(){return this._pcs?this._pcs.hp:0}
+hurt(n){if(this._pcs)this.game.pcHurt(this,+n||0)}
+heal(n){if(this._pcs)this._pcs.hp=Math.min(this.pc.health.max,this._pcs.hp+(+n||0))}
 hasTag(t){return this.tags.indexOf(t)>=0}
 addTag(t){if(!this.hasTag(t))this.tags.push(String(t))}
 removeTag(t){const i=this.tags.indexOf(t);if(i>=0)this.tags.splice(i,1)}
@@ -156,7 +220,11 @@ ep=ep||0
 if(o.shape==='tilemap')return o.tileHit(this,ep)
 if(this.shape==='tilemap')return this.tileHit(o,ep)
 const e2=ep*2
-if(this.game.is3d)return Math.abs(this.x-o.x)*2<this.w+o.w+e2&&Math.abs(this.y-o.y)*2<this.h+o.h+e2&&Math.abs(this.z-o.z)*2<this.d+o.d+e2
+if(this.game.is3d){
+if(this.shape==='capsule'||o.shape==='capsule'){if(!(Math.abs(this.x-o.x)*2<this.w+o.w+e2&&Math.abs(this.y-o.y)*2<this.h+o.h+e2&&Math.abs(this.z-o.z)*2<this.d+o.d+e2))return false;return this.shape==='capsule'?capHit3(this,o,ep):capHit3(o,this,ep)}
+return Math.abs(this.x-o.x)*2<this.w+o.w+e2&&Math.abs(this.y-o.y)*2<this.h+o.h+e2&&Math.abs(this.z-o.z)*2<this.d+o.d+e2
+}
+if(this.shape==='pill'||o.shape==='pill')return this.shape==='pill'?capHit2(this,o,ep):capHit2(o,this,ep)
 return Math.abs(this.x-o.x)*2<this.w+o.w+e2&&Math.abs(this.y-o.y)*2<this.h+o.h+e2
 }
 touching(tag){return this.game.touching(this,tag)}
@@ -244,6 +312,9 @@ this.lb=0
 this.sounds=new Set()
 this.musicH=null
 this.vol=1
+this.pcNull={}
+this.hasPc=false
+this.pcE=null
 this.vue=this.makeApi()
 this.loop=this.loop.bind(this)
 this.snapN=0
@@ -291,6 +362,8 @@ for(let i=0;i<s.length;i++)if(s[i].id===k||s[i].name===k)return s[i]
 return s[0]
 }
 loadScene(k){
+this.hasPc=false
+this.pcE=null
 const sc=this.findScene(k)
 this.scene=sc
 this.bg=sc.bg||'#1a1c23'
@@ -433,6 +506,142 @@ fireAll(n,a,b){
 const es=this.entities
 for(let i=0;i<es.length;i++){const e=es[i];if(e.alive&&e.hd&&e.hd[n])this.fire(e,n,a,b)}
 }
+pcAttach(e,n){
+if(!e)return
+e.pc=pcPreset(typeof n==='string'?n:'Platformer')
+if(n&&typeof n==='object')e.pc=pcNorm(n)
+this.hasPc=true
+e.body='dynamic'
+e._pcs=null
+this.pcE=e
+}
+pcState(e,c){return{coy:0,buf:0,jc:0,rise:false,dash:0,dcd:0,face:1,dx:1,dy:0,ax4:'x',cr:false,h0:e.h,hp:c.health.max,sx:e.x,sy:e.y,sz:e.z,lvy:0,gp:false,gd:false}}
+pcIn(c){
+const K=this.keys,P=this.pressedSet,k=c.keys
+if(this.cs&&this.cs.lock)return{ax:0,ay:0,jd:false,jp:false,dp:false,run:false,cr:false}
+let ax=(pcAny(k.right,K)?1:0)-(pcAny(k.left,K)?1:0),ay=(pcAny(k.down,K)?1:0)-(pcAny(k.up,K)?1:0),jd=pcAny(k.jump,K),jp=pcAny(k.jump,P),dp=pcAny(k.dash,P),run=pcAny(k.run,K),cr=pcAny(k.crouch,K)
+if(c.pad&&root.navigator&&navigator.getGamepads){
+const gp=(navigator.getGamepads()||[])[0]
+if(gp){
+const x=gp.axes[0]||0,y=gp.axes[1]||0,b=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed)
+if(Math.abs(x)>0.2)ax=x
+if(Math.abs(y)>0.2)ay=y
+jd=jd||b(0);jp=jp||(b(0)&&!this._gpj);dp=dp||(b(2)&&!this._gpd);run=run||b(7)
+this._gpj=b(0);this._gpd=b(2)
+}
+}
+return{ax,ay,jd,jp,dp,run,cr}
+}
+pcUpdate(dt){
+const es=this.entities
+let first=null
+for(let i=0;i<es.length;i++){
+const e=es[i]
+if(!e.alive||!e.pc)continue
+if(!first)first=e
+this.pcStep(e,dt)
+}
+if(!this.pcE||!this.pcE.alive||!this.pcE.pc)this.pcE=first
+}
+pcStep(e,dt){
+const c=e.pc,s=e._pcs||(e._pcs=this.pcState(e,c)),d3=this.is3d,i=this.pcIn(c),t=c.type
+if(e.body!=='dynamic')e.body='dynamic'
+const grav=Math.abs(this.gravity*c.gravityScale),air=e.grounded?1:c.airControl,mass=Math.max(0.1,c.mass)
+const run=i.run?c.runMult:1
+s.dcd=Math.max(0,s.dcd-dt)
+if(c.health&&(e.y>(d3?1e9:6000)||(d3&&e.y<-200)))s.hp=0
+if(s.hp<=0&&c.health.respawn!==false){e.x=c.health.rx==null?s.sx:c.health.rx;e.y=c.health.ry==null?s.sy:c.health.ry;if(d3)e.z=s.sz;e.vx=0;e.vy=0;if(d3)e.vz=0;s.hp=c.health.max;this.fireAll('msg:respawn',e)}
+const jump=()=>{const v=Math.sqrt(2*grav*Math.max(0,c.jumpHeight));e.vy=d3?v:-v;e.grounded=false;s.rise=true}
+if(t==='platformer'||t==='fps'||t==='tps'){
+if(e.grounded){s.coy=c.coyote;s.jc=0;s.rise=false}else s.coy=Math.max(0,s.coy-dt)
+if(i.jp)s.buf=c.buffer;else s.buf=Math.max(0,s.buf-dt)
+if(s.buf>0&&c.jumps>0){
+if(s.coy>0){jump();s.coy=0;s.jc=1;s.buf=0}
+else{if(s.jc===0)s.jc=1;if(s.jc<c.jumps){jump();s.jc++;s.buf=0}}
+}
+if(s.rise&&!i.jd&&(d3?e.vy>0:e.vy<0)){e.vy*=0.5;s.rise=false}
+if(s.rise&&(d3?e.vy<=0:e.vy>=0))s.rise=false
+}
+let gs=c.gravityScale
+let mx=0,my=0
+const crouching=t==='platformer'&&c.crouch&&i.cr&&e.grounded
+if(t==='platformer'){
+if(crouching&&!s.cr){s.h0=e.h;e.h=s.h0*0.6;e.y+=(s.h0-e.h)/2;s.cr=true}
+else if(!crouching&&s.cr){e.y-=(s.h0-e.h)/2;e.h=s.h0;s.cr=false}
+mx=i.ax
+if(i.ax!==0)s.face=i.ax>0?1:-1
+}else if(t==='topdown4'||t==='topdown8'){
+let ax=i.ax,ay=i.ay
+if(t==='topdown4'){if(ax&&ay){if(s.ax4==='x')ay=0;else ax=0}else if(ax)s.ax4='x';else if(ay)s.ax4='y'}
+else if(ax&&ay){const l=Math.hypot(ax,ay);ax/=l;ay/=l}
+mx=ax;my=ay
+if(ax||ay){s.dx=ax;s.dy=ay}
+if(ax!==0)s.face=ax>0?1:-1
+}else{
+const cam=this.camera,cc=c.cam
+if(this.mouse&&(this.scene.mouseLook||this.mouse.down)){cam.yaw-=this.mouse.dx*cc.sens;cam.pitch=clamp(cam.pitch+(t==='fps'?-1:1)*this.mouse.dy*cc.sens,t==='fps'?-85:-10,t==='fps'?85:75)}
+const f=-i.ay,sd=i.ax,l=Math.hypot(f,sd)||1,a=cam.yaw*DEG,fx=-Math.sin(a),fz=-Math.cos(a)
+mx=(fx*f-fz*sd)/Math.max(1,l)
+my=(fz*f+fx*sd)/Math.max(1,l)
+if(f||sd){s.dx=mx;s.dy=my}
+}
+const sp=Math.min(c.speed*run*(crouching?0.5:1),c.maxSpeed)
+const acc=(mx||my?c.accel:c.friction*(e.grounded?c.grip:1))*(d3||t==='platformer'?air:1)*dt/mass
+if(c.dash.on&&i.dp&&s.dcd<=0&&s.dash<=0){s.dash=c.dash.time;s.dcd=c.dash.cooldown}
+if(s.dash>0){
+s.dash-=dt
+const dl=t==='platformer'?[s.face,0]:[s.dx,s.dy]
+if(d3){e.vx=dl[0]*c.dash.speed;e.vz=dl[1]*c.dash.speed}else{e.vx=dl[0]*c.dash.speed;if(t!=='platformer')e.vy=dl[1]*c.dash.speed;else e.vy=0}
+if(t==='platformer')gs=0
+}else if(t==='platformer'){e.vx=pcAp(e.vx,mx*sp,acc)}
+else if(d3){e.vx=pcAp(e.vx,mx*sp,acc);e.vz=pcAp(e.vz,my*sp,acc)}
+else{e.vx=pcAp(e.vx,mx*sp,acc);e.vy=pcAp(e.vy,my*sp,acc)}
+e.gravityScale=gs
+if(d3){
+if(t==='fps')e.ry=this.camera.yaw
+else if(mx||my)e.ry=Math.atan2(-mx,-my)/DEG
+}else if(e.shape==='sprite'||e.anims)e.flipX=s.face<0
+if(e.anims){
+const mv=Math.abs(e.vx)+(t==='platformer'?0:Math.abs(e.vy))>10
+const n=t==='platformer'&&!e.grounded?(e.vy<0?c.anims.jump:c.anims.fall):mv?c.anims.run:c.anims.idle
+if(n&&e.anims[n])e.play(n)
+}
+s.lvy=e.vy
+}
+pcPost(dt){
+const es=this.entities,d3=this.is3d
+for(let i=0;i<es.length;i++){
+const e=es[i]
+if(!e.alive||!e.pc||!e._pcs)continue
+const c=e.pc,s=e._pcs
+const fall=d3?-s.lvy:s.lvy
+if(c.bounce>0&&e.grounded&&fall>(d3?3:200)){e.vy=d3?fall*c.bounce:-fall*c.bounce;e.grounded=false}
+}
+}
+pcHurt(e,n){const s=e._pcs;s.hp=Math.max(0,s.hp-n);if(s.hp<=0)this.fireAll('msg:playerdead',e)}
+pcCam(e,dt){
+const c=this.camera,pc=e.pc,cc=pc.cam,s=e._pcs
+if(this.is3d){
+c.follow=e;c.fov=cc.fov;c.smooth=cc.smooth;c.dist=pc.type==='fps'?0:cc.dist;c.eye=cc.height
+this.cam3(dt)
+return
+}
+c.follow=null
+if(!s)return
+c.zoom+=(cc.zoom-c.zoom)*Math.min(1,dt*8)
+const k=1-Math.pow(1-cc.smooth,dt*60),sp=Math.max(1,pc.speed),ah=cc.lookAhead||0
+const tx=e.x+(pc.type==='platformer'?clamp(e.vx/sp,-1,1):clamp(e.vx/sp,-1,1))*ah,ty=e.y+(pc.type==='platformer'?0:clamp(e.vy/sp,-1,1)*ah)
+const dz=cc.deadzone||[0,0]
+let gx=tx-clamp(tx-c.x,-dz[0],dz[0]),gy=ty-clamp(ty-c.y,-dz[1],dz[1])
+c.x+=(gx-c.x)*k
+c.y+=(gy-c.y)*k
+const b=cc.bounds
+if(b&&b.length===4){
+const hw=this.w/(2*c.zoom),hh=this.h/(2*c.zoom)
+c.x=b[2]-b[0]<=2*hw?(b[0]+b[2])/2:clamp(c.x,b[0]+hw,b[2]-hw)
+c.y=b[3]-b[1]<=2*hh?(b[1]+b[3])/2:clamp(c.y,b[1]+hh,b[3]-hh)
+}
+}
 startAll(){
 const es=this.entities.slice()
 for(const e of es){if(e.soundAuto)e.playSound();this.fire(e,'start')}
@@ -521,6 +730,10 @@ vars:g.vars,
 camera:g.camera,
 mouse:g.mouse,
 get time(){return g.time},
+get player(){return g.pcE&&g.pcE.pc?g.pcE.pc:g.pcNull},
+get playerEntity(){return g.pcE||null},
+playerPreset:(e,n)=>g.pcAttach(ent(e),n),
+playerPresets:()=>Object.keys(PC_PRESETS),
 get dt(){return STEP},
 get width(){return g.w},
 get height(){return g.h},
@@ -702,6 +915,7 @@ if(!this.is3d)for(const m of this.tms)if(m!==e&&m.alive&&(tag==null||tag===''||m
 return false
 }
 rect(e,sx,sy,sw,sh,ax){
+if(e.shape==='pill')return this.cap(e,sx,sy,sw,sh,ax)
 if(!(Math.abs(e.x-sx)*2<sw+e.w&&Math.abs(e.y-sy)*2<sh+e.h))return
 if(ax){
 if(e.vx>0||(e.vx===0&&e.x<sx))e.x=sx-(sw+e.w)/2
@@ -713,17 +927,52 @@ else e.y=sy+(sh+e.h)/2
 e.vy=0
 }
 }
+cap(e,sx,sy,sw,sh,ax){
+const v=e.h>=e.w,r=(v?e.w:e.h)/2,L=(v?e.h:e.w)/2-r
+const dx=Math.max(0,Math.abs(e.x-sx)-sw/2),dy=Math.max(0,Math.abs(e.y-sy)-sh/2),gx=v?dx:Math.max(0,dx-L),gy=v?Math.max(0,dy-L):dy
+if(gx*gx+gy*gy>=(r-0.001)*(r-0.001))return
+if(ax){
+const n=Math.sqrt(Math.max(0,r*r-gy*gy))+(v?0:L)
+if(e.vx>0||(e.vx===0&&e.x<sx))e.x=sx-sw/2-n
+else e.x=sx+sw/2+n
+e.vx=0
+}else{
+const n=Math.sqrt(Math.max(0,r*r-gx*gx))+(v?L:0)
+if(e.vy>0||(e.vy===0&&e.y<sy)){e.y=sy-sh/2-n;e.grounded=true}
+else e.y=sy+sh/2+n
+e.vy=0
+}
+}
+cap3(e,s,ax){
+const r=Math.min(e.w,e.d)/2,L=e.h/2-r,dx=Math.max(0,Math.abs(e.x-s.x)-s.w/2),dz=Math.max(0,Math.abs(e.z-s.z)-s.d/2),dy=Math.max(0,Math.abs(e.y-s.y)-s.h/2),gy=Math.max(0,dy-L)
+if(ax===0){
+const n=Math.sqrt(Math.max(0,r*r-dz*dz-gy*gy))
+if(e.vx>0||(e.vx===0&&e.x<s.x))e.x=s.x-s.w/2-n
+else e.x=s.x+s.w/2+n
+e.vx=0
+}else if(ax===2){
+const n=Math.sqrt(Math.max(0,r*r-dx*dx-gy*gy))
+if(e.vz>0||(e.vz===0&&e.z<s.z))e.z=s.z-s.d/2-n
+else e.z=s.z+s.d/2+n
+e.vz=0
+}else{
+const n=Math.sqrt(Math.max(0,r*r-dx*dx-dz*dz))+L
+if(e.vy<0||(e.vy===0&&e.y>s.y)){e.y=s.y+s.h/2+n;e.grounded=true}
+else e.y=s.y-s.h/2-n
+e.vy=0
+}
+}
 resolve(e,ax){
 const q=this.query(e,this.qr,this.sg)
 for(let i=0;i<q.length;i++){
 const s=q[i]
-if(s===e||!s.alive)continue
+if(s===e||!s.alive||!pcLayer(e,s))continue
 this.rect(e,s.x,s.y,s.w,s.h,ax)
 }
 const tms=this.tms
 for(let t=0;t<tms.length;t++){
 const m=tms[t]
-if(!m.alive||!m.solid||!m.tiles.size)continue
+if(!m.alive||!m.solid||!m.tiles.size||!pcLayer(e,m))continue
 const c=m.cell,x0=Math.floor((e.x-e.w/2-m.x)/c),x1=Math.floor((e.x+e.w/2-m.x-1e-6)/c),y0=Math.floor((e.y-e.h/2-m.y)/c),y1=Math.floor((e.y+e.h/2-m.y-1e-6)/c)
 for(let cx=x0;cx<=x1;cx++)for(let cy=y0;cy<=y1;cy++)if(m.tiles.has(pk(cx,cy)))this.rect(e,m.x+(cx+0.5)*c,m.y+(cy+0.5)*c,c,c,ax)
 }
@@ -743,7 +992,9 @@ lists(){
 const es=this.entities,st=this.statics||(this.statics=[]),dy=this.dyns||(this.dyns=[])
 const old=st.slice()
 st.length=0;dy.length=0
-for(let i=0;i<es.length;i++){const e=es[i];if(!e.alive)continue;const b=e._body;if(b==='static')st.push(e);else if(b==='dynamic'&&!e.par)dy.push(e)}
+let cap=false
+for(let i=0;i<es.length;i++){const e=es[i];if(!e.alive)continue;const b=e._body;if(b!=='none'&&(e.shape==='pill'||e.shape==='capsule'||(e.pc&&e.pc.layers&&e.pc.layers.length)))cap=true;if(b==='static')st.push(e);else if(b==='dynamic'&&!e.par)dy.push(e)}
+this.hasCap=cap
 if(old.length!==st.length)this.sDirty=true
 else for(let i=0;i<st.length;i++)if(old[i]!==st[i]){this.sDirty=true;break}
 this.listDirty=false
@@ -751,6 +1002,7 @@ this.listDirty=false
 physW(dt){
 const W=this.vwr(),d3=this.is3d
 if(this.listDirty||!this.statics)this.lists()
+if(this.hasCap)return false
 const es=this.statics
 let dirty=this.sDirty||W.d3!==d3,n=es.length
 if(!d3)for(const m of this.tms)if(m.alive&&m.solid){n+=m.tiles.size;if(m._ox!==m.x||m._oy!==m.y||m._oc!==m.cell){dirty=true;m._ox=m.x;m._oy=m.y;m._oc=m.cell}}
@@ -841,7 +1093,8 @@ res3(e,ax){
 const q=this.query(e,this.qr,this.sg)
 for(let i=0;i<q.length;i++){
 const s=q[i]
-if(s===e||!s.alive||!e.overlaps(s))continue
+if(s===e||!s.alive||!pcLayer(e,s)||!e.overlaps(s))continue
+if(e.shape==='capsule'){this.cap3(e,s,ax);continue}
 if(ax===0){
 if(e.vx>0||(e.vx===0&&e.x<s.x))e.x=s.x-(s.w+e.w)/2
 else e.x=s.x+(s.w+e.w)/2
@@ -1025,12 +1278,16 @@ if(k>=1){tw.splice(i,1);w.res()}
 }
 }
 if(this.cs)this.csUpdate(dt)
+if(this.hasPc)this.pcUpdate(dt)
 if(this.is3d)this.physics3(dt);else this.physics(dt)
+if(this.hasPc)this.pcPost(dt)
 if(this.hier.length)this.updateHier()
 if(this.exts.length)this.hk('update',dt)
 this.events()
 const c=this.camera
-if(this.is3d)this.cam3(dt)
+const pe=this.pcE
+if(pe&&pe.alive&&pe.pc&&pe.pc.cam.follow&&!(this.cs&&this.cs.cam))this.pcCam(pe,dt)
+else if(this.is3d)this.cam3(dt)
 else if(c.follow&&c.follow.alive&&!(this.cs&&this.cs.cam)){
 const k=1-Math.pow(1-c.smooth,dt*60)
 c.x+=(c.follow.x-c.x)*k
@@ -1154,6 +1411,12 @@ if(fill!==e.color){c.fillStyle=e.color;fill=e.color}
 c.beginPath()
 c.ellipse(e.x,e.y,Math.abs(e.w)/2,Math.abs(e.h)/2,0,0,6.2832)
 c.fill()
+}else if(SHAPES2.has(s)){
+if(fill!==e.color){c.fillStyle=e.color;fill=e.color}
+const Lp=shapeLoops(s,e.w,e.h)
+c.beginPath()
+for(let q=0;q<Lp.length;q++){const p=Lp[q];c.moveTo(e.x+p[0][0],e.y+p[0][1]);for(let k=1;k<p.length;k++)c.lineTo(e.x+p[k][0],e.y+p[k][1]);c.closePath()}
+c.fill('evenodd')
 }else if(s==='text'){
 if(fill!==e.color){c.fillStyle=e.color;fill=e.color}
 const f=e.fontSize+'px Inter,system-ui,sans-serif'
@@ -1439,7 +1702,7 @@ root.removeEventListener('mouseup',mu)
 unbind(){}
 }
 const TILE_COLORS=['#5aa469','#8b5e3c','#7a7f8c','#b5523b','#3f7fbf','#a57c4b','#e0c97f','#9aa3b0']
-const api={Game,Entity,STEP,norm,toLocal,mat,eul,EASE,pk,OFF}
+const api={Game,Entity,STEP,norm,toLocal,mat,eul,EASE,pk,OFF,shapeLoops,SHAPES2,pcNorm,pcPreset,PC_PRESETS,PC_TYPE,PC_COMMON}
 if(typeof module!=='undefined'&&module.exports)module.exports=api
 else root.VueRuntime=api
 })(typeof window!=='undefined'?window:globalThis);

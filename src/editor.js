@@ -25,9 +25,21 @@ const clone=o=>JSON.parse(JSON.stringify(o))
 const num=v=>{const n=parseFloat(v);return isNaN(n)?0:n}
 const r2=v=>Math.round(v*1000)/1000
 const ls={get:(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(x){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(x){}}}
-const SHAPE_IC={tilemap:'map',rect:'square',circle:'circle',sprite:'image',text:'text',box:'box',sphere:'sphere',cylinder:'cylinder',cone:'cone',plane:'plane',light:'light'}
-const K2=[['rect','Rectangle'],['circle','Circle'],['sprite','Sprite'],['text','Text'],['tilemap','Tilemap']]
-const K3=[['box','Box'],['sphere','Sphere'],['cylinder','Cylinder'],['plane','Plane'],['light','Light']]
+const isBeg=()=>PREFS.mode!=='advanced'
+const advRows=(...kids)=>{
+const k=kids.flat().filter(Boolean)
+if(!k.length)return[]
+if(!isBeg())return k
+const open=!!S.advOpen
+const w=h('div',{class:'adv'+(open?' open':'')})
+const lb=h('span',{text:open?'Hide advanced':'Show advanced'})
+w.append(h('button',{html:ic('chevr',12),onclick:()=>{S.advOpen=!S.advOpen;ls.set('vue.advopen',S.advOpen);w.classList.toggle('open',S.advOpen);lb.textContent=S.advOpen?'Hide advanced':'Show advanced'}}),h('div',null,...k))
+w.firstChild.append(lb)
+return[w]
+}
+const SHAPE_IC={tilemap:'map',rect:'square',circle:'circle',sprite:'image',text:'text',box:'box',sphere:'sphere',cylinder:'cylinder',cone:'cone',plane:'plane',light:'light',pill:'pill',rrect:'rrect',triangle:'triangle',hexagon:'hexagon',star:'star',ring:'ring',arrow:'arrow',capsule:'capsule',torus:'torus',pyramid:'pyramid',wedge:'wedge',stairs:'stairs'}
+const K2=[['rect','Rectangle'],['rrect','Rounded rect'],['circle','Circle'],['pill','Pill'],['triangle','Triangle'],['hexagon','Hexagon'],['star','Star'],['ring','Ring'],['arrow','Arrow'],['sprite','Sprite'],['text','Text'],['tilemap','Tilemap']]
+const K3=[['box','Box'],['sphere','Sphere'],['capsule','Capsule'],['cylinder','Cylinder'],['cone','Cone'],['torus','Torus'],['plane','Plane'],['pyramid','Pyramid'],['wedge','Wedge or ramp'],['stairs','Stairs'],['light','Light']]
 const S={project:null,path:null,sceneId:null,sel:null,hover:null,tab:'scene',undo:[],redo:[],cam:{x:0,y:0,zoom:1},cam3:{tx:0,ty:1,tz:0,yaw:30,pitch:28,dist:20},drag:null,space:false,tool:'move',snapOn:ls.get('vue.snap',true),gridOn:ls.get('vue.grid',true),skyOn:ls.get('vue.sky',false),snap2:ls.get('vue.snap2',8),snap3:ls.get('vue.snap3',0.5),playing:false,paused:false,game:null,ws:null,ne:null,code:null,dirty:false,savedAt:0,autoAt:0,clip:null,logs:[],lv:{log:true,warn:true,error:true},closed:new Set(ls.get('vue.closed',[])),inputs:{},editing:false,loading:false,tc:null,guides:[],gizmo:[],fly:new Set(),version:'1.0.0',res:'free',lastHtml:''}
 const scene=()=>S.project.scenes.find(s=>s.id===S.sceneId)||S.project.scenes[0]
 const is3=()=>scene().mode==='3d'
@@ -60,16 +72,17 @@ d.classList.add('on')
 setTimeout(()=>{if(o.input!=null){inp.focus();inp.select()}else{const p=bx.querySelector('.primary');if(p)p.focus()}},10)
 })
 }
+let sq=0
+function statusQ(){if(sq)return;sq=requestAnimationFrame(()=>{sq=0;status()})}
 function markDirty(){
 S.dirty=true
-$('#dirty').classList.add('on')
 scheduleSave()
-status()
+statusQ()
 }
 let saveT=0
 function scheduleSave(){
 clearTimeout(saveT)
-saveT=setTimeout(()=>{if(PREFS.autosave===false)return;ls.set('vue.autosave',{project:S.project,path:S.path});S.autoAt=Date.now();status()},700)
+saveT=setTimeout(()=>{const go=()=>{if(PREFS.autosave===false)return;ls.set('vue.autosave',{project:S.project,path:S.path});S.autoAt=Date.now();statusQ()};if(window.requestIdleCallback)requestIdleCallback(go,{timeout:2000});else go()},1200)
 }
 function ago(t){
 const s=Math.round((Date.now()-t)/1000)
@@ -90,6 +103,12 @@ $('#stVer').textContent=(S.project.settings.core==='js'||!(window.VWR&&VWR.expor
 const e=S.logs.filter(l=>l.level==='error').reduce((a,l)=>a+l.count,0),w=S.logs.filter(l=>l.level==='warn').reduce((a,l)=>a+l.count,0)
 $('#stErr').innerHTML=(e?'<span class="e">'+e+' error'+(e>1?'s':'')+'</span>':'')+(w?'<span class="w">'+w+' warning'+(w>1?'s':'')+'</span>':'')
 $('#pname').textContent=S.project.name
+const tbs=$('#tbSave')
+tbs.classList.toggle('dirty',S.dirty)
+tbs.querySelector('b').textContent=S.dirty?'Unsaved':'Saved'
+tbs.title=S.dirty?(S.path?'Changes since the last save':'Autosaved in this browser. Press Save to keep a file.'):'All changes saved'
+$('#bUndo').disabled=!S.undo.length
+$('#bRedo').disabled=!S.redo.length
 document.title=S.project.name+(S.dirty?' •':'')+' — Vue Engine'
 }
 const snapJ=()=>JSON.stringify({s:S.project.scenes,c:S.project.cutscenes||[]})
@@ -135,7 +154,6 @@ S.sceneId=S.project.startScene
 S.sel=null
 S.dirty=!!dirty
 S.savedAt=path&&!dirty?Date.now():0
-$('#dirty').classList.toggle('on',S.dirty)
 stopGame()
 makeGame()
 resetView()
@@ -255,7 +273,7 @@ return[e.x+e.tb[0]*s,e.y+e.tb[1]*s,e.x+(e.tb[2]+1)*s,e.y+(e.tb[3]+1)*s]
 }
 function paint(){
 const g=S.game
-if(!g||S.tab!=='scene'||S.playing)return
+if(!g||S.tab!=='scene'||S.playing||document.hidden)return
 if(is3()){paint3();return}
 g.camera.x=S.cam.x
 g.camera.y=S.cam.y
@@ -268,21 +286,21 @@ const sx=x=>(x-S.cam.x)*z+g.w/2,sy=y=>(y-S.cam.y)*z+g.h/2
 const sc=scene(),cz=sc.camera.zoom||1,fw=S.project.settings.width/cz,fh=S.project.settings.height/cz
 c.setTransform(1,0,0,1,0,0)
 c.setLineDash([7,5])
-c.strokeStyle='rgba(157,92,255,0.75)'
+c.strokeStyle='rgba(240,148,74,0.75)'
 c.lineWidth=1.5
 const fx=sx(sc.camera.x-fw/2),fy=sy(sc.camera.y-fh/2)
 c.strokeRect(fx,fy,fw*z,fh*z)
 c.setLineDash([])
 c.font='600 11px Inter,system-ui,sans-serif'
 const lab='Camera  '+S.project.settings.width+' × '+S.project.settings.height,lw=c.measureText(lab).width+14
-c.fillStyle='rgba(123,43,217,0.9)'
+c.fillStyle='rgba(196,98,26,0.9)'
 rr(c,fx,fy-22,lw,18,5);c.fill()
 c.fillStyle='#fff'
 c.textAlign='left'
 c.textBaseline='middle'
 c.fillText(lab,fx+7,fy-13)
 const hv=S.hover&&S.hover!==S.sel?byId(S.hover):null
-if(hv)outline(c,hv,'rgba(157,92,255,0.6)',1)
+if(hv)outline(c,hv,'rgba(240,148,74,0.6)',1)
 for(const gl of S.guides){
 c.strokeStyle='#ff4d9a'
 c.lineWidth=1
@@ -294,14 +312,14 @@ const d=selData()
 if(d){
 const W=wd(d)
 if(d.parent){const pd=byId(d.parent);if(pd){const P=wd(pd);c.setLineDash([3,4]);c.strokeStyle='rgba(255,211,77,0.55)';c.lineWidth=1;c.beginPath();c.moveTo(sx(P.x),sy(P.y));c.lineTo(sx(W.x),sy(W.y));c.stroke();c.setLineDash([])}}
-outline(c,d,'#9d5cff',2)
+outline(c,d,'#f0944a',2)
 const cx=sx(W.x),cy=sy(W.y),tm=d.shape==='tilemap'
 if(S.tool==='paint'&&tm)VuePanels.overlay(c)
 else if(S.tool==='scale'&&!tm){
-for(const[hx,hy]of HANDLES){const p=handlePos(d,hx,hy);c.fillStyle='#fff';c.strokeStyle='#7b2bd9';c.lineWidth=1.5;rr(c,p[0]-4,p[1]-4,8,8,2);c.fill();c.stroke()}
+for(const[hx,hy]of HANDLES){const p=handlePos(d,hx,hy);c.fillStyle='#fff';c.strokeStyle='#c4621a';c.lineWidth=1.5;rr(c,p[0]-4,p[1]-4,8,8,2);c.fill();c.stroke()}
 }else if(S.tool==='rotate'&&!tm){
 const R=rotR(d)
-c.strokeStyle='rgba(157,92,255,0.85)';c.lineWidth=2
+c.strokeStyle='rgba(240,148,74,0.85)';c.lineWidth=2
 c.beginPath();c.arc(cx,cy,R,0,Math.PI*2);c.stroke()
 const a=(W.rot||0)*D-Math.PI/2
 c.fillStyle='#ffd34d';c.beginPath();c.arc(cx+Math.cos(a)*R,cy+Math.sin(a)*R,6,0,Math.PI*2);c.fill()
@@ -331,6 +349,14 @@ function rotR(d){return Math.max(28,Math.hypot(d.w,d.h)/2*S.cam.zoom+16)}
 function outline(c,d,col,lw){
 c.strokeStyle=col;c.lineWidth=lw
 if(d.shape==='tilemap'){const e=entOf(d);if(!e)return;const b=tmRect(e),p0=scr(b[0],b[1]),p1=scr(b[2],b[3]);c.strokeRect(p0[0],p0[1],p1[0]-p0[0],p1[1]-p0[1]);return}
+const RT=window.VueRuntime
+if(RT&&(RT.SHAPES2.has(d.shape)||d.shape==='circle')){
+c.beginPath()
+for(const p of RT.shapeLoops(d.shape,d.w,d.h)){p.forEach((q,i)=>{const w=corner(d,q[0],q[1]),s=scr(w[0],w[1]);if(i)c.lineTo(s[0],s[1]);else c.moveTo(s[0],s[1])});c.closePath()}
+c.stroke()
+if(lw>1){c.save();c.globalAlpha=0.4;c.setLineDash([3,3]);c.lineWidth=1;c.beginPath();[[-1,-1],[1,-1],[1,1],[-1,1]].forEach((q,i)=>{const w=corner(d,q[0]*d.w/2,q[1]*d.h/2),s=scr(w[0],w[1]);if(i)c.lineTo(s[0],s[1]);else c.moveTo(s[0],s[1])});c.closePath();c.stroke();c.restore()}
+return
+}
 const pts=[[-1,-1],[1,-1],[1,1],[-1,1]].map(q=>{const p=corner(d,q[0]*d.w/2,q[1]*d.h/2);return scr(p[0],p[1])})
 c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();c.stroke()
 }
@@ -374,7 +400,7 @@ c.globalAlpha=neg?0.45:1
 c.fillStyle=p.a[4]
 c.beginPath();c.arc(p.x,p.y,neg?6:9,0,Math.PI*2);c.fill()
 c.globalAlpha=1
-if(!neg){c.fillStyle='#0a0910';c.font='700 10px Inter';c.textAlign='center';c.textBaseline='middle';c.fillText(p.a[0],p.x,p.y+0.5)}
+if(!neg){c.fillStyle='#131313';c.font='700 10px Inter';c.textAlign='center';c.textBaseline='middle';c.fillText(p.a[0],p.x,p.y+0.5)}
 S.gizmo.push({x:p.x,y:p.y,r:neg?7:10,a:p.a[0]})
 }
 }
@@ -668,6 +694,7 @@ S.sel=d.id
 if(kind==='tilemap'){S.game.loadAssets().then(()=>{redraw();VuePanels.render()});S.tool='paint';setBTab('tiles')}
 reloadScene()
 renderAll()
+todo('sprite')
 toast('Added '+d.name+(par?' inside '+par.name:''),'ok')
 }
 function subtree(d){
@@ -737,6 +764,7 @@ es.splice(at,0,...tree)
 return true
 }
 function renameEntity(){
+flushHier()
 const d=selData()
 if(!d)return
 const row=$('#hier .item.on')
@@ -812,7 +840,10 @@ resetView()
 renderAll()
 if(S.tab==='script')loadScriptView()
 }
-function renderHier(){
+let hq=0
+function renderHier(){if(hq)return;hq=requestAnimationFrame(()=>{hq=0;drawHier()})}
+function flushHier(){if(!hq)return;cancelAnimationFrame(hq);hq=0;drawHier()}
+function drawHier(){
 const box=$('#hier'),q=$('#hfilter').value.trim().toLowerCase()
 box.innerHTML=''
 const es=scene().entities,ids=new Set(es.map(e=>e.id)),kids={}
@@ -874,7 +905,9 @@ if(has&&!col&&!q)for(const k of kids[d.id])rowOf(k,depth+1)
 }
 if(q){for(const d of es)if(d.name.toLowerCase().indexOf(q)>=0||(d.tags||[]).some(t=>t.toLowerCase().indexOf(q)>=0))rowOf(d,0)}
 else for(const d of kids['']||[])rowOf(d,0)
-if(!shown)box.append(h('div',{class:'hint',style:'padding:10px 8px',text:q?'No entities match "'+q+'"':'Empty scene. Press Shift+A or the + button to add something.'}))
+$('#vEmpty').classList.toggle('hide',es.length>0||S.playing)
+$('#vEmptyBtn').lastChild.textContent=is3()?'Add a box':'Add a sprite'
+if(!shown)box.append(q?h('div',{class:'hint',style:'padding:10px 8px',text:'No entities match "'+q+'"'}):h('div',{class:'empty-l'},h('span',{text:'No entities in this scene yet.'}),h('button',{class:'btn sm',html:ic('plus',13)+(is3()?'Add a box':'Add a sprite'),onclick:()=>addEntity(is3()?'box':'sprite')})))
 }
 function createItems(child){
 const t=is3()
@@ -950,15 +983,15 @@ h('button',{class:'ib del',title:'Delete asset',html:ic('trash',12),onclick:ev=>
 box.append(it)
 }
 requestAnimationFrame(()=>{for(const cv of box.querySelectorAll('canvas.wave'))waveOf(cv,cv.closest('.asset').querySelector('span:not(.aplay)').textContent)})
-box.append(h('div',{class:'adrop'},h('span',{html:ic('upload',26)}),h('b',{text:ks.length?'Drop more files here':'No assets yet'}),h('span',{text:'Drag PNG, JPG, GIF, WebP, SVG, WAV, MP3 or OGG anywhere in the window, or'}),h('button',{class:'btn sm',html:ic('folder',14)+'Browse files',onclick:importAssets})))
+box.append(h('div',{class:'adrop'},h('span',{html:ic('upload',26)}),h('b',{text:ks.length?'Drop more files here':'No images or sounds yet'}),h('span',{text:'Drag in PNG, JPG, GIF, WebP, SVG, WAV, MP3 or OGG files, or'}),h('button',{class:'btn sm',html:ic('folder',14)+'Import files',onclick:importAssets})))
 }
 function waveOf(cv,k){
 const b=S.game.buffers[k]
 const c=cv.getContext('2d')
 c.clearRect(0,0,cv.width,cv.height)
-if(!b){c.fillStyle='#6b6385';c.font='600 13px Inter';c.textAlign='center';c.fillText('decoding…',cv.width/2,cv.height/2);return}
+if(!b){c.fillStyle='#86827a';c.font='600 13px Inter';c.textAlign='center';c.fillText('decoding…',cv.width/2,cv.height/2);return}
 const d=b.getChannelData(0),n=cv.width,step=Math.max(1,Math.floor(d.length/n)),mid=cv.height/2
-c.fillStyle='#9d5cff'
+c.fillStyle='#f0944a'
 for(let i=0;i<n;i++){let mn=1,mx=-1;for(let j=0;j<step;j+=Math.max(1,step>>5)){const v=d[i*step+j]||0;if(v<mn)mn=v;if(v>mx)mx=v}c.fillRect(i,mid+mn*mid*0.9,1,Math.max(1,(mx-mn)*mid*0.9))}
 c.fillStyle='rgba(236,232,246,0.85)';c.font='600 20px JetBrains Mono';c.textAlign='right';c.fillText(b.duration.toFixed(1)+'s',cv.width-8,cv.height-10)
 }
@@ -1044,13 +1077,21 @@ if(S.layout&&S.layout.bh<120)toggleDock(true)
 if(t==='tiles'){const d=selData();if(d&&d.shape==='tilemap'&&S.tool!=='paint'){S.tool='paint';updateToolbar();redraw()}}
 if(t==='tiles'||t==='anim'||t==='cuts')VuePanels.render(t)
 }
+const pend=new Set()
+let pq=0
 function afterEdit(key){
+pend.add(key)
+if(pq)return
+pq=requestAnimationFrame(()=>{pq=0;const ks=Array.from(pend);pend.clear();flushEdit(ks)})
+}
+function flushEdit(ks){
+const has=(...a)=>ks.some(k=>a.includes(k))
 S.game.refresh()
 redraw()
-if(key==='name'||key==='color'||key==='visible'||key==='prefab'||key==='shape')renderHier()
-if(key==='shape'||key==='prefab'||key==='body'||key==='tileset'||key==='anim')buildInspector()
-if(key==='tileset'||key==='ts'){S.game.loadAssets().then(redraw);VuePanels.render()}
-if(key==='prefab')reloadScene()
+if(has('name','color','visible','prefab','shape'))renderHier()
+if(has('shape','prefab','body','tileset','anim'))buildInspector()
+if(has('tileset','ts')){S.game.loadAssets().then(redraw);VuePanels.render()}
+if(has('prefab'))reloadScene()
 status()
 }
 function card(id,title,icn,body,extra){
@@ -1155,7 +1196,9 @@ const el=S.inputs[k]
 if(el&&(all||document.activeElement!==el))el.value=r2(d[k]||0)
 }
 }
-function buildInspector(){
+let iq=0
+function buildInspector(){if(iq)return;iq=requestAnimationFrame(()=>{iq=0;drawInsp()})}
+function drawInsp(){
 const box=$('#insp')
 box.innerHTML=''
 S.inputs={}
@@ -1183,7 +1226,7 @@ row(lr,field(d,'rot','num'),'rot',d,1),
 row('Layer',field(d,'z','num'),'z',d,0.1)
 ]
 box.append(card('tf','Transform','move',tf))
-const shapes=t3?[['box','Box'],['sphere','Sphere'],['cylinder','Cylinder'],['cone','Cone'],['plane','Plane'],['light','Point light']]:[['rect','Rectangle'],['circle','Circle'],['sprite','Sprite'],['text','Text']]
+const shapes=t3?K3.map(k=>k[0]==='light'?['light','Point light']:k):K2.filter(k=>k[0]!=='tilemap')
 const look=[row('Shape',field(d,'shape','sel',shapes)),row('Color',field(d,'color','col'))]
 if(!t3&&d.shape==='sprite')look.push(row('Image',field(d,'image','asset')))
 if(t3&&d.shape!=='light')look.push(row('Texture',field(d,'image','asset')))
@@ -1215,9 +1258,10 @@ h('div',{class:'row2'},h('button',{class:'btn sm',html:ic('play',13)+'Preview',o
 h('div',{class:'hint',style:'margin-top:8px',text:'Scripts can call self.playSound() and self.stopSound().'})
 ],h('button',{class:'ib',title:'Remove',html:ic('x',13),onclick:e=>{e.stopPropagation();snap();delete d.sound;delete d.soundVol;delete d.soundLoop;delete d.soundAuto;buildInspector();renderHier()}})))
 }
+if(d.player)box.append(playerCard(d))
 if(d.body&&d.body!=='none'){
 const ph=[row('Body',field(d,'body','sel',[['static','Static: walls, floors'],['dynamic','Dynamic: falls, collides'],['trigger','Trigger: detects touches'],['none','None']]))]
-if(d.body==='dynamic')ph.push(row('Gravity',field(d,'gravityScale','num'),'gravityScale',d,0.05))
+if(d.body==='dynamic')ph.push(...advRows(row('Gravity',field(d,'gravityScale','num'),'gravityScale',d,0.05)))
 box.append(card('phys','Physics Body','physics',ph,h('button',{class:'ib',title:'Remove',html:ic('x',13),onclick:e=>{e.stopPropagation();snap();d.body='none';afterEdit('body')}})))
 }
 if(d.script){
@@ -1230,7 +1274,8 @@ h('div',{class:'hint',style:'margin-top:8px',text:'Only the '+m+' version runs. 
 const add=h('button',{class:'addc',html:ic('plus',14)+'Add Component',onclick:()=>{
 const r=add.getBoundingClientRect(),items=[]
 if(!d.body||d.body==='none')items.push({head:'Physics'},{ic:'physics',label:'Static body',fn:()=>{snap();d.body='static';afterEdit('body')}},{ic:'physics',label:'Dynamic body',fn:()=>{snap();d.body='dynamic';afterEdit('body')}},{ic:'physics',label:'Trigger',fn:()=>{snap();d.body='trigger';afterEdit('body')}})
-if(!d.script)items.push({head:'Behavior'},{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')},{ic:'nodes',label:'Node graph',fn:()=>newScript(d,'nodes')},{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')})
+if(!d.player)items.push({head:'Player'},...Object.keys(VueRuntime.PC_PRESETS).map(n=>({ic:'gamepad',label:'Player controller: '+n,fn:()=>attachPlayer(d,VueRuntime.pcPreset(n))})),...Object.keys(userPresets()).map(n=>({ic:'gamepad',label:'Player controller: '+n+' (mine)',fn:()=>attachPlayer(d,VueRuntime.pcNorm(userPresets()[n]))})))
+if(!d.script)items.push({head:'Behavior'},{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')},...(isBeg()&&!S.advOpen?[]:[{ic:'nodes',label:'Node graph',fn:()=>newScript(d,'nodes')},{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')}]))
 if(d.sound==null||(!t3&&!d.anims))items.push({head:'Media'})
 if(d.sound==null)items.push({ic:'audio',label:'Audio source',fn:()=>{snap();d.sound='';d.soundVol=1;d.soundLoop=false;d.soundAuto=true;buildInspector();renderHier()}})
 if(!t3&&(!d.anims||!Object.keys(d.anims).length))items.push({ic:'film',label:'Sprite animation',fn:()=>setBTab('anim')})
@@ -1239,6 +1284,72 @@ if(!items.length)items.push({head:'All components added'})
 showMenu($('#ctx'),r.left,r.bottom+4,items,r.width)
 }})
 box.append(add)
+}
+const userPresets=()=>ls.get('vue.player.presets',{})
+function attachPlayer(d,obj){
+snap()
+d.player=obj
+d.body='dynamic'
+d.gravityScale=obj.gravityScale
+if(obj.type==='fps'||obj.type==='tps')scene().mouseLook=true
+afterEdit('body')
+buildInspector()
+renderHier()
+}
+function playerCard(d){
+const R=VueRuntime
+Object.assign(d.player,R.pcNorm(d.player))
+const p=d.player,t3=is3(),ty=p.type
+const pb=(o,k,type,opts)=>{
+let el
+if(type==='bool'){el=h('input',{type:'checkbox',class:'sw'});el.checked=!!o[k];el.addEventListener('change',()=>{snap();o[k]=el.checked;S.game.refresh()})}
+else if(type==='sel'){el=h('select');for(const[v,tx]of opts)el.append(h('option',{value:v,text:tx}));el.value=o[k];el.addEventListener('change',()=>{snap();o[k]=el.value;S.game.refresh()})}
+else{
+el=h('input',{type:type==='num'?'number':'text',spellcheck:'false'})
+if(type==='num')el.step='any'
+el.value=type==='list'?(o[k]||[]).join(', '):type==='bounds'?(o[k]||[]).join(', '):type==='pair'?(o[k]||[0,0]).join(', '):o[k]==null?'':o[k]
+const parse=v=>v.split(',').map(s=>parseFloat(s)).filter(n=>!isNaN(n))
+el.addEventListener('input',()=>{
+if(!S.editing){snap();S.editing=true}
+const v=el.value
+if(type==='num')o[k]=num(v)
+else if(type==='list')o[k]=v.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean)
+else if(type==='bounds'){const a=parse(v);o[k]=a.length===4?a:null}
+else if(type==='pair'){const a=parse(v);o[k]=a.length===2?a:[0,0]}
+else if(type==='opt'){const a=parseFloat(v);o[k]=isNaN(a)?null:a}
+else o[k]=v
+markDirty()
+})
+el.addEventListener('change',done)
+}
+return el
+}
+const tsel=pb(p,'type','sel',[['platformer','Platformer side-view'],['topdown4','Top-down 4-direction'],['topdown8','Top-down 8-direction'],['fps','Free 3D first-person'],['tps','Free 3D third-person']])
+tsel.addEventListener('change',()=>{const v=tsel.value;snap();d.player=R.pcNorm({type:v});d.gravityScale=d.player.gravityScale;if(v==='fps'||v==='tps')scene().mouseLook=true;S.game.refresh();buildInspector()})
+const pr=h('select');pr.append(h('option',{value:'',text:'Choose a preset'}))
+for(const n of Object.keys(R.PC_PRESETS))pr.append(h('option',{value:'b:'+n,text:n}))
+for(const n of Object.keys(userPresets()))pr.append(h('option',{value:'u:'+n,text:n+' (mine)'}))
+pr.addEventListener('change',()=>{const v=pr.value;if(!v)return;snap();d.player=v[0]==='b'?R.pcPreset(v.slice(2)):R.pcNorm(userPresets()[v.slice(2)]);d.gravityScale=d.player.gravityScale;S.game.refresh();buildInspector()})
+const save=h('button',{class:'btn sm',html:ic('save',13)+'Save as preset',onclick:async()=>{const n=await dialog({title:'Preset name',input:d.name,buttons:[{label:'Cancel',value:null},{label:'Save',value:true,primary:true}]});if(n&&n.trim){const u=userPresets();u[n.trim()]=clone(p);ls.set('vue.player.presets',u);buildInspector();toast('Saved preset '+n.trim(),'ok')}}})
+const basic=[row('Type',tsel),row('Speed',pb(p,'speed','num'),'speed',p,t3?0.1:1)]
+if(ty==='platformer'||t3)basic.push(row('Jump height',pb(p,'jumpHeight','num'),'jumpHeight',p,t3?0.05:1))
+basic.push(row('Camera follows',pb(p.cam,'follow','bool')))
+if(!t3)basic.push(row('Camera zoom',pb(p.cam,'zoom','num'),'zoom',p.cam,0.05))
+const sub=t=>h('div',{class:'subh',text:t})
+const adv=[row('Preset',pr),save,row('Acceleration',pb(p,'accel','num')),row('Friction',pb(p,'friction','num')),row('Max speed',pb(p,'maxSpeed','num')),row('Run multiplier',pb(p,'runMult','num')),row('Run key',pb(p.keys,'run','list'))]
+if(ty==='platformer'||t3)adv.push(row('Jump count',pb(p,'jumps','num')),row('Coyote time',pb(p,'coyote','num')),row('Jump buffer',pb(p,'buffer','num')),row('Air control',pb(p,'airControl','num')))
+adv.push(row('Gravity scale',pb(p,'gravityScale','num')))
+if(ty==='platformer')adv.push(row('Crouch',pb(p,'crouch','bool')),row('Crouch key',pb(p.keys,'crouch','list')))
+adv.push(sub('Dash'),row('Dash',pb(p.dash,'on','bool')),row('Dash speed',pb(p.dash,'speed','num')),row('Dash time',pb(p.dash,'time','num')),row('Cooldown',pb(p.dash,'cooldown','num')),row('Dash key',pb(p.keys,'dash','list')))
+adv.push(sub('Physics'),row('Mass',pb(p,'mass','num')),row('Bounciness',pb(p,'bounce','num')),row('Grip',pb(p,'grip','num')),row('Collides with',pb(p,'layers','list')),h('div',{class:'hint',text:'Tags it collides with. Empty means everything. Uses the JavaScript core.'}))
+adv.push(sub('Camera'),row('Smoothing',pb(p.cam,'smooth','num')))
+if(t3)adv.push(row('Distance',pb(p.cam,'dist','num')),row('Field of view',pb(p.cam,'fov','num')),row('Eye height',pb(p.cam,'height','num')),row('Mouse sensitivity',pb(p.cam,'sens','num')))
+else adv.push(row('Look ahead',pb(p.cam,'lookAhead','num')),row('Dead zone',pb(p.cam,'deadzone','pair')),row('Bounds',pb(p.cam,'bounds','bounds')),h('div',{class:'hint',text:'Bounds as x1, y1, x2, y2. Leave empty for none.'}))
+adv.push(sub('Input'),row('Left',pb(p.keys,'left','list')),row('Right',pb(p.keys,'right','list')),row('Up',pb(p.keys,'up','list')),row('Down',pb(p.keys,'down','list')),row('Jump',pb(p.keys,'jump','list')),row('Gamepad',pb(p,'pad','bool')),row('Touch',pb(p,'touch','bool')))
+if(!(S.project.extensions||[]).includes('touch'))adv.push(h('div',{class:'hint',text:'Touch controls need the Touch extension turned on.'}))
+adv.push(sub('Health'),row('Max health',pb(p.health,'max','num')),row('Respawn',pb(p.health,'respawn','bool')),row('Respawn x',pb(p.health,'rx','opt')),row('Respawn y',pb(p.health,'ry','opt')))
+adv.push(sub('Animations'),row('Idle',pb(p.anims,'idle','text')),row('Run',pb(p.anims,'run','text')),row('Jump',pb(p.anims,'jump','text')),row('Fall',pb(p.anims,'fall','text')))
+return card('pc','Player controller','gamepad',[...basic,...advRows(adv)],h('button',{class:'ib',title:'Remove',html:ic('x',13),onclick:e=>{e.stopPropagation();snap();delete d.player;d.gravityScale=1;S.game.refresh();buildInspector()}}))
 }
 function tilemapInspector(box,d){
 const e=entOf(d)
@@ -1253,7 +1364,7 @@ h('div',{class:'hint',text:(e&&e.tiles?e.tiles.size:0)+' tiles. Solid tiles bloc
 h('button',{class:'btn sm primary',html:ic('brush',13)+'Paint tiles',onclick:()=>{setTool('paint');setBTab('tiles')}})
 ]))
 if(d.script){const m=d.script.mode;box.append(card('scr','Script','script',[h('div',{class:'scard'},h('span',{class:'badge',text:m}),h('span',{style:'flex:1'}),h('button',{class:'btn sm primary',html:ic('edit',13)+'Open',onclick:()=>setTab('script')}))]))}
-else box.append(h('button',{class:'addc',html:ic('plus',14)+'Add script',onclick:e=>{const r=e.currentTarget.getBoundingClientRect();showMenu($('#ctx'),r.left,r.bottom+4,[{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')},{ic:'nodes',label:'Node graph',fn:()=>newScript(d,'nodes')},{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')}],r.width)}}))
+else box.append(h('button',{class:'addc',html:ic('plus',14)+'Add script',onclick:e=>{const r=e.currentTarget.getBoundingClientRect();showMenu($('#ctx'),r.left,r.bottom+4,[{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')}].concat(isBeg()&&!S.advOpen?[]:[{ic:'nodes',label:'Node graph',fn:()=>newScript(d,'nodes')},{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')}]),r.width)}}))
 }
 function newScript(d,mode){
 snap()
@@ -1287,7 +1398,7 @@ if(sc.mode==='3d'&&sc.gravity>200)sc.gravity=30
 if(sc.mode==='2d'&&sc.gravity<200)sc.gravity=1400
 reloadScene();resetView();renderAll()
 })
-const scf=[row('Name',bind(sc,'name','text',renderScenes)),row('Mode',ms),row('Background',bind(sc,'bg','col')),row('Gravity',bind(sc,'gravity','num',()=>{S.game.gravity=sc.gravity}))]
+const scf=[row('Name',bind(sc,'name','text',renderScenes)),row('Mode',ms),row('Background',bind(sc,'bg','col')),...advRows(row('Gravity',bind(sc,'gravity','num',()=>{S.game.gravity=sc.gravity})))]
 if(sc.mode==='3d'){
 const k=sc.camera3
 scf.push(h('div',{class:'hint',text:'Start camera. Scripts can take over with vue.follow().'}))
@@ -1311,10 +1422,10 @@ row('Title',bind(p,'name','text',status)),
 row('Resolution',h('div',{class:'vec',style:'grid-template-columns:repeat(2,1fr)'},axIn(p.settings,'width','W'),axIn(p.settings,'height','H'))),
 row('Pixel art',bind(p.settings,'pixelArt','bool',()=>{S.game.pixel=p.settings.pixelArt;S.game.ctx.imageSmoothingEnabled=!S.game.pixel})),
 row('Start scene',ss),
-row('Engine core',(()=>{const c=h('select');for(const[k,t]of CORES)c.append(h('option',{value:k,text:t}));c.value=CORES.some(x=>x[0]===p.settings.core)?p.settings.core:'vwr';c.addEventListener('change',()=>{snap();p.settings.core=c.value;status();buildInspector()});return c})()),
+...advRows(row('Engine core',(()=>{const c=h('select');for(const[k,t]of CORES)c.append(h('option',{value:k,text:t}));c.value=CORES.some(x=>x[0]===p.settings.core)?p.settings.core:'vwr';c.addEventListener('change',()=>{snap();p.settings.core=c.value;status();buildInspector()});return c})()),
 h('div',{class:'hint',text:window.VWR&&VWR.exports?(CORE_HINT[p.settings.core]||CORE_HINT.vwr):'WebAssembly is not available here, so the JavaScript core runs physics.'}),
 row('Smoothing',(()=>{const c=h('input',{type:'checkbox',class:'sw'});c.checked=p.settings.smooth!==false;c.addEventListener('change',()=>{snap();p.settings.smooth=c.checked});return c})()),
-h('div',{class:'hint',text:'Draws between physics steps so motion stays fluid on 120 and 144 Hz screens.'}),
+h('div',{class:'hint',text:'Draws between physics steps so motion stays smooth on 120 and 144 Hz screens.'})),
 row('Extensions',h('div',{class:'xchips'},...(p.extensions||[]).map(id=>{const m=extMeta(id);return h('button',{class:'xchip',title:'Open '+(m?m.name:id),html:ic(m&&m.icon||'puzzle',12)+'<span>'+(m?m.name:id).replace(/[<>&]/g,'')+'</span>',onclick:()=>{S.extSel=id;setBTab('exts')}})}),h('button',{class:'xchip add',html:ic('plus',12)+'<span>Add</span>',onclick:()=>setBTab('exts')}))),
 ]))
 box.append(h('div',{class:'hint',style:'padding:4px',text:'Select an entity to edit it. Shift+A adds one, Ctrl+P finds anything.'}))
@@ -1345,6 +1456,7 @@ const rng=(k,min,max,st)=>{const w=h('div',{class:'rng'}),i=h('input',{type:'ran
 const col=k=>field(a,k,'col'),bl=k=>field(a,k,'bool')
 const sub=t=>h('div',{class:'subh',text:t})
 out.push(row('Gradient sky',bl('gradient')),row(d3?'Sky top':'Top',col('skyTop')),row(d3?'Horizon':'Bottom',col('skyBottom')))
+const mark=out.length
 if(d3){
 out.push(row('Below horizon',col('ground')))
 out.push(sub('Fog'))
@@ -1361,6 +1473,7 @@ out.push(row('Filmic color',bl('filmic')),row('Exposure',rng('exposure',0.2,2.5,
 out.push(sub('Grading'))
 out.push(row('Tint',col('tint')),row('Tint amount',rng('tintAmt',0,1,0.01)),row('Haze',col('haze')),row('Haze amount',rng('hazeAmt',0,1,0.01)),row('Vignette',rng('vignette',0,1,0.01)))
 }
+out.push(...advRows(out.splice(mark)))
 return out
 }
 function axIn(o,k,L){
@@ -1377,13 +1490,36 @@ b.addEventListener('pointermove',mv);b.addEventListener('pointerup',up)
 })
 return h('div',{class:'ax '+(['X','Y','Z'].indexOf(L)>=0?L:'W')},b,inp)
 }
-function ensureBlockly(){
+let blkP=null
+const BEG_HIDE=['Other objects','Extensions','Tiles','Lists','My blocks']
+function toolboxFor(tb){return Object.assign({},tb,{contents:isBeg()?tb.contents.filter(x=>!BEG_HIDE.includes(x.name)):tb.contents})}
+function loadBlockly(){
+if(blkP)return blkP
+blkP=new Promise((res,rej)=>{
+const ss=$$('script[data-lazy]')
+let n=ss.length
+for(const s of ss){const e=document.createElement('script');e.async=false;e.src=s.dataset.lazy;e.onload=()=>{if(--n===0)res()};e.onerror=()=>rej(new Error('Could not load Blockly'));document.head.append(e)}
+}).then(()=>{
+const r=VueBlocks.init(Blockly,Blockly.JavaScript,window.javascript.Order)
+S.toolboxAll=r.toolbox
+S.toolbox=toolboxFor(r.toolbox)
+Blockly.dialog.setPrompt((msg,def,cb)=>{dialog({title:msg,input:def||'',buttons:[{label:'Cancel',value:null},{label:'OK',value:true,primary:true}]}).then(v=>cb(v))})
+Blockly.dialog.setConfirm((msg,cb)=>{dialog({title:msg,buttons:[{label:'Cancel',value:false},{label:'OK',value:true,primary:true}]}).then(v=>cb(!!v))})
+Blockly.dialog.setAlert((msg,cb)=>{dialog({title:msg,buttons:[{label:'OK',value:1,primary:true}]}).then(()=>{if(cb)cb()})})
+})
+blkP.catch(()=>{blkP=null})
+return blkP
+}
+const usesBlocks=()=>S.project.scenes.some(sc=>sc.entities.some(e=>e.script&&e.script.mode==='blocks'&&e.script.blocks))
+async function ensureBlockly(){
 if(S.ws)return
-S.ws=Blockly.inject($('#blk'),{toolbox:S.toolbox,renderer:'zelos',theme:VueBlocks.theme(Blockly),grid:{spacing:28,length:2,colour:'#1f1a2c',snap:true},zoom:{controls:true,wheel:true,startScale:0.85,maxScale:2,minScale:0.35,pinch:true},trashcan:true,move:{scrollbars:true,drag:true,wheel:false},sounds:false,media:window.VUE_CDN&&VUE_CDN.blocklyMedia||'../node_modules/blockly/media/'})
+await loadBlockly()
+if(S.ws)return
+S.ws=Blockly.inject($('#blk'),{toolbox:S.toolbox,renderer:'zelos',theme:VueBlocks.theme(Blockly),grid:{spacing:28,length:2,colour:'#232323',snap:true},zoom:{controls:true,wheel:true,startScale:0.85,maxScale:2,minScale:0.35,pinch:true},trashcan:true,move:{scrollbars:true,drag:true,wheel:false},sounds:false,media:window.VUE_CDN&&VUE_CDN.blocklyMedia||'../node_modules/blockly/media/'})
 S.ws.addChangeListener(ev=>{
 if(ev.isUiEvent||S.loading)return
 const d=selData()
-if(d&&d.script&&d.script.mode==='blocks'){d.script.blocks=Blockly.serialization.workspaces.save(S.ws);markDirty()}
+if(d&&d.script&&d.script.mode==='blocks'){d.script.blocks=Blockly.serialization.workspaces.save(S.ws);if(S.ws.getTopBlocks(false).length)todo('block');markDirty()}
 })
 }
 function ensureNodes(){
@@ -1420,13 +1556,13 @@ if(m){
 const ts=m.languages.typescript
 ts.typescriptDefaults.setCompilerOptions({target:ts.ScriptTarget.ES2020,lib:['es2020'],allowNonTsExtensions:true,module:ts.ModuleKind.CommonJS,noEmit:true,strict:false})
 ts.typescriptDefaults.addExtraLib(VueDTS.dts,'file:///vue.d.ts')
-m.editor.defineTheme('vue',{base:'vs-dark',inherit:true,rules:[{token:'keyword',foreground:'c792ff'},{token:'string',foreground:'ff9de2'},{token:'number',foreground:'3ddc84'},{token:'comment',foreground:'6b6385',fontStyle:'italic'},{token:'type',foreground:'7dd3fc'},{token:'identifier',foreground:'ece8f6'}],colors:{'editor.background':'#0a0910','editor.foreground':'#ece8f6','editor.lineHighlightBackground':'#16131f','editor.lineHighlightBorder':'#00000000','editorLineNumber.foreground':'#4a4262','editorLineNumber.activeForeground':'#9d5cff','editor.selectionBackground':'#7b2bd966','editor.inactiveSelectionBackground':'#7b2bd933','editorCursor.foreground':'#b98aff','editorIndentGuide.background1':'#1d1929','editorWidget.background':'#171422','editorWidget.border':'#3a3050','editorSuggestWidget.background':'#171422','editorSuggestWidget.border':'#3a3050','editorSuggestWidget.selectedBackground':'#7b2bd9','editorHoverWidget.background':'#171422','editorHoverWidget.border':'#3a3050','scrollbarSlider.background':'#2a233880','scrollbarSlider.hoverBackground':'#3a3050'}})
+m.editor.defineTheme('vue',{base:'vs-dark',inherit:true,rules:[{token:'keyword',foreground:'e5a05a'},{token:'string',foreground:'a5c47a'},{token:'number',foreground:'d9a441'},{token:'comment',foreground:'86827a',fontStyle:'italic'},{token:'type',foreground:'7dd3fc'},{token:'identifier',foreground:'ece8f6'}],colors:{'editor.background':'#131313','editor.foreground':'#e6e3dd','editor.lineHighlightBackground':'#1b1b1b','editor.lineHighlightBorder':'#00000000','editorLineNumber.foreground':'#5a5750','editorLineNumber.activeForeground':'#f0944a','editor.selectionBackground':'#c4621a66','editor.inactiveSelectionBackground':'#c4621a33','editorCursor.foreground':'#f0944a','editorIndentGuide.background1':'#2a2a2a','editorWidget.background':'#222222','editorWidget.border':'#454545','editorSuggestWidget.background':'#222222','editorSuggestWidget.border':'#454545','editorSuggestWidget.selectedBackground':'#c4621a','editorHoverWidget.background':'#222222','editorHoverWidget.border':'#454545','scrollbarSlider.background':'#2a233880','scrollbarSlider.hoverBackground':'#454545'}})
 const model=m.editor.createModel('','typescript',m.Uri.parse('file:///script.ts'))
-const ed=m.editor.create($('#code'),{model,theme:'vue',minimap:{enabled:false},stickyScroll:{enabled:false},fontSize:14,fontFamily:"'JetBrains Mono',Consolas,monospace",fontLigatures:true,automaticLayout:true,scrollBeyondLastLine:false,tabSize:2,padding:{top:14},smoothScrolling:true,cursorBlinking:'smooth',cursorSmoothCaretAnimation:'on',renderLineHighlight:'all',bracketPairColorization:{enabled:true}})
+const ed=m.editor.create($('#code'),{model,theme:'vue',minimap:{enabled:false},stickyScroll:{enabled:false},fontSize:14,fontFamily:"'JetBrains Mono',Consolas,monospace",fontLigatures:true,automaticLayout:false,scrollBeyondLastLine:false,tabSize:2,padding:{top:14},smoothScrolling:true,cursorBlinking:'smooth',cursorSmoothCaretAnimation:'on',renderLineHighlight:'all',bracketPairColorization:{enabled:true}})
 model.onDidChangeContent(()=>onChange(model.getValue()))
 S.code={set:v=>{S.loading=true;model.setValue(v);S.loading=false},layout:()=>ed.layout()}
 }else{
-const ta=h('textarea',{spellcheck:'false',style:'width:100%;height:100%;background:#0a0910;color:#ece8f6;border:0;border-radius:0;padding:14px;font:14px var(--mono);resize:none;outline:0;tab-size:2'})
+const ta=h('textarea',{spellcheck:'false',style:'width:100%;height:100%;background:#131313;color:#e6e3dd;border:0;border-radius:0;padding:14px;font:14px var(--mono);resize:none;outline:0;tab-size:2'})
 $('#code').append(ta)
 ta.addEventListener('input',()=>onChange(ta.value))
 ta.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const s=ta.selectionStart;ta.setRangeText('\t',s,ta.selectionEnd,'end');onChange(ta.value)}})
@@ -1453,11 +1589,20 @@ const em=$('#sempty')
 const hasS=d&&d.script
 em.classList.toggle('on',!hasS)
 $('.modes').style.visibility=hasS?'':'hidden'
+const sv=!isBeg()||S.advOpen||(hasS&&(d.script.mode!=='blocks'||hasContent(d.script,'nodes')||hasContent(d.script,'code')))
+for(const b of $$('[data-mode=nodes],[data-mode=code]'))b.classList.toggle('hide',!sv)
+$('#bAdvModes').classList.toggle('hide',sv||!hasS)
 if(!hasS){
 const box=em.querySelector('.empty')
 box.innerHTML=''
-if(!d)box.append(h('span',{html:ic('script',40)}),h('h3',{text:'No entity selected'}),h('p',{text:'Pick an entity in the Hierarchy to give it behavior with Blocks, Nodes or Code.'}),h('button',{class:'btn',html:ic('scene',14)+'Go to Scene',onclick:()=>setTab('scene')}))
-else box.append(h('span',{html:ic('sparkles',40)}),h('h3',{text:d.name+' has no behavior yet'}),h('p',{text:'Choose how to build it. Blocks and Nodes can be converted to Code later.'}),h('div',{style:'display:flex;gap:8px'},h('button',{class:'btn',html:ic('blocks',14)+'Blocks',onclick:()=>newScript(d,'blocks')}),h('button',{class:'btn',html:ic('nodes',14)+'Nodes',onclick:()=>newScript(d,'nodes')}),h('button',{class:'btn primary',html:ic('code',14)+'Code',onclick:()=>newScript(d,'code')})))
+if(!d)box.append(h('span',{html:ic('script',32)}),h('h3',{text:'Nothing selected'}),h('p',{text:'Select an entity to edit its script.'}),h('button',{class:'btn',html:ic('scene',14)+'Go to Scene',onclick:()=>setTab('scene')}))
+else{
+const nb=h('button',{class:'btn',html:ic('nodes',14)+'Nodes',onclick:()=>newScript(d,'nodes')}),cb=h('button',{class:'btn',html:ic('code',14)+'Code',onclick:()=>newScript(d,'code')})
+const rowb=h('div',{style:'display:flex;gap:8px'},h('button',{class:'btn primary',html:ic('blocks',14)+'Add blocks',onclick:()=>newScript(d,'blocks')}))
+if(isBeg()&&!S.advOpen)rowb.append(h('button',{class:'btn ghost',text:'Show advanced',onclick:e=>{e.currentTarget.replaceWith(nb,cb)}}))
+else rowb.append(nb,cb)
+box.append(h('span',{html:ic('script',32)}),h('h3',{text:d.name+' has no script'}),h('p',{text:'Scripts decide what it does. Blocks snap together, no typing needed.'}),rowb)
+}
 return
 }
 showMode(d.script.mode,true)
@@ -1474,7 +1619,7 @@ const v=await dialog({title:'Switch '+d.name+' to '+(m==='code'?'Code':m==='node
 if(!v)return
 snap()
 if(v==='convert'){
-const r=await VueCompiler.compileScript(s,compileEnv())
+const r=await VueCompiler.compileScript(s,await compileEnv(true))
 s.code=r.code.replace(/\n{2,}/g,'\n')
 toast('Converted to Code','ok')
 }
@@ -1492,7 +1637,8 @@ const map={blocks:'blk',nodes:'nodes',code:'code'}
 for(const k in map)$('#'+map[k]).classList.toggle('on',k===m)
 crumb(d)
 if(m==='blocks'){
-ensureBlockly()
+await ensureBlockly()
+if(selData()!==d||d.script.mode!=='blocks')return
 S.loading=true
 Blockly.Events.disable()
 S.ws.clear()
@@ -1527,9 +1673,9 @@ redraw()
 }
 if(t==='script')loadScriptView()
 }
-function compileEnv(){return{Blockly:window.Blockly,gen:Blockly.JavaScript,blocks:VueBlocks,nodes:VueNodes,transpile:s=>host.transpile(s)}}
+async function compileEnv(need){if(need)await loadBlockly();return{Blockly:window.Blockly,gen:window.Blockly&&Blockly.JavaScript,blocks:VueBlocks,nodes:VueNodes,transpile:s=>host.transpile(s)}}
 async function build(preview){
-const r=await VueCompiler.compileProject(S.project,compileEnv())
+const r=await VueCompiler.compileProject(S.project,await compileEnv(usesBlocks()))
 const proj=preview?Object.assign({},S.project,{_preview:preview}):S.project
 for(const e of r.errors){const i=e.indexOf(': ');log('error',i>0?e.slice(i+2):e,i>0?e.slice(0,i):'')}
 const rt=await gameRuntime()
@@ -1541,6 +1687,7 @@ if(S.playing){stopGame();if(typeof preview!=='string')return}
 if($('#clearPlay').checked)clearLog()
 const{html,errors}=await build(typeof preview==='string'?preview:null)
 S.lastHtml=html
+todo('play')
 S.playing=true
 S.paused=false
 document.body.classList.add('playing')
@@ -1679,10 +1826,10 @@ function recent(){return ls.get('vue.recent',[])}
 function menus(){
 const rec=recent().slice(0,6).map(r=>({ic:'file',label:r.name+'  ·  '+r.path.split(/[\\/]/).pop(),fn:()=>openPath(r.path)}))
 return{
-file:[{ic:'sparkles',label:'New project…',kbd:'Ctrl+N',fn:()=>showHub('home')},{ic:'folder',label:'Open…',kbd:'Ctrl+O',fn:open},rec.length?{head:'Recent'}:null].concat(rec,[{sep:1},{ic:'save',label:'Save',kbd:'Ctrl+S',fn:()=>save(false)},{ic:'save',label:'Save as…',kbd:'Ctrl+Shift+S',fn:()=>save(true)},{ic:'export',label:'Port game…',kbd:'Ctrl+E',fn:openPort},{sep:1},{ic:'home',label:'Project hub',fn:()=>showHub('home')}]),
+file:[{ic:'plus',label:'New project',kbd:'Ctrl+N',fn:()=>showHub('templates')},{ic:'folder',label:'Open…',kbd:'Ctrl+O',fn:open},rec.length?{head:'Recent'}:null].concat(rec,[{sep:1},{ic:'save',label:'Save',kbd:'Ctrl+S',fn:()=>save(false)},{ic:'save',label:'Save as…',kbd:'Ctrl+Shift+S',fn:()=>save(true)},{ic:'export',label:'Port game…',kbd:'Ctrl+E',fn:openPort},{sep:1},{ic:'home',label:'Project hub',fn:()=>showHub('home')}]),
 edit:[{ic:'undo',label:'Undo',kbd:'Ctrl+Z',fn:undo,dis:!S.undo.length},{ic:'redo',label:'Redo',kbd:'Ctrl+Y',fn:redo,dis:!S.redo.length},{sep:1},{ic:'copy',label:'Copy',kbd:'Ctrl+C',fn:copyEntity,dis:!S.sel},{ic:'copy',label:'Paste',kbd:'Ctrl+V',fn:pasteEntity,dis:!S.clip},{ic:'copy',label:'Duplicate',kbd:'Ctrl+D',fn:dupEntity,dis:!S.sel},{ic:'edit',label:'Rename',kbd:'F2',fn:renameEntity,dis:!S.sel},{ic:'trash',label:'Delete',kbd:'Del',fn:delEntity,dis:!S.sel},{sep:1},{ic:'plus',label:'Add entity…',kbd:'Shift+A',fn:()=>palette('create ')},{ic:'scene',label:'New scene…',fn:addScene},{sep:1},{ic:'command',label:'Command palette',kbd:'Ctrl+P',fn:()=>palette('')}],
-view:[{ic:'scene',label:'Scene workspace',kbd:'Ctrl+1',fn:()=>setTab('scene')},{ic:'script',label:'Script workspace',kbd:'Ctrl+2',fn:()=>setTab('script')},{sep:1},{ic:'grid',label:(S.gridOn?'Hide':'Show')+' grid',kbd:'G',fn:toggleGrid},{ic:'magnet',label:(S.snapOn?'Disable':'Enable')+' snapping',fn:toggleSnap},{ic:'frame',label:'Frame selection',kbd:'F',fn:()=>frameSel()},{ic:'frame',label:'Frame all',kbd:'Shift+F',fn:()=>frameSel(true)},{ic:'target',label:'Reset camera',fn:resetView},{sep:1},{ic:'terminal',label:'Console',fn:()=>setBTab('console')},{ic:'assets',label:'Assets',fn:()=>setBTab('assets')},{ic:'map',label:'Tile painter',fn:()=>setBTab('tiles')},{ic:'film',label:'Animation editor',fn:()=>setBTab('anim')},{ic:'video',label:'Cutscene editor',fn:()=>setBTab('cuts')},{ic:'layers',label:'Reset layout',fn:resetLayout}],
-help:[{ic:'keyboard',label:'Keyboard shortcuts',kbd:'?',fn:showKeys},{ic:'book',label:'Learn Vue Engine',fn:()=>showHub('home')},{sep:1},{ic:'puzzle',label:'Extensions',fn:()=>setBTab('exts')},{ic:'info',label:'About Vue Engine',fn:()=>showHub('about')}]
+view:[{ic:'scene',label:'Scene workspace',kbd:'Ctrl+1',fn:()=>setTab('scene')},{ic:'script',label:'Script workspace',kbd:'Ctrl+2',fn:()=>setTab('script')},{sep:1},{ic:'grid',label:(S.gridOn?'Hide':'Show')+' grid',kbd:'G',fn:toggleGrid},{ic:'magnet',label:(S.snapOn?'Disable':'Enable')+' snapping',fn:toggleSnap},{ic:'frame',label:'Frame selection',kbd:'F',fn:()=>frameSel()},{ic:'frame',label:'Frame all',kbd:'Shift+F',fn:()=>frameSel(true)},{ic:'target',label:'Reset camera',fn:resetView},{ic:'settings',label:isBeg()?'Switch to Advanced interface':'Switch to Beginner interface',fn:()=>{setPref('mode',isBeg()?'advanced':'beginner');onModeChange()}},{sep:1},{ic:'terminal',label:'Console',fn:()=>setBTab('console')},{ic:'assets',label:'Assets',fn:()=>setBTab('assets')},{ic:'map',label:'Tile painter',fn:()=>setBTab('tiles')},{ic:'film',label:'Animation editor',fn:()=>setBTab('anim')},{ic:'video',label:'Cutscene editor',fn:()=>setBTab('cuts')},{ic:'layers',label:'Reset layout',fn:resetLayout}],
+help:[{ic:'keyboard',label:'Keyboard shortcuts',kbd:'?',fn:showKeys},{ic:'book',label:'Guide',fn:()=>showHub('home')},{sep:1},{ic:'puzzle',label:'Extensions',fn:()=>setBTab('exts')},{ic:'info',label:'About Vue Engine',fn:()=>showHub('about')}]
 }
 }
 function wireMenus(){
@@ -1695,7 +1842,7 @@ document.addEventListener('pointerdown',e=>{if(!(e.target.closest&&e.target.clos
 }
 function commands(){
 const C=[
-['New project','sparkles',()=>showHub('home'),'Ctrl+N'],['Open project','folder',open,'Ctrl+O'],['Save','save',()=>save(false),'Ctrl+S'],['Save as','save',()=>save(true),'Ctrl+Shift+S'],['Port game (HTML, web, PWA, desktop)','export',openPort,'Ctrl+E'],
+['New project','plus',()=>showHub('templates'),'Ctrl+N'],['Open project','folder',open,'Ctrl+O'],['Save','save',()=>save(false),'Ctrl+S'],['Save as','save',()=>save(true),'Ctrl+Shift+S'],['Port game (HTML, web, PWA, desktop)','export',openPort,'Ctrl+E'],
 ['Play','play',play,'Ctrl+Enter'],['Stop','stop',stopGame,'Esc'],['Undo','undo',undo,'Ctrl+Z'],['Redo','redo',redo,'Ctrl+Y'],
 ['Scene workspace','scene',()=>setTab('scene'),'Ctrl+1'],['Script workspace','script',()=>setTab('script'),'Ctrl+2'],
 ['Toggle grid','grid',toggleGrid,'G'],['Toggle snapping','magnet',toggleSnap,''],['Frame selection','frame',()=>frameSel(),'F'],['Frame all','frame',()=>frameSel(true),'Shift+F'],
@@ -1795,9 +1942,45 @@ return out.toDataURL('image/jpeg',0.82)
 }catch(x){return''}
 finally{wrap.remove()}
 }
-const PREFS=Object.assign({core:'vwr',smooth:true,scale:100,calm:false,autosave:true,reopen:false,extSrc:'github'},ls.get('vue.prefs',{}))
+const storedPrefs=ls.get('vue.prefs',null)
+const PREFS=Object.assign({core:'vwr',smooth:true,scale:100,calm:false,autosave:true,reopen:false,extSrc:'github',mode:storedPrefs?'advanced':'beginner'},storedPrefs||{})
+S.advOpen=ls.get('vue.advopen',false)
 function setPref(k,v){PREFS[k]=v;ls.set('vue.prefs',PREFS);applyPrefs()}
-function applyPrefs(){document.body.style.zoom=PREFS.scale===100?'':String(PREFS.scale/100);document.body.classList.toggle('calm',!!PREFS.calm)}
+function applyPrefs(){document.body.style.zoom=PREFS.scale===100?'':String(PREFS.scale/100);document.body.classList.toggle('calm',!!PREFS.calm);document.body.classList.toggle('beginner',isBeg());document.body.classList.toggle('web',!!host.web)}
+function onModeChange(){
+applyPrefs()
+if(S.ws&&S.toolboxAll){S.toolbox=toolboxFor(S.toolboxAll);S.ws.updateToolbox(S.toolbox)}
+buildInspector()
+if(S.tab==='script')loadScriptView()
+renderTodo()
+if($('#hub').classList.contains('on')&&$('[data-pane=settings]').classList.contains('on'))renderSettings()
+}
+const TODO=[['project','Make a project'],['sprite','Add a sprite'],['block','Add a block'],['play','Press Play']]
+function todo(k){const t=ls.get('vue.todo',{});if(t[k])return;t[k]=1;ls.set('vue.todo',t);renderTodo()}
+function renderTodo(){
+const b=$('#todo')
+if(!b)return
+const t=ls.get('vue.todo',{}),n=TODO.filter(x=>t[x[0]]).length
+b.classList.toggle('hide',!isBeg()||n===TODO.length||!!t.hidden)
+b.innerHTML=''
+b.append(h('h3',{text:'Get started ('+n+' of '+TODO.length+')'}),...TODO.map(x=>h('div',{class:t[x[0]]?'done':''},h('i',{html:ic('check',10)}),h('span',{text:x[1]}))))
+const r=h('div',{style:'margin-top:6px;gap:6px'})
+if(!t.project)r.append(h('button',{class:'btn primary sm',text:'Pick a template',onclick:()=>hubPane('templates')}))
+r.append(h('button',{class:'btn ghost sm',text:'Hide',onclick:()=>{const q=ls.get('vue.todo',{});q.hidden=1;ls.set('vue.todo',q);renderTodo()}}))
+b.append(r)
+}
+const TIPS={hier:['Hierarchy','Everything in the current scene. Click to select, double-click to rename, drag onto another row to nest it.'],insp:['Inspector','Edit the selected entity here. With nothing selected it shows scene and project settings.'],scene:['Scene view','Drag to move things. Q W E R switch tools, F frames the selection, scroll to zoom.'],script:['Script','Blocks are the script for the selected entity. Start with an event block, then snap actions under it.'],bottom:['Console and assets','Console shows messages and script errors. Assets holds your images and sounds. Tiles, Animation and Cutscenes open their own editors.']}
+function tipBtn(k){return h('button',{class:'tip',type:'button',title:TIPS[k][0]+' tips',text:'?',onclick:e=>{e.stopPropagation();const b=$('#tipbox'),r=e.currentTarget.getBoundingClientRect();if(b.dataset.k===k&&b.classList.contains('on')){b.classList.remove('on');return}b.dataset.k=k;b.innerHTML='';b.append(h('b',{text:TIPS[k][0]}),h('span',{text:TIPS[k][1]}));b.style.left=Math.max(8,Math.min(innerWidth-256,r.left))+'px';b.style.top=(r.bottom+6)+'px';b.classList.add('on')}})}
+function initTips(){
+const tb=h('div',{id:'tipbox',class:'tipbox'})
+document.body.append(tb)
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('.tip,.tipbox'))tb.classList.remove('on')},true)
+$$('#left .ph')[1].firstChild.append(' ',tipBtn('hier'))
+$('#inspTitle').parentNode.append(tipBtn('insp'))
+$('#viewScene .vt-r').before(tipBtn('scene'))
+$('#viewScript .crumb').after(tipBtn('script'))
+$('#bottom .ph.tabs').insertBefore(tipBtn('bottom'),$('#conTools').previousElementSibling)
+}
 const EXT_SRC={github:'https://raw.githubusercontent.com/deadbytee-del/Vue-Engine/main/extensions/',jsdelivr:'https://cdn.jsdelivr.net/gh/deadbytee-del/Vue-Engine@main/extensions/'}
 const X={cat:ls.get('vue.ext.cat',null),inst:ls.get('vue.ext.inst',{}),tab:'all',q:'',c:'',busy:{}}
 const extSave=()=>ls.set('vue.ext.inst',X.inst)
@@ -1922,8 +2105,7 @@ h('div',{class:'dact'},
 !inst?h('button',{class:'btn pri',html:ic('download',14)+'Install',onclick:()=>extInstall(id).then(re).catch(x=>toast('Download failed: '+x.message,'err'))}):extUpd(m)?h('button',{class:'btn pri',html:ic('refresh',14)+'Update to '+m.version,onclick:()=>extInstall(id).then(re)}):null,
 inst&&p?h('button',{class:'btn'+(used?'':' pri'),html:ic(used?'x':'check',14)+(used?'Turn off in project':'Use in '+p.name),onclick:()=>{extUse(id,!used);re()}}):null,
 inst?h('button',{class:'btn ghost',html:ic('trash',14)+'Remove',onclick:()=>{extRemove(id);re()}}):null),
-m.example?h('div',{class:'dsec'},h('h3',{text:'Example'}),h('pre',{class:'mono',text:m.example})):null,
-form.length?h('div',{class:'dsec'},h('h3',{text:used?'Settings for this project':'Settings (turn it on in a project to edit)'}),...form):null
+...advRows(m.example?h('div',{class:'dsec'},h('h3',{text:'Example'}),h('pre',{class:'mono',text:m.example})):null,form.length?h('div',{class:'dsec'},h('h3',{text:used?'Settings for this project':'Settings (turn it on in a project to edit)'}),...form):null)
 )
 }
 function extOpen(id){const d=$('#extDetail');extBody(id,d);d.classList.add('on')}
@@ -1959,16 +2141,17 @@ else side.append(h('div',{class:'xnone',text:'Select an extension.'}))
 
 function tplCard(t){
 const th=h('div',{class:'th'},h('span',{class:'badge b'+t.kind[0],text:t.kind}))
-const c=h('button',{class:'card',onclick:()=>newFrom(t.make(),t.name)},th,h('div',{class:'cb'},h('b',{text:t.name}),h('small',{text:t.desc})))
+const c=h('button',{class:'card',onclick:()=>newFrom(t.make(),t.name,t)},th,h('div',{class:'cb'},h('b',{text:t.name}),h('small',{text:t.desc})))
 if(t._th)th.style.backgroundImage='url('+t._th+')'
 else thumb(t.make()).then(u=>{if(u){t._th=u;th.style.backgroundImage='url('+u+')'}})
 return c
 }
-function newFrom(p,name){
+function newFrom(p,name,t){
 p.settings=p.settings||{}
+if(t&&t.id.indexOf('empty')===0)p.name='My '+t.kind+' game'
 if(p.settings.core==null)p.settings.core=PREFS.core
 if(p.settings.smooth==null)p.settings.smooth=PREFS.smooth
-setProject(p,null,true);hideHub();toast('Created '+name,'ok')
+setProject(p,null,true);hideHub();todo('project');toast('Created '+p.name,'ok')
 }
 function renderTpl(){
 const g=$('#tplGrid'),f=S.tplF||''
@@ -1987,14 +2170,15 @@ const it=(t,d,el)=>h('div',{class:'srow'},h('div',null,h('b',{text:t}),h('small'
 b.append(
 h('h3',{text:'Engine'}),
 it('Default engine core','Used by new projects. Each project can change it in the Inspector.',sel('core',CORES)),
-it('Smooth motion','New projects draw between physics steps for fluid motion on high refresh screens.',sw('smooth')),
+it('Smooth motion','New projects draw between physics steps so motion stays smooth on fast screens.',sw('smooth')),
 h('h3',{text:'Interface'}),
+it('Interface mode','Beginner shows Blocks and the basics. Advanced also shows Nodes, Code, physics and engine options.',sel('mode',[['beginner','Beginner'],['advanced','Advanced']],onModeChange)),
 it('Interface size','Scales the whole editor.',sel('scale',[[90,'90%'],[100,'100%'],[110,'110%'],[125,'125%']])),
-it('Reduce motion','Turns off hover lifts and animated transitions.',sw('calm')),
-it('Open last project on launch','Skip the Home screen and go straight back to where you were.',sw('reopen')),
-it('Autosave','Keeps a copy of your work every few seconds so nothing is lost if the app closes.',sw('autosave')),
+it('Reduce motion','Turns off animations.',sw('calm')),
+it('Open last project on launch','Skip Home and return to your last project.',sw('reopen')),
+it('Autosave','Keeps a copy of your work so nothing is lost if the app closes.',sw('autosave')),
 h('h3',{text:'Extensions'}),
-it('Download from','Where extensions are fetched from. Switch if one is blocked on your network.',sel('extSrc',[['github','GitHub'],['jsdelivr','jsDelivr mirror']],()=>{X.fresh=false;loadExt(true)})),
+it('Download from','Where extensions are fetched from. Switch if one is blocked.',sel('extSrc',[['github','GitHub'],['jsdelivr','jsDelivr mirror']],()=>{X.fresh=false;loadExt(true)})),
 it('Downloaded extensions',Object.keys(X.inst).length+' installed, '+(Object.keys(X.inst).reduce((a,k)=>a+((extCodeOf(k)||'').length),0)/1024).toFixed(0)+' KB on this computer.',h('button',{class:'btn sm ghost',html:ic('trash',13)+'Remove all',onclick:async()=>{if(!await dialog({title:'Remove all extensions?',msg:'Projects that use them will download them again when you play.',buttons:[{label:'Cancel',value:false},{label:'Remove all',value:true,primary:true}]}))return;for(const k of Object.keys(X.inst))extRemove(k);renderSettings()}}))
 )
 }
@@ -2016,8 +2200,7 @@ async function showHub(pane){
 $('#hub').classList.add('on')
 hubPane(pane||'home')
 $('#hubBack').style.display=S.project?'':'none'
-const hr=new Date().getHours()
-$('#hubHello').textContent=(hr<5?'Late night':hr<12?'Good morning':hr<18?'Good afternoon':'Good evening')+', ready to build?'
+renderTodo()
 renderTpl()
 renderRecent()
 }
@@ -2040,7 +2223,7 @@ const mini=$('#recentMini'),full=$('#recentGrid')
 mini.innerHTML=''
 full.innerHTML=''
 if(auto&&auto.project&&auto.project.scenes){
-const c=()=>h('button',{class:'card',onclick:()=>{setProject(auto.project,auto.path,!auto.path);hideHub()}},h('div',{class:'th',style:auto.project.thumb?'background-image:url('+auto.project.thumb+')':'background:var(--bg2);display:grid;place-items:center;color:#a98fd6',html:auto.project.thumb?'':ic('clock',34)}),h('div',{class:'cb'},h('b',{text:'Continue: '+auto.project.name}),h('small',{text:'Your last session, restored'})))
+const c=()=>h('button',{class:'card',onclick:()=>{setProject(auto.project,auto.path,!auto.path);hideHub()}},h('div',{class:'th',style:auto.project.thumb?'background-image:url('+auto.project.thumb+')':'background:var(--bg2);display:grid;place-items:center;color:#a5a198',html:auto.project.thumb?'':ic('clock',34)}),h('div',{class:'cb'},h('b',{text:'Continue: '+auto.project.name}),h('small',{text:'Your last session, restored'})))
 mini.append(c())
 if(!q||auto.project.name.toLowerCase().includes(q))full.append(c())
 }
@@ -2077,7 +2260,6 @@ if(!p)return
 S.path=p
 S.dirty=false
 S.savedAt=Date.now()
-$('#dirty').classList.remove('on')
 pushRecent(p,S.project.thumb)
 scheduleSave()
 status()
@@ -2122,14 +2304,14 @@ return files
 function iconPng(src,size){
 return new Promise(res=>{
 const im=new Image()
-im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=size;const x=c.getContext('2d');x.fillStyle='#0a0910';x.fillRect(0,0,size,size);const k=Math.max(size/im.width,size/im.height);x.drawImage(im,(size-im.width*k)/2,(size-im.height*k)/2,im.width*k,im.height*k);res(c.toDataURL('image/png').split(',')[1])}
+im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=size;const x=c.getContext('2d');x.fillStyle='#131313';x.fillRect(0,0,size,size);const k=Math.max(size/im.width,size/im.height);x.drawImage(im,(size-im.width*k)/2,(size-im.height*k)/2,im.width*k,im.height*k);res(c.toDataURL('image/png').split(',')[1])}
 im.onerror=()=>res(null)
 im.src=src
 })
 }
 async function runPort(){
 const target=portSel,name=($('#portName').value||S.project.name).trim()||'My Game'
-const r=await VueCompiler.compileProject(S.project,compileEnv())
+const r=await VueCompiler.compileProject(S.project,await compileEnv(usesBlocks()))
 for(const e of r.errors){const i=e.indexOf(': ');log('error',i>0?e.slice(i+2):e,i>0?e.slice(0,i):'')}
 if(r.errors.length&&target!=='project'&&!await dialog({title:'Port with '+r.errors.length+' script error'+(r.errors.length>1?'s':'')+'?',msg:'Entities with broken scripts will do nothing in the ported game. Details are in the Console.',buttons:[{label:'Cancel',value:null},{label:'Port anyway',value:1,primary:true}]}))return
 const rt=await gameRuntime()
@@ -2143,7 +2325,7 @@ else if(target==='project'){const sp=JSON.parse(JSON.stringify(S.project));sp.th
 else{
 const af=target==='desktop'?[]:assetFiles(proj)
 let extra=''
-if(target==='pwa')extra='<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#0a0910"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><script>if("serviceWorker"in navigator)addEventListener("load",function(){navigator.serviceWorker.register("sw.js")})</script>'
+if(target==='pwa')extra='<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#131313"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><script>if("serviceWorker"in navigator)addEventListener("load",function(){navigator.serviceWorker.register("sw.js")})</script>'
 const pt=VuePlayer.parts(proj,r.scripts,rt,name,three,extra)
 files=[{name:'index.html',data:pt.html},{name:'game.js',data:pt.js}].concat(af)
 if(target==='pwa'){
@@ -2151,7 +2333,7 @@ const shot=await thumb(S.project,512,512)
 const i512=await iconPng(shot||'gem.png',512),i192=await iconPng(shot||'gem.png',192)
 if(i512)files.push({name:'icon-512.png',data:i512,b64:true})
 if(i192)files.push({name:'icon-192.png',data:i192,b64:true})
-files.push({name:'manifest.json',data:JSON.stringify({name,short_name:name.slice(0,12),start_url:'./index.html',display:'fullscreen',orientation:S.project.settings.width>=S.project.settings.height?'landscape':'portrait',background_color:'#000000',theme_color:'#0a0910',icons:[{src:'icon-192.png',sizes:'192x192',type:'image/png'},{src:'icon-512.png',sizes:'512x512',type:'image/png'}]},null,1)})
+files.push({name:'manifest.json',data:JSON.stringify({name,short_name:name.slice(0,12),start_url:'./index.html',display:'fullscreen',orientation:S.project.settings.width>=S.project.settings.height?'landscape':'portrait',background_color:'#000000',theme_color:'#131313',icons:[{src:'icon-192.png',sizes:'192x192',type:'image/png'},{src:'icon-512.png',sizes:'512x512',type:'image/png'}]},null,1)})
 const list=files.map(f=>'./'+f.name)
 files.push({name:'sw.js',data:'const C="vue-'+Date.now()+'",F='+JSON.stringify(['./'].concat(list))+';self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.addAll(F)))});self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>clients.claim())));self.addEventListener("fetch",e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))})'})
 }
@@ -2323,7 +2505,7 @@ $('#extRefresh').onclick=()=>{X.fresh=false;loadExt(true).then(()=>toast('Extens
 for(const b of $$('#extTab button'))b.onclick=()=>{X.tab=b.dataset.t;renderExt()}
 for(const b of $$('#tplF .hchip'))b.onclick=()=>{S.tplF=b.dataset.f;for(const x of $$('#tplF .hchip'))x.classList.toggle('on',x===b);renderTpl()}
 for(const b of $$('.lk'))b.onclick=()=>hubPane(b.dataset.go)
-for(const b of $$('.qa'))b.onclick=()=>{const q=b.dataset.q;if(q==='ext')return hubPane('ext');const t=VueSample.TEMPLATES.find(t=>t.id===(q==='2d'?'empty2':q==='3d'?'empty3':'kit'))||VueSample.TEMPLATES[0];newFrom(t.make(),t.name)}
+for(const b of $$('.qa'))b.onclick=()=>{const q=b.dataset.q;if(q==='ext')return hubPane('ext');if(q==='new')return hubPane('templates');const t=VueSample.TEMPLATES.find(t=>t.id===(q==='2d'?'empty2':'empty3'))||VueSample.TEMPLATES[0];newFrom(t.make(),t.name,t)}
 $('#hubBack').onclick=hideHub
 for(const b of $$('.hub-nav'))b.onclick=()=>hubPane(b.dataset.hub)
 for(const b of $$('.fchip'))b.onclick=()=>{S.lv[b.dataset.lv]=!S.lv[b.dataset.lv];b.classList.toggle('on',S.lv[b.dataset.lv]);renderLog()}
@@ -2335,20 +2517,24 @@ window.addEventListener('message',e=>{
 const m=e.data
 if(!m||m.vue!==1||e.source!==$('#frame').contentWindow)return
 if(m.type==='log')log(m.level,m.text,m.src)
-if(m.type==='fps')$('#fps').textContent=m.v+' fps · '+m.n+' entities'
+if(m.type==='fps')$('#fps').textContent=m.v+' fps, '+m.n+' entities'
 })
-window.addEventListener('resize',()=>{if(S.ws)Blockly.svgResize(S.ws);if(S.code)S.code.layout()})
-new ResizeObserver(()=>{if(S.ws&&S.tab==='script')Blockly.svgResize(S.ws)}).observe($('#sbody'))
-setInterval(status,5000)
+let fq=0
+const fit=()=>{if(fq)return;fq=requestAnimationFrame(()=>{fq=0;if(S.tab!=='script')return;if(S.ws)Blockly.svgResize(S.ws);if(S.code)S.code.layout()})}
+window.addEventListener('resize',fit)
+new ResizeObserver(fit).observe($('#sbody'))
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)redraw()})
+setInterval(()=>{if(!document.hidden)status()},5000)
+$('#bUndo').onclick=undo
+$('#bRedo').onclick=redo
+$('#bSave').onclick=()=>save(false)
+$('#bAdvModes').onclick=()=>{S.advOpen=true;ls.set('vue.advopen',true);loadScriptView()}
+$('#bAddFirst').onclick=()=>addEntity(is3()?'box':'sprite')
+initTips()
 }
 window.VueEd={S,h,ic,scene,is3,selData,entOf,snap,snapAll:snap,markDirty,scheduleSave,reloadScene,renderAll,renderHier,buildInspector,redraw,toast,dialog,setBTab,setTab,setTool,select,addEntity,addAsset,worldOf:wd,setW,scr,uid:()=>VueSample.uid(),refresh:()=>{S.game.refresh();redraw();buildInspector();markDirty()},showMenu:(x,y,items)=>showMenu($('#ctx'),x,y,items),play:n=>play(n)}
 window.vueBoot=async function(){
 VuePanels.init(window.VueEd)
-const r=VueBlocks.init(Blockly,Blockly.JavaScript,window.javascript.Order)
-S.toolbox=r.toolbox
-Blockly.dialog.setPrompt((msg,def,cb)=>{dialog({title:msg,input:def||'',buttons:[{label:'Cancel',value:null},{label:'OK',value:true,primary:true}]}).then(v=>cb(v))})
-Blockly.dialog.setConfirm((msg,cb)=>{dialog({title:msg,buttons:[{label:'Cancel',value:false},{label:'OK',value:true,primary:true}]}).then(v=>cb(!!v))})
-Blockly.dialog.setAlert((msg,cb)=>{dialog({title:msg,buttons:[{label:'OK',value:1,primary:true}]}).then(()=>{if(cb)cb()})})
 splitters()
 wire()
 keys()
@@ -2364,7 +2550,6 @@ setProject(ok?auto.project:VueSample.make(),ok?auto.path:null,ok&&!auto.path)
 setTab('scene')
 setBTab('console')
 transport()
-loadMonaco()
 log('info','Vue Engine '+S.version+' ready')
 applyPrefs()
 renderExt()

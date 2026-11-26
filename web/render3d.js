@@ -21,7 +21,7 @@ sc.left=-45;sc.right=45;sc.top=45;sc.bottom=-45;sc.near=1;sc.far=160
 this.sun.shadow.bias=-0.0004
 this.scene.add(this.hemi,this.sun,this.sun.target)
 this.map=new Map()
-this.geo={box:new T.BoxGeometry(1,1,1),sphere:new T.SphereGeometry(0.5,28,18),cylinder:new T.CylinderGeometry(0.5,0.5,1,28),cone:new T.ConeGeometry(0.5,1,28),plane:new T.PlaneGeometry(1,1).rotateX(-Math.PI/2)}
+this.geo={box:new T.BoxGeometry(1,1,1),sphere:new T.SphereGeometry(0.5,28,18),cylinder:new T.CylinderGeometry(0.5,0.5,1,28),cone:new T.ConeGeometry(0.5,1,28),plane:new T.PlaneGeometry(1,1).rotateX(-Math.PI/2),capsule:this.capsuleGeo(0.45),torus:new T.TorusGeometry(0.35,0.15,12,32).rotateX(Math.PI/2),pyramid:new T.ConeGeometry(0.70711,1,4).rotateY(Math.PI/4),wedge:this.wedgeGeo(),stairs:this.stairsGeo(5)}
 this.tex=new Map()
 this.ray=new T.Raycaster()
 this.bg=''
@@ -65,6 +65,35 @@ t.needsUpdate=true
 this.tex.set(name,t)
 }
 return t
+}
+capsuleGeo(rw){
+const T=this.T,ch=Math.min(0.5,0.5*rw),p=[],n=10
+for(let i=0;i<=n;i++){const t=-Math.PI/2+Math.PI/2*i/n;p.push(new T.Vector2(Math.max(0.0001,0.5*Math.cos(t)),-0.5+ch+ch*Math.sin(t)))}
+for(let i=0;i<=n;i++){const t=Math.PI/2*i/n;p.push(new T.Vector2(Math.max(0.0001,0.5*Math.cos(t)),0.5-ch+ch*Math.sin(t)))}
+return new T.LatheGeometry(p,24)
+}
+wedgeGeo(){
+const T=this.T,A=[-0.5,-0.5,-0.5],B=[0.5,-0.5,-0.5],C=[0.5,-0.5,0.5],D=[-0.5,-0.5,0.5],E=[0.5,0.5,-0.5],F=[0.5,0.5,0.5]
+const tris=[[A,B,C],[A,C,D],[B,E,F],[B,F,C],[A,E,B],[D,C,F],[A,D,F],[A,F,E]]
+const g=new T.BufferGeometry()
+g.setAttribute('position',new T.Float32BufferAttribute(tris.flat(2),3))
+g.computeVertexNormals()
+return g
+}
+stairsGeo(n){
+const T=this.T,pos=[],nor=[],uv=[]
+for(let i=0;i<n;i++){
+const h=(i+1)/n,w=1-i/n,b=new T.BoxGeometry(w,h,1).translate(-0.5+i/n+w/2,-0.5+h/2,0).toNonIndexed()
+pos.push(...b.attributes.position.array)
+nor.push(...b.attributes.normal.array)
+uv.push(...b.attributes.uv.array)
+b.dispose()
+}
+const g=new T.BufferGeometry()
+g.setAttribute('position',new T.Float32BufferAttribute(pos,3))
+g.setAttribute('normal',new T.Float32BufferAttribute(nor,3))
+g.setAttribute('uv',new T.Float32BufferAttribute(uv,2))
+return g
 }
 make(e){
 const T=this.T
@@ -117,6 +146,7 @@ m.distance=e.w||20
 continue
 }
 m.scale.set(e.w,e.shape==='plane'?1:e.h,e.d)
+if(e.shape==='capsule'){const ck=Math.round(Math.min(e.w,e.d)/Math.max(0.01,e.h)*100);if(m.userData.ck!==ck){m.userData.ck=ck;m.geometry=this.capsuleGeo(Math.min(e.w,e.d)/Math.max(0.01,e.h))}}
 const mat=m.material
 if(m.userData.c!==e.color){mat.color.set(e.color);m.userData.c=e.color}
 if(m.userData.i!==e.image){

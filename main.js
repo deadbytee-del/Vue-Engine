@@ -8,7 +8,7 @@ let win=null
 const mime={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',bmp:'image/bmp',svg:'image/svg+xml',wav:'audio/wav',mp3:'audio/mpeg',ogg:'audio/ogg'}
 function create(){
 Menu.setApplicationMenu(null)
-win=new BrowserWindow({width:1600,height:950,minWidth:1100,minHeight:650,backgroundColor:'#0a0910',title:'Vue Engine',icon:path.join(__dirname,'build','icon.ico'),show:false,titleBarStyle:'hidden',titleBarOverlay:{color:'#110f19',symbolColor:'#ece8f6',height:40},webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,sandbox:false}})
+win=new BrowserWindow({width:1600,height:950,minWidth:1100,minHeight:650,backgroundColor:'#131313',title:'Vue Engine',icon:path.join(__dirname,'build','icon.ico'),show:false,titleBarStyle:'hidden',titleBarOverlay:{color:'#1b1b1b',symbolColor:'#e6e3dd',height:40},webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,sandbox:false}})
 win.once('ready-to-show',()=>win.show())
 win.webContents.on('before-input-event',(e,i)=>{
 if(i.type==='keyDown'&&i.key==='F12')win.webContents.toggleDevTools()

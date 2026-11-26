@@ -2,7 +2,7 @@
 
 # Vue Engine
 
-A 2D and 3D game creation engine for Windows. Build games three ways and run them instantly.
+A 2D and 3D game engine for Windows and the browser. Make games with blocks, nodes or code.
 
 - **Blocks**: Scratch-style drag and drop blocks
 - **Nodes**: visual node graphs with execution and data wires
@@ -10,9 +10,15 @@ A 2D and 3D game creation engine for Windows. Build games three ways and run the
 
 All three compile to the same runtime, so one project can mix them per entity.
 
+## Interface modes
+
+Settings has a Beginner and an Advanced interface mode. New users start in Beginner: Blocks only, with Nodes, Code, physics tuning, engine core, atmosphere values and extension settings under Show advanced. Advanced shows everything. Switching modes never changes or removes scripts. The Home screen has a short checklist for first-time users.
+
 ## Features
 
 - 2D and 3D scenes in one project, switchable per scene
+- Shapes: rectangle, rounded rect, circle, pill, triangle, hexagon, star, ring, arrow (2D); box, sphere, capsule, cylinder, cone, torus, plane, pyramid, wedge and stairs (3D). Pills and capsules use exact capsule collisions on the JavaScript core. A scene that contains one runs on that core instead of VWR. The other shapes collide as their bounding box
+- Player controller: add it from Add Component. Platformer, top-down 4 and 8 direction, first-person and third-person movement with jump height, double jump, coyote time, jump buffer, dash, camera follow, health and animation hooks. Presets: Platformer, Top-down RPG, Shooter, FPS, Racer-lite. Save your own presets. Scripts can change values with `vue.player.speed = 300`, and `self.makePlayer("FPS")` attaches it. Blocks and Nodes have matching entries
 - 3D: Three.js rendering, shadows, lights, orbit camera editor, third-person and first-person cameras, mouse look, 3D collisions
 - Project hub with playable templates, recent projects and thumbnails
 - Scene editor with move, rotate and scale gizmos, smart guides, snapping, grid, undo and redo

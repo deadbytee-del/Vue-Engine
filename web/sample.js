@@ -11,13 +11,26 @@ tilemap:()=>ent({name:'Tilemap',shape:'tilemap',x:0,y:0,w:32,h:32,cell:32,ts:16,
 rect:()=>ent({name:'Box',shape:'rect',color:'#7aa2f7'}),
 circle:()=>ent({name:'Ball',shape:'circle',color:'#f7768e'}),
 sprite:()=>ent({name:'Sprite',shape:'sprite',color:'#ffffff'}),
-text:()=>ent({name:'Label',shape:'text',text:'Hello Vue',fontSize:28,w:160,h:40,color:'#ffffff'})
+text:()=>ent({name:'Label',shape:'text',text:'Hello Vue',fontSize:28,w:160,h:40,color:'#ffffff'}),
+pill:()=>ent({name:'Pill',shape:'pill',w:32,h:64,color:'#bb9af7'}),
+rrect:()=>ent({name:'Panel',shape:'rrect',w:96,h:56,color:'#7dcfff'}),
+triangle:()=>ent({name:'Triangle',shape:'triangle',w:56,h:56,color:'#e0af68'}),
+hexagon:()=>ent({name:'Hexagon',shape:'hexagon',w:60,h:52,color:'#73daca'}),
+star:()=>ent({name:'Star',shape:'star',w:60,h:60,color:'#ffd34d'}),
+ring:()=>ent({name:'Ring',shape:'ring',w:64,h:64,color:'#f7768e'}),
+arrow:()=>ent({name:'Arrow',shape:'arrow',w:80,h:48,color:'#9ece6a'})
 }
 const e3=(o)=>ent(Object.assign({shape:'box',x:0,y:0,z:0,w:1,h:1,d:1,rx:0,ry:0,rz:0},o))
 const kinds3={
 box:()=>e3({name:'Box',color:'#7aa2f7'}),
 sphere:()=>e3({name:'Sphere',shape:'sphere',color:'#f7768e'}),
 cylinder:()=>e3({name:'Cylinder',shape:'cylinder',color:'#9ece6a'}),
+capsule:()=>e3({name:'Capsule',shape:'capsule',w:0.8,h:1.8,d:0.8,color:'#bb9af7'}),
+cone:()=>e3({name:'Cone',shape:'cone',color:'#e0af68'}),
+torus:()=>e3({name:'Torus',shape:'torus',w:1.4,h:0.6,d:1.4,color:'#7dcfff'}),
+pyramid:()=>e3({name:'Pyramid',shape:'pyramid',color:'#ffd34d'}),
+wedge:()=>e3({name:'Wedge',shape:'wedge',w:2,h:1,d:2,color:'#73daca'}),
+stairs:()=>e3({name:'Stairs',shape:'stairs',w:2,h:1.5,d:2,color:'#8896b3'}),
 plane:()=>e3({name:'Plane',shape:'plane',w:10,h:1,d:10,color:'#8896b3'}),
 light:()=>e3({name:'Light',shape:'light',w:20,color:'#fff4d6',y:5})
 }
@@ -332,15 +345,33 @@ p.cutscenes=[
 ]
 return p
 }
+const makePC=()=>{
+const p=blank()
+p.name='Player controller demo'
+const sc=p.scenes[0]
+sc.name='Level'
+sc.entities.push(
+ent({name:'Ground',x:0,y:260,w:2400,h:80,color:'#3b4261',body:'static'}),
+ent({name:'Platform 1',x:-260,y:150,w:180,h:24,color:'#565f89',body:'static'}),
+ent({name:'Platform 2',x:80,y:70,w:180,h:24,color:'#565f89',body:'static'}),
+ent({name:'Platform 3',x:420,y:-10,w:180,h:24,color:'#565f89',body:'static'}),
+ent({name:'Wall',x:760,y:140,w:40,h:180,color:'#3b4261',body:'static'}),
+ent({name:'Star',shape:'star',x:80,y:20,w:30,h:30,color:'#ffd34d'}),
+ent({name:'Star 2',shape:'star',x:420,y:-60,w:30,h:30,color:'#ffd34d'}),
+ent({name:'Player',shape:'pill',x:-500,y:190,w:28,h:48,color:'#7aa2f7',body:'dynamic',z:5,player:{type:'platformer',jumps:2,cam:{follow:true,bounds:[-1000,-500,1000,330]}}})
+)
+return p
+}
 const TEMPLATES=[
 {id:'kit',name:'Adventure Kit',kind:'2D',desc:'Tilemap level, animated hero, parenting, cutscenes and sound',make:makeKit},
 {id:'empty2',name:'Empty 2D',kind:'2D',desc:'A blank 2D scene',make:blank},
 {id:'empty3',name:'Empty 3D',kind:'3D',desc:'Ground, light and sky',make:blank3},
 {id:'plat',name:'Platformer',kind:'2D',desc:'Jump, collect coins, avoid the enemy',make:make},
 {id:'top',name:'Top-down Arena',kind:'2D',desc:'Grab gems while a chaser hunts you',make:makeTop},
+{id:'pc',name:'Player Controller',kind:'2D',desc:'A platformer that works with no scripting',make:makePC},
 {id:'plat3',name:'3D Platformer',kind:'3D',desc:'Third-person controller with mouse look',make:make3}
 ]
-const api={make,make3,makeTop,makeKit,wav,blank,blank3,ent,kinds,kinds3,uid,playerCode,TEMPLATES}
+const api={makePC,make,make3,makeTop,makeKit,wav,blank,blank3,ent,kinds,kinds3,uid,playerCode,TEMPLATES}
 if(typeof module!=='undefined'&&module.exports)module.exports=api
 else root.VueSample=api
 })(typeof window!=='undefined'?window:globalThis);

@@ -1,5 +1,5 @@
 (function(root){
-const TC={exec:'#ece8f6',num:'#3ddc84',str:'#ff9de2',bool:'#ff4d6a',ent:'#4d8dff',any:'#b9b0d0',col:'#ffd34d',sel:'#b9b0d0'}
+const TC={exec:'#e6e3dd',num:'#3ddc84',str:'#ff9de2',bool:'#ff4d6a',ent:'#4d8dff',any:'#a5a198',col:'#ffd34d',sel:'#a5a198'}
 const ic=(n,s)=>root.VueIcon?root.VueIcon(n,s):''
 const CORDER=['Events','Flow','Motion','Looks','Sound','Game','Sensing','Data','Math','Logic']
 const CATI={Events:'sparkles',Flow:'workflow',Motion:'move',Looks:'palette',Game:'gamepad',Sound:'music',Data:'tag',Math:'target',Logic:'target',Sensing:'eye'}
@@ -324,11 +324,6 @@ const a=this.ports.get(l.a+':'+l.ap+':out'),b=this.ports.get(l.b+':'+l.bp+':in')
 if(!a||!b)return
 const[x1,y1]=this.center(a),[x2,y2]=this.center(b)
 const c=TC[a.dataset.t]||TC.any,d=this.path(x1,y1,x2,y2)
-const glow=document.createElementNS(ns,'path')
-glow.setAttribute('d',d)
-glow.setAttribute('class','ne-glow')
-glow.setAttribute('stroke',c)
-svg.appendChild(glow)
 const p=document.createElementNS(ns,'path')
 p.setAttribute('d',d)
 p.setAttribute('class','ne-link'+(a.dataset.t==='exec'?' ex':''))
