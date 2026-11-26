@@ -38,6 +38,13 @@ Settings has a Beginner and an Advanced interface mode. New users start in Begin
 - Export any project as a single playable HTML file
 - Single portable `VueEngine.exe`, no installer
 
+- Behavior presets: add them from Add Component, grouped as Combat, Items, Level, Vehicles, Sports, Game rules and Story. Health, EnemyAI, Pickup, Checkpoint, Switch, Door, MovingPlatform, Spawner, Projectile, Weapon, Turret, Ball, Vehicle, Goal, TriggerZone, BoostPad, Scoreboard, MatchTimer, CameraRig, Inventory, DialogueTrigger, DamageZone, Conveyor, Bouncer and Teleporter. Each has a one-line description, tooltips on every field, an inspector card (basics first, the rest under Show advanced) and Save as preset. Scripts use them with `vue.behavior(entity, "Health", { max: 50 })`, the "give this the ... behavior" block or the Event sheet action, and react with events such as "when this dies". Scenes with Vehicle or Ball use the JavaScript core.
+- Autocomplete in Code: names of objects, scenes, prefabs, tags, sounds, behaviors and presets inside the matching calls, snippets for common patterns, and error messages written in plain language. Only installed extensions show their namespaces.
+
+## MCP
+
+Vue Engine can be driven by AI apps over the Model Context Protocol. Stdio: start `VueEngine.exe --mcp` from the client config. HTTP: turn on Settings, Integrations, Allow AI tools to connect over HTTP. It is off by default, listens on 127.0.0.1 only and needs the token shown there. Copy setup writes the config for Claude Desktop, Claude Code, Cursor or VS Code. Project files must be inside Documents/Vue Engine, imports come from Downloads, Pictures, Desktop or that folder, and requests are rate limited. Tools: list_projects, open_project, new_project, save, get_scene, list_objects, get_object, create_object, update_object, delete_object, add_component, set_property, list_assets, import_asset, get_script, set_script, validate_script, run, stop, get_console_logs, screenshot, list_extensions, install_extension, export_html. Resources: vue://project, vue://api, vue://templates, vue://behaviors. run, stop, get_console_logs, screenshot and block compilation need the editor window, so use the HTTP mode for those. The web build shows this section as Desktop only.
+
 ## Engine cores
 
 Pick a core per project under Project → Engine core. All three give identical physics results.

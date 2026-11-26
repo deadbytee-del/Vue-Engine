@@ -2,6 +2,7 @@
 const KEYS=(root.VueNodes||(typeof require!=='undefined'?require('./nodedefs.js'):null)).KEYS
 const C={ex:'#c23bd4',ev:'#e0457b',mo:'#4d8dff',lo:'#9d5cff',co:'#f5a524',se:'#38bdf8',so:'#d65ad1',ga:'#22c3a6',ca:'#6c7cff',ob:'#ff8a3d',ti:'#a3c94a'}
 const iv=(name,check)=>({type:'input_value',name,check})
+const BEHN=(root.VueBehaviors||(typeof require!=='undefined'?require('./behaviors.js'):{NAMES:[]})).NAMES
 const dd=(name,opts)=>({type:'field_dropdown',name,options:opts})
 const ft=(name,text)=>({type:'field_input',name,text})
 const fv=(name,v)=>({type:'field_variable',name,variable:v})
@@ -52,6 +53,12 @@ hat('vue_on_click','when this is clicked'),
 hat('vue_on_collide','when touching tag %1',[ft('TAG','')]),
 hat('vue_on_msg','when I receive %1',[ft('M','go')]),
 hat('vue_on_animend','when my animation finishes'),
+hat('vue_on_beh','when this %1',[dd('E',[['dies','death'],['is hurt','hurt'],['is picked up','pickup'],['attacks','attack'],['scores a goal','goal'],['is entered','enter'],['opens','open'],['reaches a checkpoint','checkpoint'],['shoots','shoot'],['hits something','hit'],['wins','win'],['runs out of time','timeup'],['finishes talking','dialogue']])]),
+stmt('vue_beh_add','give this the %1 behavior',[dd('B',BEHN.map(n=>[n,n]))],C.mo),
+stmt('vue_hurt','hurt %1 by %2',[{type:'input_value',name:'E',check:null},{type:'input_value',name:'V',check:'Number'}],C.mo),
+stmt('vue_heal','heal %1 by %2',[{type:'input_value',name:'E',check:null},{type:'input_value',name:'V',check:'Number'}],C.mo),
+stmt('vue_channel','set channel %1 %2',[{type:'input_value',name:'N',check:'String'},dd('S',[['on','true'],['off','false']])],C.mo),
+stmt('vue_score','add %1 point to team %2',[{type:'input_value',name:'V',check:'Number'},{type:'input_value',name:'T',check:'String'}],C.mo),
 {type:'vue_forever',message0:'forever',message1:'%1',args1:[st('DO')],previousStatement:null,colour:C.co},
 stmt('vue_change_x','change x by %1',[iv('BY','Number')],C.mo),
 stmt('vue_change_y','change y by %1',[iv('BY','Number')],C.mo),
@@ -186,7 +193,7 @@ val('vue_random_int','random whole number from %1 to %2',[iv('A','Number'),iv('B
 val('vue_chance','%1 %% chance',[iv('P','Number')],C.ga,'Boolean'),
 val('vue_lerp','lerp from %1 to %2 by %3',[iv('A','Number'),iv('B','Number'),iv('K','Number')],C.ga,'Number')
 ]
-const HATS=['vue_on_start','vue_on_update','vue_on_key','vue_on_keyup','vue_on_anykey','vue_on_click','vue_on_collide','vue_on_msg','vue_on_animend','vue_forever']
+const HATS=['vue_on_beh','vue_on_start','vue_on_update','vue_on_key','vue_on_keyup','vue_on_anykey','vue_on_click','vue_on_collide','vue_on_msg','vue_on_animend','vue_forever']
 const blk=(type,inputs,fields)=>{
 const o={kind:'block',type}
 if(fields)o.fields=fields
@@ -204,8 +211,8 @@ const cat=(name,colour,contents)=>({kind:'category',name,colour,contents})
 const toolbox=()=>({kind:'categoryToolbox',contents:[
 cat('Common',C.ev,[blk('vue_on_start'),blk('vue_on_update'),blk('vue_on_key'),blk('vue_change_x',{BY:5}),blk('vue_change_y',{BY:5}),blk('vue_jump',{P:600}),blk('vue_say',{T:'Hello!',S:2}),blk('controls_if')]),
 {kind:'sep'},
-cat('Events',C.ev,['vue_on_start','vue_on_update','vue_on_key','vue_on_keyup','vue_on_anykey','vue_on_click','vue_on_collide','vue_on_msg','vue_on_animend'].map(t=>blk(t)).concat([blk('vue_last_key'),blk('vue_msg_data')])),
-cat('Movement',C.mo,[blk('vue_player_make'),blk('vue_player_set',{V:300}),blk('vue_change_x',{BY:5}),blk('vue_change_y',{BY:5}),blk('vue_set_x',{V:0}),blk('vue_set_y',{V:0}),blk('vue_set_pos',{X:0,Y:0}),blk('vue_goto_ent',{E:E('Player')}),blk('vue_goto_mouse'),blk('vue_glide',{X:100,Y:0,S:1}),blk('vue_set_vel',{VX:0,VY:0}),blk('vue_set_vx',{V:200}),blk('vue_set_vy',{V:0}),blk('vue_change_vel',{VX:10,VY:0}),blk('vue_jump',{P:600}),blk('vue_set_rot',{V:0}),blk('vue_change_rot',{V:15}),blk('vue_move_dir',{V:4}),blk('vue_point_at',{E:E('Player')}),blk('vue_point_mouse'),blk('vue_flip'),blk('vue_set_body'),blk('vue_set_grav',{V:1}),{kind:'label',text:'3D'},blk('vue_change_z',{BY:1}),blk('vue_set_z',{V:0}),blk('vue_set_pos3',{X:0,Y:1,Z:0}),blk('vue_glide3',{X:0,Y:1,Z:0,S:1}),blk('vue_set_vel3',{VX:0,VY:0,VZ:0}),blk('vue_move_local',{F:6,S:0}),blk('vue_rotate3',{V:5})]),
+cat('Events',C.ev,['vue_on_beh','vue_on_start','vue_on_update','vue_on_key','vue_on_keyup','vue_on_anykey','vue_on_click','vue_on_collide','vue_on_msg','vue_on_animend'].map(t=>blk(t)).concat([blk('vue_last_key'),blk('vue_msg_data')])),
+cat('Movement',C.mo,[blk('vue_beh_add'),blk('vue_hurt',{E:E('Player'),V:10}),blk('vue_heal',{E:E('Player'),V:10}),blk('vue_channel',{N:'A'}),blk('vue_score',{V:1,T:'blue'}),blk('vue_player_make'),blk('vue_player_set',{V:300}),blk('vue_change_x',{BY:5}),blk('vue_change_y',{BY:5}),blk('vue_set_x',{V:0}),blk('vue_set_y',{V:0}),blk('vue_set_pos',{X:0,Y:0}),blk('vue_goto_ent',{E:E('Player')}),blk('vue_goto_mouse'),blk('vue_glide',{X:100,Y:0,S:1}),blk('vue_set_vel',{VX:0,VY:0}),blk('vue_set_vx',{V:200}),blk('vue_set_vy',{V:0}),blk('vue_change_vel',{VX:10,VY:0}),blk('vue_jump',{P:600}),blk('vue_set_rot',{V:0}),blk('vue_change_rot',{V:15}),blk('vue_move_dir',{V:4}),blk('vue_point_at',{E:E('Player')}),blk('vue_point_mouse'),blk('vue_flip'),blk('vue_set_body'),blk('vue_set_grav',{V:1}),{kind:'label',text:'3D'},blk('vue_change_z',{BY:1}),blk('vue_set_z',{V:0}),blk('vue_set_pos3',{X:0,Y:1,Z:0}),blk('vue_glide3',{X:0,Y:1,Z:0,S:1}),blk('vue_set_vel3',{VX:0,VY:0,VZ:0}),blk('vue_move_local',{F:6,S:0}),blk('vue_rotate3',{V:5})]),
 cat('Looks',C.lo,[blk('vue_color'),blk('vue_color_v',{V:'#ff5555'}),blk('vue_say',{T:'Hello!',S:2}),blk('vue_visible'),blk('vue_size',{W:32,H:32}),blk('vue_change_size',{V:10}),blk('vue_set_alpha',{V:1}),blk('vue_change_alpha',{V:-0.1}),blk('vue_set_layer',{V:1}),blk('vue_set_text',{V:'Score: 0'}),blk('vue_set_font',{V:24}),blk('vue_set_image'),blk('vue_anim'),blk('vue_anim_stop'),blk('vue_burst',{N:14})]),
 cat('Camera',C.ca,[blk('vue_follow'),blk('vue_follow3',{D:9,H:1.6}),blk('vue_unfollow'),blk('vue_cam_set',{V:0}),blk('vue_cam_change',{V:1}),blk('vue_cam_get'),blk('vue_shake',{A:6,S:0.3}),blk('vue_lock_mouse')]),
 cat('Sound',C.so,[blk('vue_play2',{V:1}),blk('vue_play'),blk('vue_music',{V:0.6}),blk('vue_stop_music'),blk('vue_stop_sounds'),blk('vue_volume',{V:1}),blk('vue_my_sound'),blk('vue_beep',{F:440,D:0.15}),blk('vue_beep2',{F:660,D:0.2,V:0.2})]),
@@ -247,6 +254,12 @@ G.vue_on_anykey=b=>`on('keypress',${fnh('key',S(b,'DO'))});\n`
 G.vue_on_collide=b=>{const t=J(F(b,'TAG')||'');return `on('collide',${fnh('other',`if(!(${t}===''||other.hasTag(${t})))return;\n`+S(b,'DO'))});\n`}
 G.vue_on_click=b=>`on('click',${fnh('',S(b,'DO'))});\n`
 G.vue_on_msg=b=>`on(${J('msg:'+F(b,'M'))},${fnh('data',S(b,'DO'))});\n`
+G.vue_on_beh=b=>`on(${J('beh:'+F(b,'E'))},${fnh('arg',S(b,'DO'))});\n`
+G.vue_beh_add=b=>`self.attachBehavior(${J(F(b,'B'))});\n`
+G.vue_hurt=b=>`{const t=${EN(b,'E')};if(t)t.hurt(${V(b,'V')});}\n`
+G.vue_heal=b=>`{const t=${EN(b,'E')};if(t)t.heal(${V(b,'V')});}\n`
+G.vue_channel=b=>`vue.channel(${T(b,'N')},${F(b,'S')});\n`
+G.vue_score=b=>`vue.score(${T(b,'T')},${V(b,'V')});\n`
 G.vue_on_animend=b=>`on('animend',${fnh('',S(b,'DO'))});\n`
 G.vue_forever=b=>`while(self.alive){\nawait vue.frame();\n${S(b,'DO')}}\n`
 G.vue_change_x=b=>`self.x+=${V(b,'BY',Order.ADDITION)};\n`

@@ -663,3 +663,15 @@ body.playing .ph,body.playing #tb{background:var(--bg2)}
 .msub{color:var(--dim);font-size:10px;white-space:normal;max-width:280px;line-height:1.3}
 .mi:has(.msub){height:auto;padding:4px 8px}
 #ctx{max-height:72vh;overflow:auto}
+.mcprow{display:flex;gap:6px;align-items:center}
+.mcprow input{min-width:0;width:220px}
+.dlg{max-height:90vh;overflow:auto}
+.pop,.drawer,.evpop,.ne-pal{max-height:min(80vh,560px);overflow:auto;overscroll-behavior:contain}
+.drawer{overflow:auto}
+#insp,.list,.bpane,.hub-main,.pp-main,.pp-side,.pp-prev,.xlist,.xside,#palList,#evs,.evl,.cstl,#keyList{scrollbar-gutter:stable;overscroll-behavior:contain}
+.vt{overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.vt::-webkit-scrollbar{display:none}
+.atl,.sheet,.tpal,.cstl{-webkit-overflow-scrolling:touch}
+#console,.clog{overflow:auto;scrollbar-gutter:stable}
+@media (max-height:760px){.hub-main{padding:16px 20px 28px}.pal-box{top:24px}#palList{max-height:55vh}.dlg.port,.dlg.wide{max-height:92vh}}
+@media (max-width:1100px){.dlg.port,.dlg.wide{width:92vw}.pp-prev{display:none}}

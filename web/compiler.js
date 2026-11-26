@@ -7,6 +7,7 @@ if(s.mode==='blocks'){
 if(!s.blocks||!env.Blockly)return{code:'',errors:[]}
 return{code:env.blocks.compile(s.blocks,env.Blockly,env.gen),errors:[]}
 }
+if(s.mode==='events')return{code:env.events.compileEvents(s.events),errors:[]}
 if(s.mode==='nodes'){
 return{code:env.nodes.compileGraph(s.nodes),errors:[]}
 }

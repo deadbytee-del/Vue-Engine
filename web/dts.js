@@ -1,12 +1,15 @@
 (function(root){
-const dts=`declare interface Entity{
+const BH=typeof module!=='undefined'&&module.exports?require('./behaviors.js'):root.VueBehaviors
+const tsType=f=>f.t==='num'?'number':f.t==='bool'?'boolean':f.t==='sel'?f.o.map(q=>JSON.stringify(q[0])).join('|'):'string'
+const behDts=Object.values(BH.BEH).map(b=>`/** ${b.desc} */\ndeclare interface ${b.name}Options{\n${b.fields.map(f=>`/** ${f.tip} */\n${f.k==='var'?'"var"':f.k}?:${tsType(f)};`).join('\n')}\n}`).join('\n')+`\ndeclare type BehaviorName=${BH.NAMES.map(n=>JSON.stringify(n)).join('|')};\ndeclare interface BehaviorOptionsMap{${BH.NAMES.map(n=>`${n}:${n}Options`).join(';')}}\n`
+const dts=behDts+`declare interface Entity{
 readonly id:string;name:string;x:number;y:number;z:number;w:number;h:number;d:number;rot:number;rx:number;ry:number;rz:number;
 vx:number;vy:number;vz:number;lx:number;ly:number;lz:number;lrot:number;
 color:string;image:string;text:string;fontSize:number;alpha:number;visible:boolean;flipX:boolean;readonly grounded:boolean;readonly alive:boolean;
 tags:string[];data:{[k:string]:any};shape:string;body:"none"|"static"|"dynamic"|"trigger";gravityScale:number;
 readonly parent:Entity|null;readonly children:Entity[];readonly animation:string;
 hasTag(t:string):boolean;addTag(t:string):void;removeTag(t:string):void;
-readonly hp:number;hurt(amount:number):void;heal(amount:number):void;makePlayer(preset?:PlayerPreset|PlayerController):void;
+readonly hp:number;attachBehavior<K extends BehaviorName>(type:K,options?:BehaviorOptionsMap[K]):void;hurt(amount:number):void;heal(amount:number):void;makePlayer(preset?:PlayerPreset|PlayerController):void;
 say(text:string,seconds?:number):void;jump(power:number):void;moveLocal(forward:number,strafe:number,yawDegrees:number):void;pointAt(target:{x:number,y:number}):void;
 destroy():void;dist(o:Entity):number;overlaps(o:Entity):boolean;touching(tag?:string):boolean;setZ(z:number):void;
 play(animation:string,restart?:boolean):void;stopAnim():void;playSound():void;stopSound():void;
@@ -26,6 +29,10 @@ vars:{[k:string]:any};
 camera:{x:number;y:number;z:number;zoom:number;smooth:number;tx:number;ty:number;tz:number;fov:number;yaw:number;pitch:number;dist:number;eye:number};
 mouse:{x:number;y:number;sx:number;sy:number;dx:number;dy:number;down:boolean;clicked:boolean};
 player:PlayerController;readonly playerEntity:Entity|null;playerPreset(e:Entity|string,preset?:PlayerPreset|PlayerController):void;playerPresets():string[];
+behavior<K extends BehaviorName>(e:Entity|string,type:K,options?:BehaviorOptionsMap[K]):void;behaviors():BehaviorName[];
+channel(name:string,on?:boolean):void;readonly scores:{[team:string]:number};score(team:string,by?:number):number;
+give(e:Entity|string,item:string,count?:number):void;take(e:Entity|string,item:string,count?:number):boolean;itemCount(e:Entity|string,item:string):number;
+respawn(e:Entity|string):void;shoot(e:Entity|string,weapon:{prefab:string;rate?:number;offset?:number;angle?:number}):Entity|null;
 readonly time:number;readonly dt:number;readonly width:number;readonly height:number;readonly inCutscene:boolean;readonly scene:string;
 key(k:string):boolean;pressed(k:string):boolean;anyKey():boolean;
 find(name:string):Entity|null;all(tag?:string):Entity[];count(tag?:string):number;nearest(from:Entity,tag?:string):Entity|null;

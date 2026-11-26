@@ -1616,6 +1616,9 @@ m.editor.defineTheme('vue',{base:'vs-dark',inherit:true,rules:[{token:'keyword',
 const model=m.editor.createModel('','typescript',m.Uri.parse('file:///script.ts'))
 const ed=m.editor.create($('#code'),{model,theme:'vue',minimap:{enabled:false},stickyScroll:{enabled:false},fontSize:14,fontFamily:"'JetBrains Mono',Consolas,monospace",fontLigatures:true,automaticLayout:false,scrollBeyondLastLine:false,tabSize:2,padding:{top:14},smoothScrolling:true,cursorBlinking:'smooth',cursorSmoothCaretAnimation:'on',renderLineHighlight:'all',bracketPairColorization:{enabled:true}})
 model.onDidChangeContent(()=>onChange(model.getValue()))
+S.auto=VueAuto.install(m,{project:()=>S.project,catalog:()=>X.cat})
+S.auto.watch(model)
+S.auto.refresh()
 S.code={set:v=>{S.loading=true;model.setValue(v);S.loading=false},layout:()=>ed.layout()}
 }else{
 const ta=h('textarea',{spellcheck:'false',style:'width:100%;height:100%;background:#131313;color:#e6e3dd;border:0;border-radius:0;padding:14px;font:14px var(--mono);resize:none;outline:0;tab-size:2'})
@@ -1721,7 +1724,7 @@ if(!s.nodes)s.nodes={nid:1,nodes:[],links:[]}
 S.ne.load(s.nodes)
 }else{
 await ensureCode()
-if(selData()===d&&d.script.mode==='code'){S.code.set(s.code||'');S.code.layout()}
+if(selData()===d&&d.script.mode==='code'){S.code.set(s.code||'');S.code.layout();if(S.auto)S.auto.refresh()}
 }
 if(!quiet){renderHier();buildInspector()}
 }
@@ -2243,10 +2246,35 @@ it('Interface size','Scales the whole editor.',sel('scale',[[90,'90%'],[100,'100
 it('Reduce motion','Turns off animations.',sw('calm')),
 it('Open last project on launch','Skip Home and return to your last project.',sw('reopen')),
 it('Autosave','Keeps a copy of your work so nothing is lost if the app closes.',sw('autosave')),
+h('h3',{text:'Integrations'}),
+mcpRow(it),
 h('h3',{text:'Extensions'}),
 it('Download from','Where extensions are fetched from. Switch if one is blocked.',sel('extSrc',[['github','GitHub'],['jsdelivr','jsDelivr mirror']],()=>{X.fresh=false;loadExt(true)})),
 it('Downloaded extensions',Object.keys(X.inst).length+' installed, '+(Object.keys(X.inst).reduce((a,k)=>a+((extCodeOf(k)||'').length),0)/1024).toFixed(0)+' KB on this computer.',h('button',{class:'btn sm ghost',html:ic('trash',13)+'Remove all',onclick:async()=>{if(!await dialog({title:'Remove all extensions?',msg:'Projects that use them will download them again when you play.',buttons:[{label:'Cancel',value:false},{label:'Remove all',value:true,primary:true}]}))return;for(const k of Object.keys(X.inst))extRemove(k);renderSettings()}}))
 )
+}
+function mcpRow(it){
+if(!host.mcpStatus)return it('AI tools over MCP','Lets AI apps build and edit projects through the Model Context Protocol.',h('span',{class:'hint',text:'Desktop only'}))
+const box=h('div',{class:'mcpbox'})
+const fill=async st=>{
+box.innerHTML=''
+const sw=h('input',{type:'checkbox',class:'sw'})
+sw.checked=st.on
+sw.addEventListener('change',async()=>{fill(await host.mcpSet(sw.checked))})
+box.append(it('Allow AI tools to connect over HTTP','Off by default. Only programs on this computer with the token can connect. Project files stay inside '+st.folder+'.',sw))
+if(!st.on){box.append(h('div',{class:'hint',style:'padding:0 0 8px',text:'Stdio mode needs no setting: AI apps can start Vue Engine with the --mcp option.'}),mcpClients(st));return}
+const ro=v=>h('input',{value:v,readonly:true,spellcheck:'false',onclick:e=>e.target.select()})
+box.append(it('Address','Local only.',ro('http://127.0.0.1:'+st.port+'/mcp')),it('Token','Sent as a Bearer token. Treat it like a password.',h('span',{class:'mcprow'},ro(st.token),h('button',{class:'btn sm',text:'New token',onclick:async()=>fill(await host.mcpToken())}))),mcpClients(st))
+}
+const mcpClients=st=>{
+const kinds=[['Claude Desktop (starts the app)','claude'],['Claude Code (HTTP)','code'],['Cursor (HTTP)','cursor'],['VS Code (HTTP)','vscode']].filter(k=>st.on||k[1]==='claude')
+const sel=h('select');for(const[t,v]of kinds)sel.append(h('option',{value:v,text:t}))
+const url='http://127.0.0.1:'+st.port+'/mcp',hd={Authorization:'Bearer '+st.token}
+const snip=v=>v==='claude'?JSON.stringify({mcpServers:{'vue-engine':{command:st.exe,args:['--mcp']}}},null,2):v==='code'?'claude mcp add --transport http vue-engine '+url+' --header "Authorization: Bearer '+st.token+'"':v==='cursor'?JSON.stringify({mcpServers:{'vue-engine':{url,headers:hd}}},null,2):JSON.stringify({servers:{'vue-engine':{type:'http',url,headers:hd}}},null,2)
+return it('Connect an AI app','Pick your app and copy its setup text.',h('span',{class:'mcprow'},sel,h('button',{class:'btn sm primary',text:'Copy setup',onclick:async()=>{try{await navigator.clipboard.writeText(snip(sel.value));toast('Setup copied','ok')}catch(e){toast('Could not copy','err')}}})))
+}
+host.mcpStatus().then(fill)
+return box
 }
 function renderAbout(){
 const b=$('#aboutBox'),v=window.VWR&&VWR.exports
@@ -2642,6 +2670,21 @@ setInterval(()=>{if(!document.hidden)status()},5000)
 $('#bUndo').onclick=undo
 $('#bRedo').onclick=redo
 $('#bSave').onclick=()=>save(false)
+document.addEventListener('wheel',e=>{
+if(e.ctrlKey||e.shiftKey||!e.deltaY||Math.abs(e.deltaX)>Math.abs(e.deltaY))return
+const t=e.target.closest&&e.target.closest('.ph.tabs,.vt,.atl,.csh,.hub-rail,.xtabs,.seg')
+if(!t||t.scrollWidth<=t.clientWidth+1)return
+t.scrollLeft+=e.deltaY
+e.preventDefault()
+},{passive:false})
+window.vueMcp={
+run:async()=>{if(!S.playing)await play();return{playing:S.playing}},
+stop:async()=>{if(S.playing)stopGame();return{playing:S.playing}},
+logs:async a=>S.logs.slice(-a.limit).map(l=>l.level+': '+l.text),
+screenshot:async()=>{S.game.render&&S.game.render();return $('#cv').toDataURL('image/png').split(',')[1]},
+compileBlocks:async a=>{await loadBlockly();return VueBlocks.compile(a.blocks,Blockly,Blockly.JavaScript)},
+reload:async a=>{await openPath(a.path);return true}
+}
 $('#bConvert').onclick=convertNodes
 $('#bAdvModes').onclick=()=>{S.advOpen=true;ls.set('vue.advopen',true);loadScriptView()}
 $('#bAddFirst').onclick=()=>addEntity(is3()?'box':'sprite')

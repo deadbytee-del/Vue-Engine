@@ -863,7 +863,7 @@ h('span',{class:'nm',text:d.name}),
 d.prefab?h('span',{class:'tagp',text:'prefab'}):null,
 d.sound?h('span',{class:'ti',title:'Audio source',html:ic('audio',12)}):null,
 d.anims&&Object.keys(d.anims).length?h('span',{class:'ti',title:'Animated',html:ic('film',12)}):null,
-d.script?h('span',{class:'ti',title:'Has '+d.script.mode+' script',html:ic(d.script.mode==='blocks'?'blocks':d.script.mode==='nodes'?'nodes':'code',12)}):null,
+d.script?h('span',{class:'ti',title:'Has '+d.script.mode+' script',html:ic(MODE_IC[d.script.mode]||'code',12)}):null,
 d.shape!=='tilemap'?h('span',{class:'sw2',style:'background:'+d.color}):null,
 h('span',{class:'acts'},lock,eye))
 it.addEventListener('click',()=>select(d.id))
@@ -1259,6 +1259,7 @@ h('div',{class:'hint',style:'margin-top:8px',text:'Scripts can call self.playSou
 ],h('button',{class:'ib',title:'Remove',html:ic('x',13),onclick:e=>{e.stopPropagation();snap();delete d.sound;delete d.soundVol;delete d.soundLoop;delete d.soundAuto;buildInspector();renderHier()}})))
 }
 if(d.player)box.append(playerCard(d))
+for(const b of d.beh||[])box.append(behCard(d,b))
 if(d.body&&d.body!=='none'){
 const ph=[row('Body',field(d,'body','sel',[['static','Static: walls, floors'],['dynamic','Dynamic: falls, collides'],['trigger','Trigger: detects touches'],['none','None']]))]
 if(d.body==='dynamic')ph.push(...advRows(row('Gravity',field(d,'gravityScale','num'),'gravityScale',d,0.05)))
@@ -1267,15 +1268,16 @@ box.append(card('phys','Physics Body','physics',ph,h('button',{class:'ib',title:
 if(d.script){
 const m=d.script.mode
 box.append(card('scr','Script','script',[
-h('div',{class:'scard'},h('span',{class:'badge',html:ic(m==='blocks'?'blocks':m==='nodes'?'nodes':'code',12)+(m==='blocks'?'Blocks':m==='nodes'?'Nodes':'Code')}),h('span',{style:'flex:1'}),h('button',{class:'btn sm primary',html:ic('edit',13)+'Open',onclick:()=>setTab('script')})),
+h('div',{class:'scard'},h('span',{class:'badge',html:ic(MODE_IC[m]||'code',12)+(MODE_NAME[m]||'Code')}),h('span',{style:'flex:1'}),h('button',{class:'btn sm primary',html:ic('edit',13)+'Open',onclick:()=>setTab('script')})),
 h('div',{class:'hint',style:'margin-top:8px',text:'Only the '+m+' version runs. Switch modes in the Script workspace.'})
-],h('button',{class:'ib',title:'Remove script',html:ic('x',13),onclick:async e=>{e.stopPropagation();const ok=await dialog({title:'Remove script from '+d.name+'?',msg:'All Blocks, Nodes and Code for this entity are deleted. You can undo this.',buttons:[{label:'Cancel',value:null},{label:'Remove',value:1,danger:true,primary:true}]});if(ok){snap();d.script=null;buildInspector();renderHier()}}})))
+],h('button',{class:'ib',title:'Remove script',html:ic('x',13),onclick:async e=>{e.stopPropagation();const ok=await dialog({title:'Remove script from '+d.name+'?',msg:'All Blocks, Events and Code for this entity are deleted. You can undo this.',buttons:[{label:'Cancel',value:null},{label:'Remove',value:1,danger:true,primary:true}]});if(ok){snap();d.script=null;buildInspector();renderHier()}}})))
 }
 const add=h('button',{class:'addc',html:ic('plus',14)+'Add Component',onclick:()=>{
 const r=add.getBoundingClientRect(),items=[]
 if(!d.body||d.body==='none')items.push({head:'Physics'},{ic:'physics',label:'Static body',fn:()=>{snap();d.body='static';afterEdit('body')}},{ic:'physics',label:'Dynamic body',fn:()=>{snap();d.body='dynamic';afterEdit('body')}},{ic:'physics',label:'Trigger',fn:()=>{snap();d.body='trigger';afterEdit('body')}})
+for(const c of BEH_CATS)items.push({head:c},...BH.NAMES.filter(n=>BH.BEH[n].cat===c&&!(d.beh||[]).some(b=>b.type===n)).map(n=>({ic:'gamepad',label:n,sub:BH.BEH[n].desc,fn:()=>addBeh(d,n)})),...Object.keys(userBeh()).filter(k=>BH.BEH[userBeh()[k].type].cat===c).map(k=>({ic:'gamepad',label:k+' (mine)',sub:BH.BEH[userBeh()[k].type].desc,fn:()=>addBeh(d,userBeh()[k].type,BH.norm(userBeh()[k]))})))
 if(!d.player)items.push({head:'Player'},...Object.keys(VueRuntime.PC_PRESETS).map(n=>({ic:'gamepad',label:'Player controller: '+n,fn:()=>attachPlayer(d,VueRuntime.pcPreset(n))})),...Object.keys(userPresets()).map(n=>({ic:'gamepad',label:'Player controller: '+n+' (mine)',fn:()=>attachPlayer(d,VueRuntime.pcNorm(userPresets()[n]))})))
-if(!d.script)items.push({head:'Behavior'},{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')},...(isBeg()&&!S.advOpen?[]:[{ic:'nodes',label:'Node graph',fn:()=>newScript(d,'nodes')},{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')}]))
+if(!d.script)items.push({head:'Behavior'},{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')},{ic:'events',label:'Event sheet',fn:()=>newScript(d,'events')},...(isBeg()&&!S.advOpen?[]:[{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')}]))
 if(d.sound==null||(!t3&&!d.anims))items.push({head:'Media'})
 if(d.sound==null)items.push({ic:'audio',label:'Audio source',fn:()=>{snap();d.sound='';d.soundVol=1;d.soundLoop=false;d.soundAuto=true;buildInspector();renderHier()}})
 if(!t3&&(!d.anims||!Object.keys(d.anims).length))items.push({ic:'film',label:'Sprite animation',fn:()=>setBTab('anim')})
@@ -1284,6 +1286,43 @@ if(!items.length)items.push({head:'All components added'})
 showMenu($('#ctx'),r.left,r.bottom+4,items,r.width)
 }})
 box.append(add)
+}
+const BH=VueBehaviors,BEH_CATS=['Combat','Items','Level','Vehicles','Sports','Game rules','Story']
+const userBeh=()=>ls.get('vue.beh.presets',{})
+const human=k=>k.replace(/([A-Z])/g,' $1').replace(/^./,c=>c.toUpperCase())
+function addBeh(d,type,vals){
+snap()
+d.beh=(d.beh||[]).filter(x=>x.type!==type)
+d.beh.push(vals||BH.make(type,is3()))
+if((type==='Ball'||type==='Vehicle')&&(!d.body||d.body==='none'||d.body==='static'))d.body='dynamic'
+afterEdit('body')
+buildInspector()
+renderHier()
+}
+function behCard(d,b){
+const B=BH.BEH[b.type]
+Object.assign(b,BH.norm(b))
+const ctl=f=>{
+let el
+if(f.t==='bool'){el=h('input',{type:'checkbox',class:'sw'});el.checked=!!b[f.k];el.addEventListener('change',()=>{snap();b[f.k]=el.checked;markDirty();S.game.refresh()})}
+else if(f.t==='sel'){el=h('select');for(const[v,tx]of f.o)el.append(h('option',{value:v,text:tx}));el.value=b[f.k];el.addEventListener('change',()=>{snap();b[f.k]=el.value;markDirty();S.game.refresh()})}
+else{
+el=h('input',{type:f.t==='num'?'number':'text',spellcheck:'false'})
+if(f.t==='num')el.step='any'
+el.value=b[f.k]
+el.addEventListener('input',()=>{if(!S.editing){snap();S.editing=true}b[f.k]=f.t==='num'?num(el.value):el.value;markDirty()})
+el.addEventListener('change',()=>{S.editing=false;S.game.refresh()})
+}
+return el
+}
+const rw=f=>{const r=row(human(f.k),ctl(f));r.title=f.tip;return r}
+const basic=[h('div',{class:'hint',text:B.desc}),...B.fields.filter(f=>!f.adv).map(rw)]
+const mine=Object.keys(userBeh()).filter(k=>userBeh()[k].type===b.type)
+const pr=h('select',{title:'Load one of your saved presets'},h('option',{value:'',text:'Choose a preset'}),h('option',{value:'*',text:'Defaults'}),...mine.map(k=>h('option',{value:k,text:k})))
+pr.addEventListener('change',()=>{const v=pr.value;if(!v)return;snap();const i=d.beh.indexOf(b);d.beh[i]=v==='*'?BH.make(b.type,is3()):BH.norm(userBeh()[v]);markDirty();S.game.refresh();buildInspector()})
+const save=h('button',{class:'btn sm',html:ic('save',13)+'Save as preset',onclick:async()=>{const n=await dialog({title:'Preset name',input:d.name,buttons:[{label:'Cancel',value:null},{label:'Save',value:true,primary:true}]});if(n&&n.trim){const u=userBeh();u[n.trim()]=clone(b);ls.set('vue.beh.presets',u);toast('Saved preset '+n.trim(),'ok');buildInspector()}}})
+const adv=[...B.fields.filter(f=>f.adv).map(rw),row('Preset',pr),save]
+return card('beh'+b.type,b.type,'gamepad',[...basic,...advRows(adv)],h('button',{class:'ib',title:'Remove',html:ic('x',13),onclick:e=>{e.stopPropagation();snap();d.beh=d.beh.filter(x=>x!==b);if(!d.beh.length)delete d.beh;S.game.refresh();buildInspector();renderHier()}}))
 }
 const userPresets=()=>ls.get('vue.player.presets',{})
 function attachPlayer(d,obj){
@@ -1364,11 +1403,11 @@ h('div',{class:'hint',text:(e&&e.tiles?e.tiles.size:0)+' tiles. Solid tiles bloc
 h('button',{class:'btn sm primary',html:ic('brush',13)+'Paint tiles',onclick:()=>{setTool('paint');setBTab('tiles')}})
 ]))
 if(d.script){const m=d.script.mode;box.append(card('scr','Script','script',[h('div',{class:'scard'},h('span',{class:'badge',text:m}),h('span',{style:'flex:1'}),h('button',{class:'btn sm primary',html:ic('edit',13)+'Open',onclick:()=>setTab('script')}))]))}
-else box.append(h('button',{class:'addc',html:ic('plus',14)+'Add script',onclick:e=>{const r=e.currentTarget.getBoundingClientRect();showMenu($('#ctx'),r.left,r.bottom+4,[{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')}].concat(isBeg()&&!S.advOpen?[]:[{ic:'nodes',label:'Node graph',fn:()=>newScript(d,'nodes')},{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')}]),r.width)}}))
+else box.append(h('button',{class:'addc',html:ic('plus',14)+'Add script',onclick:e=>{const r=e.currentTarget.getBoundingClientRect();showMenu($('#ctx'),r.left,r.bottom+4,[{ic:'blocks',label:'Blocks script',fn:()=>newScript(d,'blocks')},{ic:'events',label:'Event sheet',fn:()=>newScript(d,'events')}].concat(isBeg()&&!S.advOpen?[]:[{ic:'code',label:'TypeScript',fn:()=>newScript(d,'code')}]),r.width)}}))
 }
 function newScript(d,mode){
 snap()
-d.script={mode,code:mode==='code'?VueDTS.TEMPLATE:'',blocks:null,nodes:null}
+d.script={mode,code:mode==='code'?VueDTS.TEMPLATE:'',blocks:null,nodes:null,events:mode==='events'?VueEvents.empty():null}
 buildInspector()
 renderHier()
 setTab('script')
@@ -1523,6 +1562,22 @@ const d=selData()
 if(d&&d.script&&d.script.mode==='blocks'){d.script.blocks=Blockly.serialization.workspaces.save(S.ws);if(S.ws.getTopBlocks(false).length)todo('block');markDirty()}
 })
 }
+const MODE_IC={blocks:'blocks',events:'events',nodes:'nodes',code:'code'},MODE_NAME={blocks:'Blocks',events:'Events',nodes:'Legacy nodes',code:'Code'}
+function ensureEvents(){
+if(S.ev)return
+S.ev=VueEventsUI.create($('#evs'),{h,ic,onChange:g=>{const d=selData();if(d&&d.script&&d.script.mode==='events'){d.script.events=g;if(VueEvents.count(g))todo('block');markDirty()}}})
+}
+function hasLegacy(){return S.project.scenes.some(sc=>sc.entities.some(e=>e.script&&hasContent(e.script,'nodes')))}
+function convertNodes(){
+const d=selData()
+if(!d||!d.script)return
+const r=VueEvents.fromNodes(d.script.nodes)
+if(!r.ok){dialog({title:'This graph cannot convert automatically',msg:'It uses wired values or flow nodes'+(r.unmapped.length?' ('+[...new Set(r.unmapped)].join(', ')+')':'')+'. It keeps running as it is. You can rebuild the parts you want in Events.',buttons:[{label:'OK',value:1,primary:true}]});return}
+snap()
+d.script.events=r.sheet
+showMode('events')
+toast('Converted to Events. The old graph is kept under Legacy nodes.','ok')
+}
 function ensureNodes(){
 if(S.ne)return
 S.ne=new VueNodeEditor($('#nodes'),VueNodes.defs,VueNodes.CAT_COLORS,g=>{
@@ -1561,6 +1616,9 @@ m.editor.defineTheme('vue',{base:'vs-dark',inherit:true,rules:[{token:'keyword',
 const model=m.editor.createModel('','typescript',m.Uri.parse('file:///script.ts'))
 const ed=m.editor.create($('#code'),{model,theme:'vue',minimap:{enabled:false},stickyScroll:{enabled:false},fontSize:14,fontFamily:"'JetBrains Mono',Consolas,monospace",fontLigatures:true,automaticLayout:false,scrollBeyondLastLine:false,tabSize:2,padding:{top:14},smoothScrolling:true,cursorBlinking:'smooth',cursorSmoothCaretAnimation:'on',renderLineHighlight:'all',bracketPairColorization:{enabled:true}})
 model.onDidChangeContent(()=>onChange(model.getValue()))
+S.auto=VueAuto.install(m,{project:()=>S.project,catalog:()=>X.cat})
+S.auto.watch(model)
+S.auto.refresh()
 S.code={set:v=>{S.loading=true;model.setValue(v);S.loading=false},layout:()=>ed.layout()}
 }else{
 const ta=h('textarea',{spellcheck:'false',style:'width:100%;height:100%;background:#131313;color:#e6e3dd;border:0;border-radius:0;padding:14px;font:14px var(--mono);resize:none;outline:0;tab-size:2'})
@@ -1572,6 +1630,7 @@ S.code={set:v=>{S.loading=true;ta.value=v;S.loading=false},layout:()=>{}}
 }
 function hasContent(s,m){
 if(m==='blocks')return!!(s.blocks&&s.blocks.blocks&&s.blocks.blocks.blocks&&s.blocks.blocks.blocks.length)
+if(m==='events')return VueEvents.count(s.events)>0
 if(m==='nodes')return!!(s.nodes&&s.nodes.nodes&&s.nodes.nodes.length)
 return!!(s.code&&s.code.trim())
 }
@@ -1580,28 +1639,31 @@ const c=$('#crumb')
 c.innerHTML=''
 c.append(h('span',{html:ic('scene',14)}),h('span',{text:scene().name}))
 if(d){c.append(h('span',{html:ic('chevr',13)}),h('span',{html:ic(SHAPE_IC[d.shape]||'square',14)}),h('b',{text:d.name}))
-if(d.script)c.append(h('span',{html:ic('chevr',13)}),h('span',{text:d.script.mode==='blocks'?'Blocks':d.script.mode==='nodes'?'Node graph':'script.ts'}))}
+if(d.script)c.append(h('span',{html:ic('chevr',13)}),h('span',{text:d.script.mode==='blocks'?'Blocks':d.script.mode==='events'?'Event sheet':d.script.mode==='nodes'?'Legacy nodes':'script.ts'}))}
 }
 function loadScriptView(){
 const d=selData()
-for(const id of['blk','nodes','code'])$('#'+id).classList.remove('on')
+for(const id of['blk','nodes','evs','code'])$('#'+id).classList.remove('on')
 crumb(d)
 const em=$('#sempty')
 const hasS=d&&d.script
 em.classList.toggle('on',!hasS)
 $('.modes').style.visibility=hasS?'':'hidden'
-const sv=!isBeg()||S.advOpen||(hasS&&(d.script.mode!=='blocks'||hasContent(d.script,'nodes')||hasContent(d.script,'code')))
-for(const b of $$('[data-mode=nodes],[data-mode=code]'))b.classList.toggle('hide',!sv)
+const sv=!isBeg()||S.advOpen||(hasS&&(d.script.mode==='code'||hasContent(d.script,'code')))
+for(const b of $$('[data-mode=code]'))b.classList.toggle('hide',!sv)
+const lg=hasS&&(hasLegacy()||d.script.mode==='nodes')
+$('[data-mode=nodes]').classList.toggle('hide',!lg)
+$('#bConvert').classList.toggle('hide',!(hasS&&d.script.mode==='nodes'))
 $('#bAdvModes').classList.toggle('hide',sv||!hasS)
 if(!hasS){
 const box=em.querySelector('.empty')
 box.innerHTML=''
 if(!d)box.append(h('span',{html:ic('script',32)}),h('h3',{text:'Nothing selected'}),h('p',{text:'Select an entity to edit its script.'}),h('button',{class:'btn',html:ic('scene',14)+'Go to Scene',onclick:()=>setTab('scene')}))
 else{
-const nb=h('button',{class:'btn',html:ic('nodes',14)+'Nodes',onclick:()=>newScript(d,'nodes')}),cb=h('button',{class:'btn',html:ic('code',14)+'Code',onclick:()=>newScript(d,'code')})
-const rowb=h('div',{style:'display:flex;gap:8px'},h('button',{class:'btn primary',html:ic('blocks',14)+'Add blocks',onclick:()=>newScript(d,'blocks')}))
-if(isBeg()&&!S.advOpen)rowb.append(h('button',{class:'btn ghost',text:'Show advanced',onclick:e=>{e.currentTarget.replaceWith(nb,cb)}}))
-else rowb.append(nb,cb)
+const nb=h('button',{class:'btn',html:ic('events',14)+'Events',onclick:()=>newScript(d,'events')}),cb=h('button',{class:'btn',html:ic('code',14)+'Code',onclick:()=>newScript(d,'code')})
+const rowb=h('div',{style:'display:flex;gap:8px'},h('button',{class:'btn primary',html:ic('blocks',14)+'Add blocks',onclick:()=>newScript(d,'blocks')}),nb)
+if(isBeg()&&!S.advOpen)rowb.append(h('button',{class:'btn ghost',text:'Show advanced',onclick:e=>{e.currentTarget.replaceWith(cb)}}))
+else rowb.append(cb)
 box.append(h('span',{html:ic('script',32)}),h('h3',{text:d.name+' has no script'}),h('p',{text:'Scripts decide what it does. Blocks snap together, no typing needed.'}),rowb)
 }
 return
@@ -1616,7 +1678,7 @@ if(hasContent(s,cur)&&!hasContent(s,m)){
 const btns=[{label:'Cancel',value:null}]
 if(m==='code')btns.push({label:'Start empty',value:'empty'},{label:'Convert to Code',value:'convert',primary:true})
 else btns.push({label:'Switch',value:'switch',primary:true})
-const v=await dialog({title:'Switch '+d.name+' to '+(m==='code'?'Code':m==='nodes'?'Nodes':'Blocks')+'?',msg:m==='code'?'Convert turns your '+cur+' into equivalent code you can keep editing. Start empty keeps your '+cur+' saved, but only the code runs.':'Your '+(cur==='code'?'code stays':cur+' stay')+' saved, but only one mode runs at a time.',buttons:btns})
+const v=await dialog({title:'Switch '+d.name+' to '+(MODE_NAME[m]||'Blocks')+'?',msg:m==='code'?'Convert turns your '+cur+' into equivalent code you can keep editing. Start empty keeps your '+cur+' saved, but only the code runs.':'Your '+(cur==='code'?'code stays':cur+' stay')+' saved, but only one mode runs at a time.',buttons:btns})
 if(!v)return
 snap()
 if(v==='convert'){
@@ -1634,7 +1696,7 @@ if(!d||!d.script)return
 const s=d.script
 s.mode=m
 for(const b of $$('[data-mode]'))b.classList.toggle('on',b.dataset.mode===m)
-const map={blocks:'blk',nodes:'nodes',code:'code'}
+const map={blocks:'blk',nodes:'nodes',events:'evs',code:'code'}
 for(const k in map)$('#'+map[k]).classList.toggle('on',k===m)
 crumb(d)
 if(m==='blocks'){
@@ -1652,13 +1714,17 @@ Blockly.Events.enable()
 S.loading=false
 Blockly.svgResize(S.ws)
 requestAnimationFrame(()=>{const bb=S.ws.getBlocksBoundingBox(),k=S.ws.scale;if(bb&&isFinite(bb.left))S.ws.scroll(28-bb.left*k,28-bb.top*k)})
+}else if(m==='events'){
+ensureEvents()
+if(!s.events)s.events=VueEvents.empty()
+S.ev.load(s.events)
 }else if(m==='nodes'){
 ensureNodes()
 if(!s.nodes)s.nodes={nid:1,nodes:[],links:[]}
 S.ne.load(s.nodes)
 }else{
 await ensureCode()
-if(selData()===d&&d.script.mode==='code'){S.code.set(s.code||'');S.code.layout()}
+if(selData()===d&&d.script.mode==='code'){S.code.set(s.code||'');S.code.layout();if(S.auto)S.auto.refresh()}
 }
 if(!quiet){renderHier();buildInspector()}
 }
@@ -1674,7 +1740,7 @@ redraw()
 }
 if(t==='script')loadScriptView()
 }
-async function compileEnv(need){if(need)await loadBlockly();return{Blockly:window.Blockly,gen:window.Blockly&&Blockly.JavaScript,blocks:VueBlocks,nodes:VueNodes,transpile:s=>host.transpile(s)}}
+async function compileEnv(need){if(need)await loadBlockly();return{Blockly:window.Blockly,gen:window.Blockly&&Blockly.JavaScript,blocks:VueBlocks,nodes:VueNodes,events:VueEvents,transpile:s=>host.transpile(s)}}
 async function build(preview){
 const r=await VueCompiler.compileProject(S.project,await compileEnv(usesBlocks()))
 const proj=preview?Object.assign({},S.project,{_preview:preview}):S.project
@@ -1811,7 +1877,9 @@ if(!it)continue
 if(it.sep){el.append(h('div',{class:'msep'}));continue}
 if(it.head){el.append(h('div',{class:'mh',text:it.head}));continue}
 const m=h('div',{class:'mi'+(it.dis?' dis':''),html:ic(it.ic||'chevr',15)})
-m.append(h('span',{text:it.label}))
+const mt=h('span',{class:'mt'},h('span',{text:it.label}))
+if(it.sub)mt.append(h('small',{class:'msub',text:it.sub}))
+m.append(mt)
 if(it.kbd)m.append(h('kbd',{text:it.kbd}))
 m.addEventListener('click',()=>{closePops();if(it.fn)it.fn()})
 el.append(m)
@@ -2173,15 +2241,40 @@ h('h3',{text:'Engine'}),
 it('Default engine core','Used by new projects. Each project can change it in the Inspector.',sel('core',CORES)),
 it('Smooth motion','New projects draw between physics steps so motion stays smooth on fast screens.',sw('smooth')),
 h('h3',{text:'Interface'}),
-it('Interface mode','Beginner shows Blocks and the basics. Advanced also shows Nodes, Code, physics and engine options.',sel('mode',[['beginner','Beginner'],['advanced','Advanced']],onModeChange)),
+it('Interface mode','Beginner shows Blocks and the basics. Advanced also shows Code, physics and engine options.',sel('mode',[['beginner','Beginner'],['advanced','Advanced']],onModeChange)),
 it('Interface size','Scales the whole editor.',sel('scale',[[90,'90%'],[100,'100%'],[110,'110%'],[125,'125%']])),
 it('Reduce motion','Turns off animations.',sw('calm')),
 it('Open last project on launch','Skip Home and return to your last project.',sw('reopen')),
 it('Autosave','Keeps a copy of your work so nothing is lost if the app closes.',sw('autosave')),
+h('h3',{text:'Integrations'}),
+mcpRow(it),
 h('h3',{text:'Extensions'}),
 it('Download from','Where extensions are fetched from. Switch if one is blocked.',sel('extSrc',[['github','GitHub'],['jsdelivr','jsDelivr mirror']],()=>{X.fresh=false;loadExt(true)})),
 it('Downloaded extensions',Object.keys(X.inst).length+' installed, '+(Object.keys(X.inst).reduce((a,k)=>a+((extCodeOf(k)||'').length),0)/1024).toFixed(0)+' KB on this computer.',h('button',{class:'btn sm ghost',html:ic('trash',13)+'Remove all',onclick:async()=>{if(!await dialog({title:'Remove all extensions?',msg:'Projects that use them will download them again when you play.',buttons:[{label:'Cancel',value:false},{label:'Remove all',value:true,primary:true}]}))return;for(const k of Object.keys(X.inst))extRemove(k);renderSettings()}}))
 )
+}
+function mcpRow(it){
+if(!host.mcpStatus)return it('AI tools over MCP','Lets AI apps build and edit projects through the Model Context Protocol.',h('span',{class:'hint',text:'Desktop only'}))
+const box=h('div',{class:'mcpbox'})
+const fill=async st=>{
+box.innerHTML=''
+const sw=h('input',{type:'checkbox',class:'sw'})
+sw.checked=st.on
+sw.addEventListener('change',async()=>{fill(await host.mcpSet(sw.checked))})
+box.append(it('Allow AI tools to connect over HTTP','Off by default. Only programs on this computer with the token can connect. Project files stay inside '+st.folder+'.',sw))
+if(!st.on){box.append(h('div',{class:'hint',style:'padding:0 0 8px',text:'Stdio mode needs no setting: AI apps can start Vue Engine with the --mcp option.'}),mcpClients(st));return}
+const ro=v=>h('input',{value:v,readonly:true,spellcheck:'false',onclick:e=>e.target.select()})
+box.append(it('Address','Local only.',ro('http://127.0.0.1:'+st.port+'/mcp')),it('Token','Sent as a Bearer token. Treat it like a password.',h('span',{class:'mcprow'},ro(st.token),h('button',{class:'btn sm',text:'New token',onclick:async()=>fill(await host.mcpToken())}))),mcpClients(st))
+}
+const mcpClients=st=>{
+const kinds=[['Claude Desktop (starts the app)','claude'],['Claude Code (HTTP)','code'],['Cursor (HTTP)','cursor'],['VS Code (HTTP)','vscode']].filter(k=>st.on||k[1]==='claude')
+const sel=h('select');for(const[t,v]of kinds)sel.append(h('option',{value:v,text:t}))
+const url='http://127.0.0.1:'+st.port+'/mcp',hd={Authorization:'Bearer '+st.token}
+const snip=v=>v==='claude'?JSON.stringify({mcpServers:{'vue-engine':{command:st.exe,args:['--mcp']}}},null,2):v==='code'?'claude mcp add --transport http vue-engine '+url+' --header "Authorization: Bearer '+st.token+'"':v==='cursor'?JSON.stringify({mcpServers:{'vue-engine':{url,headers:hd}}},null,2):JSON.stringify({servers:{'vue-engine':{type:'http',url,headers:hd}}},null,2)
+return it('Connect an AI app','Pick your app and copy its setup text.',h('span',{class:'mcprow'},sel,h('button',{class:'btn sm primary',text:'Copy setup',onclick:async()=>{try{await navigator.clipboard.writeText(snip(sel.value));toast('Setup copied','ok')}catch(e){toast('Could not copy','err')}}})))
+}
+host.mcpStatus().then(fill)
+return box
 }
 function renderAbout(){
 const b=$('#aboutBox'),v=window.VWR&&VWR.exports
@@ -2577,6 +2670,22 @@ setInterval(()=>{if(!document.hidden)status()},5000)
 $('#bUndo').onclick=undo
 $('#bRedo').onclick=redo
 $('#bSave').onclick=()=>save(false)
+document.addEventListener('wheel',e=>{
+if(e.ctrlKey||e.shiftKey||!e.deltaY||Math.abs(e.deltaX)>Math.abs(e.deltaY))return
+const t=e.target.closest&&e.target.closest('.ph.tabs,.vt,.atl,.csh,.hub-rail,.xtabs,.seg')
+if(!t||t.scrollWidth<=t.clientWidth+1)return
+t.scrollLeft+=e.deltaY
+e.preventDefault()
+},{passive:false})
+window.vueMcp={
+run:async()=>{if(!S.playing)await play();return{playing:S.playing}},
+stop:async()=>{if(S.playing)stopGame();return{playing:S.playing}},
+logs:async a=>S.logs.slice(-a.limit).map(l=>l.level+': '+l.text),
+screenshot:async()=>{S.game.render&&S.game.render();return $('#cv').toDataURL('image/png').split(',')[1]},
+compileBlocks:async a=>{await loadBlockly();return VueBlocks.compile(a.blocks,Blockly,Blockly.JavaScript)},
+reload:async a=>{await openPath(a.path);return true}
+}
+$('#bConvert').onclick=convertNodes
 $('#bAdvModes').onclick=()=>{S.advOpen=true;ls.set('vue.advopen',true);loadScriptView()}
 $('#bAddFirst').onclick=()=>addEntity(is3()?'box':'sprite')
 initTips()

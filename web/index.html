@@ -37,7 +37,7 @@
 <div class="sh"><h2>Getting started</h2></div>
 <div class="grws">
 <button class="grw" data-act="learn"><span data-ic="book" data-s="16"></span><div><b>Learn the basics</b><small>Open the checklist: make a project, add a sprite, add a block, press Play.</small></div><span data-ic="chevr" data-s="14"></span></button>
-<button class="grw" data-act="script"><span data-ic="script" data-s="16"></span><div><b>Explore scripting</b><small>Blocks snap together like Scratch. Nodes wire execution and data pins. Code is TypeScript with autocomplete. Mix them per entity.</small></div><span data-ic="chevr" data-s="14"></span></button>
+<button class="grw" data-act="script"><span data-ic="script" data-s="16"></span><div><b>Explore scripting</b><small>Blocks snap together like Scratch. Event sheets read like sentences: when this happens, if that is true, do this. Code is TypeScript with autocomplete. Mix them per entity.</small></div><span data-ic="chevr" data-s="14"></span></button>
 <button class="grw" data-act="community"><span data-ic="link" data-s="16"></span><div><b>Join the community</b><small>Ask questions and report bugs on GitHub.</small></div><span data-ic="chevr" data-s="14"></span></button>
 </div>
 </div>
@@ -137,16 +137,19 @@
 <div id="viewScript" class="view">
 <div class="vt">
 <div class="crumb" id="crumb"></div>
+<button class="btn sm hide" id="bConvert" title="Turn this graph into an event sheet">Convert to events</button>
 <button class="btn sm ghost hide" id="bAdvModes">Show advanced</button>
 <div class="seg modes">
 <button data-mode="blocks" title="Blocks"><span data-ic="blocks"></span>Blocks</button>
-<button data-mode="nodes" title="Nodes"><span data-ic="nodes"></span>Nodes</button>
+<button data-mode="events" title="Event sheet"><span data-ic="events"></span>Events</button>
+<button data-mode="nodes" class="hide" title="Old node graph, kept so existing scripts still run"><span data-ic="nodes"></span>Legacy nodes</button>
 <button data-mode="code" title="Code"><span data-ic="code"></span>Code</button>
 </div>
 </div>
 <div id="sbody">
 <div id="blk"></div>
 <div id="nodes"></div>
+<div id="evs"></div>
 <div id="code"></div>
 <div id="sempty"><div class="empty"><span data-ic="script" data-s="40"></span><h3>Nothing selected</h3><p>Select an entity in the Hierarchy to edit its script.</p><button class="btn" id="bToScene"><span data-ic="scene"></span>Go to Scene</button></div></div>
 </div>
@@ -223,20 +226,24 @@
 <script type="text/plain" data-lazy="https://cdn.jsdelivr.net/npm/blockly@11.2.2/javascript_compressed.js"></script>
 <script type="text/plain" data-lazy="https://cdn.jsdelivr.net/npm/blockly@11.2.2/msg/en.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
-<script>window.VUE_VERSION="1.6.1";window.VUE_CDN={"monaco":"https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/","blocklyMedia":"https://cdn.jsdelivr.net/npm/blockly@11.2.2/media/","three":"https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js","ts":"https://cdn.jsdelivr.net/npm/typescript@5.6.3/lib/typescript.js"}</script>
+<script>window.VUE_VERSION="1.7.0";window.VUE_CDN={"monaco":"https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/","blocklyMedia":"https://cdn.jsdelivr.net/npm/blockly@11.2.2/media/","three":"https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js","ts":"https://cdn.jsdelivr.net/npm/typescript@5.6.3/lib/typescript.js"}</script>
 <script src="host-web.js"></script>
 <script src="icons.js"></script>
 <script src="buildinfo.js"></script>
 <script src="vwr.js"></script>
 <script src="render3d.js"></script>
+<script src="behaviors.js"></script>
 <script src="runtime.js"></script>
 <script src="nodedefs.js"></script>
+<script src="events.js"></script>
 <script src="blocks.js"></script>
 <script src="compiler.js"></script>
 <script src="player.js"></script>
 <script src="dts.js"></script>
 <script src="sample.js"></script>
 <script src="nodes.js"></script>
+<script src="evui.js"></script>
+<script src="autocomplete.js"></script>
 <script src="panels.js"></script>
 <script src="editor.js"></script>
 <script type="module">

@@ -74,7 +74,7 @@ if(/^resources\/(app\.asar|app\.asar\.unpacked|app-update\.yml|app)(\/|$)/.test(
 if(f.name===exe){ent.push({name:safe+'/'+safe+(process.platform==='win32'?'.exe':''),src:f.src,exec:true});continue}
 ent.push({name:safe+'/'+f.name,src:f.src,exec:f.exec})
 }
-const main="const{app,BrowserWindow,Menu}=require('electron')\nconst path=require('path')\napp.whenReady().then(()=>{\nMenu.setApplicationMenu(null)\nconst w=new BrowserWindow({width:"+(o.width|0||960)+",height:"+(o.height|0||540)+",useContentSize:true,backgroundColor:'#000000',title:"+JSON.stringify(o.name||safe)+",fullscreen:"+(!!o.fullscreen)+",autoHideMenuBar:true,webPreferences:{contextIsolation:true}})\nw.loadFile(path.join(__dirname,'index.html'))\nw.webContents.on('before-input-event',(e,i)=>{if(i.type==='keyDown'&&i.key==='F11')w.setFullScreen(!w.isFullScreen())})\n})\napp.on('window-all-closed',()=>app.quit())\n"
+const main="const{app,BrowserWindow,Menu}=require('electron')\nconst path=require('path')\napp.whenReady().then(()=>{\nMenu.setApplicationMenu(null)\nconst w=new BrowserWindow({width:"+(o.width|0||960)+",height:"+(o.height|0||540)+",useContentSize:true,backgroundColor:'#000000',title:"+JSON.stringify(o.name||safe)+",fullscreen:"+(!!o.fullscreen)+",autoHideMenuBar:true,webPreferences:{contextIsolation:true}})\nw.loadFile(path.join(__dirname,'index.html'))\nw.webContents.on('before-input-event',(e,i)=>{if(i.type==='keyDown'&&i.key==='F11')w.setFullScreen(!w.isFullScreen())})\n})\napp.on('window-all-closed',()=>{if(!process.argv.includes('--mcp'))app.quit()})\n"
 ent.push({name:safe+'/resources/app/package.json',data:Buffer.from(JSON.stringify({name:safe.toLowerCase().replace(/\s+/g,'-'),productName:o.name||safe,version:'1.0.0',main:'main.js'}))})
 ent.push({name:safe+'/resources/app/main.js',data:Buffer.from(main)})
 for(const f of files)ent.push({name:safe+'/resources/app/'+f.name,data:f.data})
@@ -96,5 +96,42 @@ const m=mime[ext]
 return{name:path.basename(f),type:m&&m.indexOf('audio')===0?'audio':'image',data:'data:'+m+';base64,'+fs.readFileSync(f).toString('base64')}
 })
 })
-app.whenReady().then(create)
-app.on('window-all-closed',()=>app.quit())
+const mcp=require('./src/mcp.js')
+const BRIDGE=['run','stop','logs','screenshot','compileBlocks','reload']
+const cfgFile=()=>path.join(app.getPath('userData'),'mcp.json')
+const cfg=()=>{try{return JSON.parse(fs.readFileSync(cfgFile(),'utf8'))}catch(e){return{}}}
+const saveCfg=o=>{try{fs.mkdirSync(path.dirname(cfgFile()),{recursive:true});fs.writeFileSync(cfgFile(),JSON.stringify(o))}catch(e){}}
+const mcpRoots=()=>{const d=path.join(app.getPath('documents'),'Vue Engine');try{fs.mkdirSync(d,{recursive:true})}catch(e){}return[d]}
+const bridge={call:(n,a)=>{
+if(!BRIDGE.includes(n))return Promise.reject(new Error('Unknown editor call'))
+if(!win||win.isDestroyed())return Promise.reject(new Error('The editor window is closed'))
+return win.webContents.executeJavaScript('window.vueMcp?window.vueMcp.'+n+'('+JSON.stringify(a||{})+'):Promise.reject(new Error("The editor is not ready"))')
+}}
+const makeServer=b=>mcp.create({roots:mcpRoots(),importRoots:[app.getPath('downloads'),app.getPath('pictures'),app.getPath('desktop')],ts,version:app.getVersion(),bridge:b?bridge:null})
+let httpSrv=null,httpInfo=null
+async function startMcpHttp(){
+if(httpSrv)return httpInfo
+const c=cfg()
+const sv=makeServer(true)
+const h=await mcp.startHttp(sv,{token:c.token,port:c.port||0}).catch(()=>mcp.startHttp(sv,{token:c.token,port:0}))
+httpSrv=h
+httpInfo={port:h.port,token:h.token}
+saveCfg(Object.assign(c,{http:true,port:h.port,token:h.token}))
+return httpInfo
+}
+async function stopMcpHttp(){
+if(httpSrv){await httpSrv.close();httpSrv=null;httpInfo=null}
+saveCfg(Object.assign(cfg(),{http:false}))
+}
+const mcpStatus=()=>({on:!!httpSrv,port:httpInfo&&httpInfo.port,token:httpInfo&&httpInfo.token,exe:process.execPath,folder:mcpRoots()[0],packaged:app.isPackaged})
+ipcMain.handle('mcp:status',()=>mcpStatus())
+ipcMain.handle('mcp:set',async(e,on)=>{if(on)await startMcpHttp();else await stopMcpHttp();return mcpStatus()})
+ipcMain.handle('mcp:token',async()=>{const was=!!httpSrv;if(was)await stopMcpHttp();saveCfg(Object.assign(cfg(),{token:require('crypto').randomBytes(24).toString('hex')}));if(was)await startMcpHttp();return mcpStatus()})
+if(process.argv.includes('--mcp')){
+app.disableHardwareAcceleration()
+app.whenReady().then(()=>{
+mcp.runStdio(makeServer(false),process.stdin,process.stdout)
+process.stdin.on('end',()=>app.quit())
+})
+}else app.whenReady().then(async()=>{create();if(cfg().http)startMcpHttp().catch(()=>{})})
+app.on('window-all-closed',()=>{if(!process.argv.includes('--mcp'))app.quit()})

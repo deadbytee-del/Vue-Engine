@@ -13,5 +13,8 @@ detach:(html,title)=>ipcRenderer.invoke('game:detach',html,title),
 port:o=>ipcRenderer.invoke('port:run',o),
 platform:()=>ipcRenderer.invoke('app:platform'),
 onPortProgress:f=>ipcRenderer.on('port:progress',(e,p)=>f(p)),
-threeSource:()=>ipcRenderer.invoke('three:source')
+threeSource:()=>ipcRenderer.invoke('three:source'),
+mcpStatus:()=>ipcRenderer.invoke('mcp:status'),
+mcpSet:on=>ipcRenderer.invoke('mcp:set',!!on),
+mcpToken:()=>ipcRenderer.invoke('mcp:token')
 })
