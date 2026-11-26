@@ -2,3 +2,4 @@ node_modules/
 dist/
 vwr/target/
 vwr/*.o
+vwr/target-simd/

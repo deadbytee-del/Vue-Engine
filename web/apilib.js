@@ -68,7 +68,7 @@ let bx=g.uiBox
 if(!bx||!bx.isConnected){bx=g.uiBox=doc.createElement('div');bx.style.cssText='position:fixed;left:0;right:0;bottom:24px;display:flex;gap:10px;justify-content:center;z-index:5;pointer-events:none';host.appendChild(bx)}
 const b=doc.createElement('button')
 b.textContent=String(l)
-b.style.cssText='pointer-events:auto;padding:10px 18px;font:600 16px sans-serif;background:#c4621a;color:#fff;border:0;border-radius:6px;cursor:pointer'
+b.style.cssText='pointer-events:auto;padding:10px 18px;font:600 16px sans-serif;background:#111;border:1px solid #888;color:#fff;border-radius:6px;cursor:pointer'
 b.onclick=()=>{try{if(typeof f==='function')f()}catch(x){g.log('error',String(x))}}
 bx.appendChild(b)
 },(a)=>`vue.button(${a[0]},()=>{\n${a[1]}});\n`)
@@ -82,7 +82,7 @@ o.style.cssText='position:fixed;inset:0;display:grid;place-items:center;backgrou
 const p=doc.createElement('div')
 p.style.cssText='background:#222;color:#fff;padding:20px;border-radius:6px;display:flex;flex-direction:column;gap:8px;min-width:220px;font:16px sans-serif'
 const h=doc.createElement('b');h.textContent=String(t);p.appendChild(h)
-for(const c of list){const b=doc.createElement('button');b.textContent=c;b.style.cssText='padding:8px;font:inherit;background:#c4621a;color:#fff;border:0;border-radius:4px;cursor:pointer';b.onclick=()=>{o.remove();res(c)};p.appendChild(b)}
+for(const c of list){const b=doc.createElement('button');b.textContent=c;b.style.cssText='padding:8px;font:inherit;background:#111;border:1px solid #888;color:#fff;border:0;border-radius:4px;cursor:pointer';b.onclick=()=>{o.remove();res(c)};p.appendChild(b)}
 o.appendChild(p);host.appendChild(o)
 }),(a)=>`(await vue.menu(${a[0]},${a[1]}))`)
 D('floatText','UI','stmt','Any','%1 says %2 for %3 s',[En('E'),Tx('T','Nice!'),N('S',1.5)],'(e:Entity|string,text:string,seconds?:number):void','Shows a speech bubble over an object.',(g)=>(e,t,s)=>{e=g.vue.find(e)||e;if(e)e.say(t,s)})

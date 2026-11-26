@@ -53,7 +53,7 @@ c.beginPath();c.ellipse(o+16,29,9,2,0,0,7);c.fill()
 const l1=Math.sin(ph)*4,l2=-l1
 c.fillStyle='#3b2a6b'
 c.fillRect(o+11+l1,22-b,3,6);c.fillRect(o+18+l2,22-b,3,6)
-c.fillStyle='#f0944a'
+c.fillStyle='#ffffff'
 c.beginPath();c.ellipse(o+16,16-b,10*sq,10/sq,0,0,7);c.fill()
 c.fillStyle='#c9a6ff'
 c.beginPath();c.ellipse(o+12,12-b,3,2,-0.5,0,7);c.fill()

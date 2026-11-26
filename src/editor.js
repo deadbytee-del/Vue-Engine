@@ -312,11 +312,11 @@ const d=selData()
 if(d){
 const W=wd(d)
 if(d.parent){const pd=byId(d.parent);if(pd){const P=wd(pd);c.setLineDash([3,4]);c.strokeStyle='rgba(255,211,77,0.55)';c.lineWidth=1;c.beginPath();c.moveTo(sx(P.x),sy(P.y));c.lineTo(sx(W.x),sy(W.y));c.stroke();c.setLineDash([])}}
-outline(c,d,'#f0944a',2)
+outline(c,d,'#ffffff',2)
 const cx=sx(W.x),cy=sy(W.y),tm=d.shape==='tilemap'
 if(S.tool==='paint'&&tm)VuePanels.overlay(c)
 else if(S.tool==='scale'&&!tm){
-for(const[hx,hy]of HANDLES){const p=handlePos(d,hx,hy);c.fillStyle='#fff';c.strokeStyle='#c4621a';c.lineWidth=1.5;rr(c,p[0]-4,p[1]-4,8,8,2);c.fill();c.stroke()}
+for(const[hx,hy]of HANDLES){const p=handlePos(d,hx,hy);c.fillStyle='#fff';c.strokeStyle='#111111';c.lineWidth=1.5;rr(c,p[0]-4,p[1]-4,8,8,2);c.fill();c.stroke()}
 }else if(S.tool==='rotate'&&!tm){
 const R=rotR(d)
 c.strokeStyle='rgba(240,148,74,0.85)';c.lineWidth=2
@@ -992,7 +992,7 @@ const c=cv.getContext('2d')
 c.clearRect(0,0,cv.width,cv.height)
 if(!b){c.fillStyle='#86827a';c.font='600 13px Inter';c.textAlign='center';c.fillText('decoding…',cv.width/2,cv.height/2);return}
 const d=b.getChannelData(0),n=cv.width,step=Math.max(1,Math.floor(d.length/n)),mid=cv.height/2
-c.fillStyle='#f0944a'
+c.fillStyle='#ffffff'
 for(let i=0;i<n;i++){let mn=1,mx=-1;for(let j=0;j<step;j+=Math.max(1,step>>5)){const v=d[i*step+j]||0;if(v<mn)mn=v;if(v>mx)mx=v}c.fillRect(i,mid+mn*mid*0.9,1,Math.max(1,(mx-mn)*mid*0.9))}
 c.fillStyle='rgba(236,232,246,0.85)';c.font='600 20px JetBrains Mono';c.textAlign='right';c.fillText(b.duration.toFixed(1)+'s',cv.width-8,cv.height-10)
 }
@@ -1560,6 +1560,7 @@ if(S.ws)return
 await loadBlockly()
 if(S.ws)return
 S.ws=Blockly.inject($('#blk'),{toolbox:S.toolbox,renderer:'zelos',theme:VueBlocks.theme(Blockly),grid:{spacing:28,length:2,colour:'#232323',snap:true},zoom:{controls:true,wheel:true,startScale:0.85,maxScale:2,minScale:0.35,pinch:true},trashcan:true,move:{scrollbars:true,drag:true,wheel:false},sounds:false,media:window.VUE_CDN&&VUE_CDN.blocklyMedia||'../node_modules/blockly/media/'})
+{const fl=S.ws.getFlyout&&S.ws.getFlyout();if(fl)fl.getFlyoutScale=()=>0.85}
 S.ws.addChangeListener(ev=>{
 if(ev.isUiEvent||S.loading)return
 const d=selData()
@@ -1616,7 +1617,7 @@ if(m){
 const ts=m.languages.typescript
 ts.typescriptDefaults.setCompilerOptions({target:ts.ScriptTarget.ES2020,lib:['es2020'],allowNonTsExtensions:true,module:ts.ModuleKind.CommonJS,noEmit:true,strict:false})
 ts.typescriptDefaults.addExtraLib(VueDTS.dts,'file:///vue.d.ts')
-m.editor.defineTheme('vue',{base:'vs-dark',inherit:true,rules:[{token:'keyword',foreground:'e5a05a'},{token:'string',foreground:'a5c47a'},{token:'number',foreground:'d9a441'},{token:'comment',foreground:'86827a',fontStyle:'italic'},{token:'type',foreground:'7dd3fc'},{token:'identifier',foreground:'ece8f6'}],colors:{'editor.background':'#131313','editor.foreground':'#e6e3dd','editor.lineHighlightBackground':'#1b1b1b','editor.lineHighlightBorder':'#00000000','editorLineNumber.foreground':'#5a5750','editorLineNumber.activeForeground':'#f0944a','editor.selectionBackground':'#c4621a66','editor.inactiveSelectionBackground':'#c4621a33','editorCursor.foreground':'#f0944a','editorIndentGuide.background1':'#2a2a2a','editorWidget.background':'#222222','editorWidget.border':'#454545','editorSuggestWidget.background':'#222222','editorSuggestWidget.border':'#454545','editorSuggestWidget.selectedBackground':'#c4621a','editorHoverWidget.background':'#222222','editorHoverWidget.border':'#454545','scrollbarSlider.background':'#2a233880','scrollbarSlider.hoverBackground':'#454545'}})
+m.editor.defineTheme('vue',{base:'vs-dark',inherit:true,rules:[{token:'keyword',foreground:'c586c0'},{token:'string',foreground:'a5c47a'},{token:'number',foreground:'d9a441'},{token:'comment',foreground:'86827a',fontStyle:'italic'},{token:'type',foreground:'7dd3fc'},{token:'identifier',foreground:'ece8f6'}],colors:{'editor.background':'#131313','editor.foreground':'#e6e3dd','editor.lineHighlightBackground':'#1b1b1b','editor.lineHighlightBorder':'#00000000','editorLineNumber.foreground':'#5a5750','editorLineNumber.activeForeground':'#ffffff','editor.selectionBackground':'#ffffff33','editor.inactiveSelectionBackground':'#ffffff1a','editorCursor.foreground':'#ffffff','editorIndentGuide.background1':'#2a2a2a','editorWidget.background':'#222222','editorWidget.border':'#454545','editorSuggestWidget.background':'#222222','editorSuggestWidget.border':'#454545','editorSuggestWidget.selectedBackground':'#3a3a3a','editorHoverWidget.background':'#222222','editorHoverWidget.border':'#454545','scrollbarSlider.background':'#2a233880','scrollbarSlider.hoverBackground':'#454545'}})
 const model=m.editor.createModel('','typescript',m.Uri.parse('file:///script.ts'))
 const ed=m.editor.create($('#code'),{model,theme:'vue',minimap:{enabled:false},stickyScroll:{enabled:false},fontSize:14,fontFamily:"'JetBrains Mono',Consolas,monospace",fontLigatures:true,automaticLayout:false,scrollBeyondLastLine:false,tabSize:2,padding:{top:14},smoothScrolling:true,cursorBlinking:'smooth',cursorSmoothCaretAnimation:'on',renderLineHighlight:'all',bracketPairColorization:{enabled:true}})
 model.onDidChangeContent(()=>onChange(model.getValue()))
@@ -2062,10 +2063,10 @@ return out.toDataURL('image/jpeg',0.82)
 finally{wrap.remove()}
 }
 const storedPrefs=ls.get('vue.prefs',null)
-const PREFS=Object.assign({core:'vwr',smooth:true,scale:100,calm:false,autosave:true,reopen:false,extSrc:'github',mode:storedPrefs?'advanced':'beginner'},storedPrefs||{})
+const PREFS=Object.assign({core:'vwr',smooth:true,scale:100,theme:'dark',calm:false,autosave:true,reopen:false,extSrc:'github',mode:storedPrefs?'advanced':'beginner'},storedPrefs||{})
 S.advOpen=ls.get('vue.advopen',false)
 function setPref(k,v){PREFS[k]=v;ls.set('vue.prefs',PREFS);applyPrefs()}
-function applyPrefs(){document.body.style.zoom=PREFS.scale===100?'':String(PREFS.scale/100);document.body.classList.toggle('calm',!!PREFS.calm);document.body.classList.toggle('beginner',isBeg());document.body.classList.toggle('web',!!host.web)}
+function applyPrefs(){document.body.style.zoom=PREFS.scale===100?'':String(PREFS.scale/100);document.documentElement.style.setProperty('--zm',String(PREFS.scale/100));document.documentElement.dataset.theme=PREFS.theme==='light'?'light':'dark';if(S.ws&&window.Blockly)S.ws.setTheme(VueBlocks.theme(Blockly));if(S.mon&&window.monaco)monaco.editor.setTheme(PREFS.theme==='light'?'vs':'vue');document.body.classList.toggle('calm',!!PREFS.calm);document.body.classList.toggle('beginner',isBeg());document.body.classList.toggle('web',!!host.web)}
 function onModeChange(){
 applyPrefs()
 if(S.ws&&S.toolboxAll){S.toolbox=toolboxFor(S.toolboxAll);S.ws.updateToolbox(S.toolbox)}
@@ -2259,8 +2260,8 @@ else side.append(h('div',{class:'xnone',text:'Select an extension.'}))
 }
 
 function tplCard(t,mini){
-const th=h('div',{class:'th'},h('span',{class:'badge b'+t.kind[0],text:t.kind}))
-const c=h('button',{class:'card'+(mini?' mini':''),onclick:()=>newFrom(t.make(),t.name,t)},th,h('div',{class:'cb'},h('b',{text:t.name}),h('small',{text:mini?t.kind+' \u00b7 '+t.genre:t.desc})))
+const th=h('div',{class:'th'})
+const c=h('button',{class:'card'+(mini?' mini':''),onclick:()=>newFrom(t.make(),t.name,t)},th,h('div',{class:'cb'},h('b',{text:t.name}),h('small',{text:t.kind+' \u00b7 '+(mini?t.genre:t.desc)})))
 if(t._th)th.style.backgroundImage='url('+t._th+')'
 else thumb(t.make()).then(u=>{if(u){t._th=u;th.style.backgroundImage='url('+u+')'}})
 return c
@@ -2292,6 +2293,7 @@ it('Default engine core','Used by new projects. Each project can change it in th
 it('Smooth motion','New projects draw between physics steps so motion stays smooth on fast screens.',sw('smooth')),
 h('h3',{text:'Interface'}),
 it('Interface mode','Beginner shows Blocks and the basics. Advanced also shows Code, physics and engine options.',sel('mode',[['beginner','Beginner'],['advanced','Advanced']],onModeChange)),
+it('Theme','Dark uses near-black surfaces. Light uses white ones.',sel('theme',[['dark','Dark'],['light','Light']])),
 it('Interface size','Scales the whole editor.',sel('scale',[[90,'90%'],[100,'100%'],[110,'110%'],[125,'125%']])),
 it('Reduce motion','Turns off animations.',sw('calm')),
 it('Open last project on launch','Skip Home and return to your last project.',sw('reopen')),

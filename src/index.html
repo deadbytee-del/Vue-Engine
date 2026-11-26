@@ -16,12 +16,12 @@
 <div id="hub">
 <nav class="hub-rail">
 <img class="hub-logo" src="logo.png" alt="Vue Engine">
-<button class="hub-nav on" data-hub="home"><span data-ic="home" data-s="18"></span><span>Home</span></button>
-<button class="hub-nav" data-hub="projects"><span data-ic="projects" data-s="18"></span><span>Projects</span></button>
-<button class="hub-nav" data-hub="templates"><span data-ic="templates" data-s="18"></span><span>Templates</span></button>
-<button class="hub-nav" data-hub="ext"><span data-ic="puzzle" data-s="18"></span><span>Extensions</span><i id="extCount"></i></button>
-<button class="hub-nav" data-hub="settings"><span data-ic="settings" data-s="18"></span><span>Settings</span></button>
-<button class="hub-nav" data-hub="about"><span data-ic="info" data-s="18"></span><span>About</span></button>
+<button class="hub-nav on" data-hub="home"><span>Home</span></button>
+<button class="hub-nav" data-hub="projects"><span>Projects</span></button>
+<button class="hub-nav" data-hub="templates"><span>Templates</span></button>
+<button class="hub-nav" data-hub="ext"><span>Extensions</span><i id="extCount"></i></button>
+<button class="hub-nav" data-hub="settings"><span>Settings</span></button>
+<button class="hub-nav" data-hub="about"><span>About</span></button>
 <div class="hub-foot"><span id="hubVer"></span></div>
 </nav>
 <main class="hub-main">
@@ -35,21 +35,15 @@
 <div class="sh"><h2>Templates</h2><button class="lk" data-go="templates">View all<span data-ic="chevr" data-s="14"></span></button></div>
 <div id="tplMini" class="tstrip"></div>
 <div class="sh"><h2>Getting started</h2></div>
-<div class="grws">
-<button class="grw" data-act="learn"><span data-ic="book" data-s="16"></span><div><b>Learn the basics</b><small>Open the checklist: make a project, add a sprite, add a block, press Play.</small></div><span data-ic="chevr" data-s="14"></span></button>
-<button class="grw" data-act="script"><span data-ic="script" data-s="16"></span><div><b>Explore scripting</b><small>Blocks snap together like Scratch. Event sheets read like sentences: when this happens, if that is true, do this. Code is TypeScript with autocomplete. Mix them per entity.</small></div><span data-ic="chevr" data-s="14"></span></button>
-<button class="grw" data-act="community"><span data-ic="link" data-s="16"></span><div><b>Join the community</b><small>Ask questions and report bugs on GitHub.</small></div><span data-ic="chevr" data-s="14"></span></button>
+<div class="gslinks">
+<button class="lk" data-act="learn">Learn the basics</button><span>Make a project, add a sprite, add a block, press Play.</span>
+<button class="lk" data-act="script">Explore scripting</button><span>Blocks, event sheets or typed code, mixed per object.</span>
+<button class="lk" data-act="community">Join the community</button><span>Ask questions and report bugs on GitHub.</span>
 </div>
 </div>
 <aside class="hside">
-<div class="pbox"><h2>Engine info</h2><dl id="engInfo"></dl></div>
-<div class="pbox"><h2>Quick actions</h2><div class="qlist">
-<button class="btn" data-qa="new"><span data-ic="plus"></span>New Project</button>
-<button class="btn" data-qa="open"><span data-ic="folder"></span>Open Project</button>
-<button class="btn" data-qa="tpl"><span data-ic="templates"></span>Browse Templates</button>
-<button class="btn" data-qa="ext"><span data-ic="puzzle"></span>Manage Extensions</button>
-</div></div>
-<div class="pbox"><h2>News</h2><div id="news"></div></div>
+<h2>This build</h2><dl id="engInfo"></dl>
+<h2>What is new</h2><div id="news"></div>
 </aside>
 </div>
 </section>

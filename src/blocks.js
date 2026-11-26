@@ -460,12 +460,13 @@ return PRE+out
 }finally{ws.dispose()}
 }
 function theme(Blockly){
+const LT=!!(root.document&&root.document.documentElement.dataset.theme==='light')
 return Blockly.Theme.defineTheme('vue',{
 name:'vue',
 base:Blockly.Themes.Zelos,
 blockStyles:{event_blocks:{colourPrimary:C.ev,colourSecondary:'#c93a6b',colourTertiary:'#a8305a',hat:'cap'},logic_blocks:{colourPrimary:'#2fbf74',colourSecondary:'#27a564',colourTertiary:'#1f8a53'},math_blocks:{colourPrimary:'#2fbf74',colourSecondary:'#27a564',colourTertiary:'#1f8a53'},loop_blocks:{colourPrimary:C.co,colourSecondary:'#d98f1c',colourTertiary:'#b87814'},text_blocks:{colourPrimary:'#e86fbf',colourSecondary:'#cf5fab',colourTertiary:'#b44f94'},variable_blocks:{colourPrimary:'#ff7a45',colourSecondary:'#e86a38',colourTertiary:'#c9582c'},variable_dynamic_blocks:{colourPrimary:'#ff7a45',colourSecondary:'#e86a38',colourTertiary:'#c9582c'},list_blocks:{colourPrimary:'#c06cff',colourSecondary:'#a95ae6',colourTertiary:'#8f48c4'},procedure_blocks:{colourPrimary:'#8a8f98',colourSecondary:'#767b84',colourTertiary:'#62666e'}},
 fontStyle:{family:'Inter, system-ui, sans-serif',weight:'600',size:11},
-componentStyles:{workspaceBackgroundColour:'#131313',toolboxBackgroundColour:'#1b1b1b',toolboxForegroundColour:'#e6e3dd',flyoutBackgroundColour:'#222222',flyoutForegroundColour:'#e6e3dd',flyoutOpacity:0.97,scrollbarColour:'#454545',scrollbarOpacity:0.6,insertionMarkerColour:'#ffffff',insertionMarkerOpacity:0.3,cursorColour:'#d0d0d0'}
+componentStyles:LT?{workspaceBackgroundColour:'#f6f6f6',toolboxBackgroundColour:'#ececec',toolboxForegroundColour:'#111111',flyoutBackgroundColour:'#ffffff',flyoutForegroundColour:'#111111',flyoutOpacity:0.97,scrollbarColour:'#b0b0b0',scrollbarOpacity:0.6,insertionMarkerColour:'#000000',insertionMarkerOpacity:0.3,cursorColour:'#222222'}:{workspaceBackgroundColour:'#0a0a0a',toolboxBackgroundColour:'#101010',toolboxForegroundColour:'#ececec',flyoutBackgroundColour:'#161616',flyoutForegroundColour:'#ececec',flyoutOpacity:0.97,scrollbarColour:'#454545',scrollbarOpacity:0.6,insertionMarkerColour:'#ffffff',insertionMarkerOpacity:0.3,cursorColour:'#d0d0d0'}
 })
 }
 const api={DEFS,HATS,init,compile,theme}

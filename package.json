@@ -11,6 +11,7 @@
   "test": "node test/engine.test.js && node test/features.test.js && node test/vwr.test.js && node test/ext.test.js && node test/zip.test.js && node test/player.test.js && node test/events.test.js && node test/behaviors.test.js && node test/mcp.test.js && node test/lib.test.js && node test/help.test.js",
   "dist": "electron-builder --win portable --publish never",
   "build:info": "node tools/build-info.js",
+  "build:icons": "node tools/build-icons.js",
   "build:vwr": "sh vwr/build.sh"
  },
  "dependencies": {
@@ -22,6 +23,7 @@
   "typescript": "5.6.3"
  },
  "devDependencies": {
+  "@phosphor-icons/core": "^2.1.1",
   "electron": "33.2.1",
   "electron-builder": "25.1.8"
  },
