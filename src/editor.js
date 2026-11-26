@@ -2540,10 +2540,11 @@ finally{$('#portGo').disabled=false;bar.style.display='none'}
 const LAYOUT={lw:250,rw:300,bh:240}
 function applyLayout(L){
 const r=document.documentElement.style
-r.setProperty('--lw',L.lw+'px')
-r.setProperty('--rw',L.rw+'px')
+r.setProperty('--lw',Math.min(L.lw,Math.max(130,Math.round(innerWidth*0.2)))+'px')
+r.setProperty('--rw',Math.min(L.rw,Math.max(180,Math.round(innerWidth*0.27)))+'px')
 r.setProperty('--bh',L.bh+'px')
 }
+addEventListener('resize',()=>{if(S.layout)applyLayout(S.layout)})
 function resetLayout(){S.layout=Object.assign({},LAYOUT);S.layout.bh=Math.round(Math.min(LAYOUT.bh,innerHeight*0.3));ls.set('vue.layout',S.layout);applyLayout(S.layout)}
 function toggleDock(force){
 const L=S.layout,open=L.bh>40
