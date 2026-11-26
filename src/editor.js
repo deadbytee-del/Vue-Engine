@@ -82,7 +82,7 @@ statusQ()
 let saveT=0
 function scheduleSave(){
 clearTimeout(saveT)
-saveT=setTimeout(()=>{const go=()=>{if(PREFS.autosave===false)return;ls.set('vue.autosave',{project:S.project,path:S.path});S.autoAt=Date.now();statusQ()};if(window.requestIdleCallback)requestIdleCallback(go,{timeout:2000});else go()},1200)
+saveT=setTimeout(()=>{const go=()=>{if(PREFS.autosave===false)return;if(!S.project.thumb||Date.now()-(S.thumbAt||0)>30000){S.thumbAt=Date.now();thumb(S.project,320,180).then(u=>{if(u){S.project.thumb=u;ls.set('vue.autosave',{project:S.project,path:S.path,at:Date.now()})}})}ls.set('vue.autosave',{project:S.project,path:S.path,at:Date.now()});S.autoAt=Date.now();statusQ()};if(window.requestIdleCallback)requestIdleCallback(go,{timeout:2000});else go()},1200)
 }
 function ago(t){
 const s=Math.round((Date.now()-t)/1000)
@@ -1961,7 +1961,7 @@ function renderTodo(){
 const b=$('#todo')
 if(!b)return
 const t=ls.get('vue.todo',{}),n=TODO.filter(x=>t[x[0]]).length
-b.classList.toggle('hide',!isBeg()||n===TODO.length||!!t.hidden)
+b.classList.toggle('hide',!(isBeg()||S.todoForce)||n===TODO.length||(!!t.hidden&&!S.todoForce))
 b.innerHTML=''
 b.append(h('h3',{text:'Get started ('+n+' of '+TODO.length+')'}),...TODO.map(x=>h('div',{class:t[x[0]]?'done':''},h('i',{html:ic('check',10)}),h('span',{text:x[1]}))))
 const r=h('div',{style:'margin-top:6px;gap:6px'})
@@ -2139,9 +2139,9 @@ if(S.extSel)extBody(S.extSel,side,true)
 else side.append(h('div',{class:'xnone',text:'Select an extension.'}))
 }
 
-function tplCard(t){
+function tplCard(t,mini){
 const th=h('div',{class:'th'},h('span',{class:'badge b'+t.kind[0],text:t.kind}))
-const c=h('button',{class:'card',onclick:()=>newFrom(t.make(),t.name,t)},th,h('div',{class:'cb'},h('b',{text:t.name}),h('small',{text:t.desc})))
+const c=h('button',{class:'card'+(mini?' mini':''),onclick:()=>newFrom(t.make(),t.name,t)},th,h('div',{class:'cb'},h('b',{text:t.name}),h('small',{text:mini?t.kind+' \u00b7 '+t.genre:t.desc})))
 if(t._th)th.style.backgroundImage='url('+t._th+')'
 else thumb(t.make()).then(u=>{if(u){t._th=u;th.style.backgroundImage='url('+u+')'}})
 return c
@@ -2159,7 +2159,7 @@ g.innerHTML=''
 for(const t of VueSample.TEMPLATES)if(!f||t.kind===f)g.append(tplCard(t))
 const mini=$('#tplMini')
 mini.innerHTML=''
-for(const t of VueSample.TEMPLATES.slice(0,4))mini.append(tplCard(t))
+for(const id of['pc','plat','top','kit'])mini.append(tplCard(VueSample.TEMPLATES.find(t=>t.id===id),true))
 }
 function renderSettings(){
 const b=$('#setBox')
@@ -2201,6 +2201,7 @@ $('#hub').classList.add('on')
 hubPane(pane||'home')
 $('#hubBack').style.display=S.project?'':'none'
 renderTodo()
+renderSide()
 renderTpl()
 renderRecent()
 }
@@ -2216,21 +2217,65 @@ if(p==='settings')renderSettings()
 if(p==='about')renderAbout()
 if(p==='projects')renderRecent()
 }
+function allRecent(){
+const out=recent().map(r=>Object.assign({},r))
+const auto=ls.get('vue.autosave',null)
+if(auto&&auto.project&&auto.project.scenes)out.push({auto:true,path:null,name:auto.project.name,thumb:auto.project.thumb||'',time:auto.at||0,kind:auto.project.scenes.some(s=>s.mode==='3d')?'3D':'2D'})
+return out.sort((x,y)=>(y.time||0)-(x.time||0))
+}
+function recMenu(ev,r){
+const x=ev.clientX,y=ev.clientY
+const items=[{ic:'folder',label:'Open',fn:()=>recOpen(r)},{ic:'edit',label:'Rename',fn:()=>recRename(r)},{ic:'copy',label:'Duplicate',fn:()=>recDup(r)}]
+if(!r.auto&&!host.web&&host.showInFolder)items.push({ic:'folder',label:'Show in folder',fn:()=>host.showInFolder(r.path)})
+if(!r.auto)items.push({sep:1},{ic:'trash',label:'Remove from list',fn:()=>{ls.set('vue.recent',recent().filter(q=>q.path!==r.path));renderRecent()}})
+showMenu($('#ctx'),x,y,items)
+}
+function recOpen(r){
+if(r.auto){const a=ls.get('vue.autosave',null);if(a&&a.project){setProject(a.project,a.path,!a.path);hideHub()}}
+else openPath(r.path)
+}
+async function recRename(r){
+const v=await dialog({title:'Rename project',input:r.name,buttons:[{label:'Cancel',value:null},{label:'Rename',value:true,primary:true}]})
+if(!v||!v.trim())return
+if(r.auto){const a=ls.get('vue.autosave',null);if(a&&a.project){a.project.name=v.trim();ls.set('vue.autosave',a);if(S.project&&!S.path)S.project.name=v.trim()}}
+else ls.set('vue.recent',recent().map(q=>q.path===r.path?Object.assign({},q,{name:v.trim()}):q))
+renderRecent()
+}
+async function recDup(r){
+let data=null
+if(r.auto){const a=ls.get('vue.autosave',null);if(a&&a.project)data=JSON.stringify(a.project)}
+else{const x=await host.readProject(r.path);if(x)data=x.data}
+if(!data){toast('Could not read the project','err');return}
+try{const p=JSON.parse(data);p.name=p.name+' copy';data=JSON.stringify(p)}catch(x){}
+const p=await host.saveProject(data,null)
+if(p)toast('Saved a copy','ok')
+}
+function recRow(r){
+const th=h('div',{class:'rth',style:r.thumb?'background-image:url('+r.thumb+')':null},h('span',{class:'badge b'+(r.kind||'2D')[0],text:r.kind||'2D'}))
+const path=r.auto?'Browser storage':r.path
+const row=h('div',{class:'rrow',tabindex:'0',onclick:()=>recOpen(r),oncontextmenu:e=>{e.preventDefault();recMenu(e,r)},onkeydown:e=>{if(e.key==='Enter')recOpen(r)}},th,h('div',{class:'rmeta'},h('b',{text:r.name}),h('small',{text:path,title:path})),h('span',{class:'rtime',text:r.time?ago(r.time):'',title:r.time?new Date(r.time).toLocaleString():''}),h('button',{class:'ib',title:'Actions',html:ic('dots',14),onclick:e=>{e.stopPropagation();const b=e.currentTarget.getBoundingClientRect();recMenu({clientX:b.left,clientY:b.bottom+4},r)}}))
+return row
+}
 function renderRecent(){
-const rs=recent(),auto=ls.get('vue.autosave',null),q=(($('#projQ')||{}).value||'').toLowerCase()
-const mk=r=>h('button',{class:'card',onclick:()=>openPath(r.path)},h('div',{class:'th',style:r.thumb?'background-image:url('+r.thumb+')':null},h('span',{class:'badge b'+(r.kind||'2D')[0],text:r.kind||'2D'})),h('div',{class:'cb'},h('b',{text:r.name}),h('small',{text:ago(r.time)+' · '+r.path})))
+const q=(($('#projQ')||{}).value||'').toLowerCase(),all=allRecent()
 const mini=$('#recentMini'),full=$('#recentGrid')
 mini.innerHTML=''
 full.innerHTML=''
-if(auto&&auto.project&&auto.project.scenes){
-const c=()=>h('button',{class:'card',onclick:()=>{setProject(auto.project,auto.path,!auto.path);hideHub()}},h('div',{class:'th',style:auto.project.thumb?'background-image:url('+auto.project.thumb+')':'background:var(--bg2);display:grid;place-items:center;color:#a5a198',html:auto.project.thumb?'':ic('clock',34)}),h('div',{class:'cb'},h('b',{text:'Continue: '+auto.project.name}),h('small',{text:'Your last session, restored'})))
-mini.append(c())
-if(!q||auto.project.name.toLowerCase().includes(q))full.append(c())
-}
-for(const r of rs.slice(0,7))mini.append(mk(r))
-for(const r of rs)if(!q||(r.name+' '+r.path).toLowerCase().includes(q))full.append(mk(r))
-if(!mini.children.length)mini.append(h('div',{class:'nores',text:'Nothing yet. Pick a template below to start.'}))
+for(const r of all.slice(0,5))mini.append(recRow(r))
+for(const r of all)if(!q||(r.name+' '+(r.path||'')).toLowerCase().includes(q))full.append(recRow(r))
+if(!all.length)mini.append(h('div',{class:'empty-l'},h('span',{text:'No projects yet.'}),h('button',{class:'btn primary',html:ic('plus',14)+'Create your first project',onclick:()=>hubPane('templates')})))
 if(!full.children.length)full.append(h('div',{class:'nores',text:q?'No projects match.':'Projects you save or open show up here.'}))
+}
+function renderSide(){
+const B=window.VUE_BUILD||{},core=S.project?(S.project.settings.core||PREFS.core):PREFS.core
+const ci=(CORES.find(x=>x[0]===core)||CORES[0])[1]
+const dl=$('#engInfo')
+dl.innerHTML=''
+for(const[k,v]of[['Version',String(S.version||'')],['Build date',B.date||'unknown'],['Platform',host.web?'Web':'Desktop'],['Core',ci]])dl.append(h('dt',{text:k}),h('dd',{text:v}))
+const n=$('#news')
+n.innerHTML=''
+for(const e of B.news||[])n.append(h('div',{class:'nitem'},h('b',{text:e.t}),h('small',{text:e.d})))
+if(!(B.news||[]).length)n.append(h('div',{class:'nores',text:'No news in this build.'}))
 }
 function pushRecent(path,thumbUrl){
 const rs=recent().filter(r=>r.path!==path)
@@ -2496,6 +2541,9 @@ $('#keysClose').onclick=()=>$('#keys').classList.remove('on')
 $('#keys').onpointerdown=e=>{if(e.target.id==='keys')$('#keys').classList.remove('on')}
 $('#hubOpen').onclick=open
 $('#hubOpen2').onclick=open
+$('#hubNew').onclick=()=>hubPane('templates')
+for(const b of $$('[data-qa]'))b.onclick=()=>{const q=b.dataset.qa;if(q==='new'||q==='tpl')hubPane('templates');else if(q==='open')open();else hubPane('ext')}
+for(const b of $$('[data-act]'))b.onclick=()=>{const q=b.dataset.act;if(q==='learn'){const t=ls.get('vue.todo',{});delete t.hidden;ls.set('vue.todo',t);S.todoForce=true;renderTodo();$('.hub-main').scrollTop=0;if(!$('#todo').children.length||$('#todo').classList.contains('hide'))window.open('https://github.com/deadbytee-del/vue-engine#readme','_blank')}else if(q==='script')hubPane('templates');else window.open('https://github.com/deadbytee-del/vue-engine/issues','_blank')}
 $('#projQ').oninput=renderRecent
 $('#extPQ').oninput=renderExtPane
 $('#extPAll').onclick=()=>showHub('ext')

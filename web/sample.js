@@ -363,13 +363,13 @@ ent({name:'Player',shape:'pill',x:-500,y:190,w:28,h:48,color:'#7aa2f7',body:'dyn
 return p
 }
 const TEMPLATES=[
-{id:'kit',name:'Adventure Kit',kind:'2D',desc:'Tilemap level, animated hero, parenting, cutscenes and sound',make:makeKit},
-{id:'empty2',name:'Empty 2D',kind:'2D',desc:'A blank 2D scene',make:blank},
-{id:'empty3',name:'Empty 3D',kind:'3D',desc:'Ground, light and sky',make:blank3},
-{id:'plat',name:'Platformer',kind:'2D',desc:'Jump, collect coins, avoid the enemy',make:make},
-{id:'top',name:'Top-down Arena',kind:'2D',desc:'Grab gems while a chaser hunts you',make:makeTop},
-{id:'pc',name:'Player Controller',kind:'2D',desc:'A platformer that works with no scripting',make:makePC},
-{id:'plat3',name:'3D Platformer',kind:'3D',desc:'Third-person controller with mouse look',make:make3}
+{id:'kit',genre:'Adventure',name:'Adventure Kit',kind:'2D',desc:'Tilemap level, animated hero, parenting, cutscenes and sound',make:makeKit},
+{id:'empty2',genre:'Blank',name:'Empty 2D',kind:'2D',desc:'A blank 2D scene',make:blank},
+{id:'empty3',genre:'Blank',name:'Empty 3D',kind:'3D',desc:'Ground, light and sky',make:blank3},
+{id:'plat',genre:'Platformer',name:'Platformer',kind:'2D',desc:'Jump, collect coins, avoid the enemy',make:make},
+{id:'top',genre:'Top-down',name:'Top-down Arena',kind:'2D',desc:'Grab gems while a chaser hunts you',make:makeTop},
+{id:'pc',genre:'Platformer',name:'Player Controller',kind:'2D',desc:'A platformer that works with no scripting',make:makePC},
+{id:'plat3',genre:'Platformer',name:'3D Platformer',kind:'3D',desc:'Third-person controller with mouse look',make:make3}
 ]
 const api={makePC,make,make3,makeTop,makeKit,wav,blank,blank3,ent,kinds,kinds3,uid,playerCode,TEMPLATES}
 if(typeof module!=='undefined'&&module.exports)module.exports=api

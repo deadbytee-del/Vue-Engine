@@ -22,6 +22,7 @@ return{code:r.outputText,errors:(r.diagnostics||[]).map(d=>ts.flattenDiagnosticM
 })
 ipcMain.handle('runtime:source',()=>['vwr.js','runtime.js','render3d.js'].map(f=>fs.readFileSync(path.join(__dirname,'src',f),'utf8')).join('\n;\n'))
 ipcMain.handle('three:source',()=>fs.readFileSync(path.join(__dirname,'node_modules','three','build','three.min.js'),'utf8'))
+ipcMain.handle('shell:show',(e,p)=>{try{shell.showItemInFolder(p);return true}catch(x){return false}})
 ipcMain.handle('project:read',(e,p)=>{try{return{path:p,data:fs.readFileSync(p,'utf8')}}catch(x){return null}})
 ipcMain.handle('app:version',()=>app.getVersion())
 ipcMain.handle('game:detach',(e,html,title)=>{

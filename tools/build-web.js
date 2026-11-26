@@ -2,6 +2,7 @@ const fs=require('fs'),path=require('path')
 const root=path.join(__dirname,'..'),src=path.join(root,'src'),out=path.join(root,'web')
 const pkg=n=>require(path.join(root,'node_modules',n,'package.json')).version
 const V={blockly:pkg('blockly'),monaco:pkg('monaco-editor'),three:pkg('three'),inter:pkg('@fontsource/inter'),mono:pkg('@fontsource/jetbrains-mono'),ts:pkg('typescript')}
+require('./build-info.js')
 fs.rmSync(out,{recursive:true,force:true})
 fs.mkdirSync(out,{recursive:true})
 const copy=(a,b)=>{fs.mkdirSync(path.dirname(b),{recursive:true});fs.copyFileSync(a,b)}
