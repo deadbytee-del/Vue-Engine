@@ -371,6 +371,8 @@ for(let i=0;i<s.length;i++)if(s[i].id===k||s[i].name===k)return s[i]
 return s[0]
 }
 loadScene(k){
+this.noticed=false
+this.onNotice=this.onNotice||(t=>{if(root.parent&&root.parent!==root)root.parent.postMessage({vue:1,type:'notice',text:t},'*')})
 this.hasPc=false
 this.hasBh=false
 this.ticks=[]
@@ -1095,8 +1097,10 @@ lists(){
 const es=this.entities,st=this.statics||(this.statics=[]),dy=this.dyns||(this.dyns=[])
 const old=st.slice()
 st.length=0;dy.length=0
+const sp=[]
 let cap=false
-for(let i=0;i<es.length;i++){const e=es[i];if(!e.alive)continue;const b=e._body;if(b!=='none'&&(e.shape==='pill'||e.shape==='capsule'||(e.pc&&e.pc.layers&&e.pc.layers.length)))cap=true;if(b==='static')st.push(e);else if(b==='dynamic'&&!e.par)dy.push(e)}
+for(let i=0;i<es.length;i++){const e=es[i];if(!e.alive)continue;const b=e._body;if(b!=='none'&&(e.shape==='pill'||e.shape==='capsule'||(e.pc&&e.pc.layers&&e.pc.layers.length)))cap=true;if(b==='static')st.push(e);else if(b==='dynamic'&&!e.par){if(this.is3d&&(e.shape==='sphere'||e._veh))sp.push(e);else dy.push(e)}}
+this.spec=sp
 this.hasCap=cap
 if(old.length!==st.length)this.sDirty=true
 else for(let i=0;i<st.length;i++)if(old[i]!==st[i]){this.sDirty=true;break}
@@ -1105,7 +1109,7 @@ this.listDirty=false
 physW(dt){
 const W=this.vwr(),d3=this.is3d
 if(this.listDirty||!this.statics)this.lists()
-if(this.hasCap)return false
+if(this.hasCap){if(!this.noticed&&this.onNotice){this.noticed=true;this.onNotice('Physics runs on the JavaScript core for this scene because it uses a capsule collider or collision layers. Everything else is the same. You can pick the engine in the Project panel.')}return false}
 const es=this.statics
 let dirty=this.sDirty||W.d3!==d3,n=es.length
 if(!d3)for(const m of this.tms)if(m.alive&&m.solid){n+=m.tiles.size;if(m._ox!==m.x||m._oy!==m.y||m._oc!==m.cell){dirty=true;m._ox=m.x;m._oy=m.y;m._oc=m.cell}}
@@ -1174,7 +1178,15 @@ this.resolve(e,false)
 }
 }
 physics3(dt){
-if(this.vwr()&&this.physW(dt)){this.sgStale=true;return}
+if(this.vwr()&&this.physW(dt)){
+this.sgStale=true
+if(this.spec&&this.spec.length){
+this.staticGrid()
+const g=this.gravity
+for(const e of this.spec){if(!e.alive||e.body!=='dynamic'||e.par)continue;if(e._veh)this.obb3(e,dt,g);else this.sph3(e,dt,g)}
+}
+return
+}
 if(this.sgStale){this.sDirty=true;this.sgStale=false}
 if(this.W)this.W.sn=-1
 const es=this.entities,g=this.gravity

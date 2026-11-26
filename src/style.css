@@ -783,3 +783,5 @@ body.ai-open #app{width:calc(100% - 380px)}
 .merr{color:var(--bad);font-size:13px}
 .asset .edt,.asset .exp{position:absolute;top:4px;right:30px}
 .asset .exp{right:56px}
+.stcore{background:transparent;border:0;color:inherit;padding:0 2px;text-decoration:underline;text-underline-offset:2px}
+.engrow{display:flex;align-items:center;gap:12px;margin:12px 0 20px;flex-wrap:wrap}.engrow label{font-weight:600}.engrow select{min-width:180px}.engrow span{color:var(--dim);font-size:13px;flex:1;min-width:240px}

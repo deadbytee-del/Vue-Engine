@@ -53,5 +53,27 @@ console.log('2D '+nd+' dynamic + '+ns+' static: JS '+a.ms.toFixed(2)+' ms, VWR '
 const a=sim(scene(true,10000,10000,5),'js',120,3),b=sim(scene(true,10000,10000,5),'vwr',120,3)
 console.log('3D 10000 dynamic + 10000 static: JS '+a.ms.toFixed(2)+' ms, VWR '+b.ms.toFixed(2)+' ms ('+(a.ms/b.ms).toFixed(2)+'x)')
 }
+{
+const p={settings:{core:'vwr'},assets:{},scenes:[{id:'a',name:'a',mode:'3d',gravity:30,entities:[{id:'g',x:0,y:-0.5,z:0,w:40,h:1,d:40,body:'static',shape:'box'},{id:'b',x:3,y:6,z:0,w:1,h:1,d:1,body:'dynamic',shape:'box'},{id:'s',x:0,y:6,z:0,w:1,h:1,d:1,body:'dynamic',shape:'sphere'}]}],startScene:'a'}
+const g=new R.Game({canvas,project:p,scripts:{}})
+g.loadScene('a')
+let note=''
+g.onNotice=m=>{note=m}
+for(let i=0;i<300;i++)g.update(1/60)
+const b=g.entities.find(e=>e.id==='b'),s=g.entities.find(e=>e.id==='s')
+assert.ok(g.W,'WASM core in use')
+assert.ok(Math.abs(b.y-0.5)<0.05,'box rests on ground through WASM: '+b.y)
+assert.ok(s.y>0.4&&s.y<0.7,'sphere rests on ground through JS sphere physics: '+s.y)
+assert.strictEqual(note,'')
+}
+{
+const p={settings:{core:'vwr'},assets:{},scenes:[{id:'a',name:'a',mode:'3d',gravity:30,entities:[{id:'g',x:0,y:-0.5,z:0,w:40,h:1,d:40,body:'static',shape:'box'},{id:'c',x:0,y:3,z:0,w:1,h:2,d:1,body:'dynamic',shape:'capsule'}]}],startScene:'a'}
+const g=new R.Game({canvas,project:p,scripts:{}})
+g.loadScene('a')
+let note=''
+g.onNotice=m=>{note=m}
+for(let i=0;i<5;i++)g.update(1/60)
+assert.ok(/capsule/.test(note),'notice names the reason')
+}
 console.log('vwr tests passed')
 }).catch(e=>{console.error(e);process.exit(1)})

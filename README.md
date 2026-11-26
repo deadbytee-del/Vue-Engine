@@ -48,6 +48,16 @@ Settings has a Beginner and an Advanced interface mode. New users start in Begin
 - 77 more blocks, also in the Code API with typed docs: math, vectors, lists, text, time, animation, physics, camera, screen UI (bars, banners, buttons, menus), sound, saving, effects, raycast, spawning and touch events.
 - 3D physics: spheres collide exactly with boxes and bounce (Ball behavior sets how much), and a Vehicle collides as an oriented box.
 
+## AI assistant
+
+Open it from the Assistant button or View > AI assistant. Connect Anthropic, OpenAI, Google Gemini, OpenRouter or any OpenAI-compatible server (Ollama, LM Studio) with your own API key. Requests go straight from the editor to the provider. The key is kept in this browser only (or this tab only if you turn off Remember), is never logged and is removed by Disconnect.
+
+The assistant uses the same tools as the MCP server, plus `ask_user`, which opens a question box with 2 to 5 answers and a free-text Other. Everything it does in one reply is a single undo step. Turn on "Ask before applying changes" to approve each batch. Deleting always asks first. The header shows tokens in and out (and cache read and write when the provider reports them) for the last reply and the session, an estimated cost from the price table in Prices and limits, a request count, and a budget bar that stops the loop. Providers that return no usage show "not reported". Chats are saved in the project.
+
+## 3D model assets
+
+The assistant (or the `create_model` tool) can build a 3D model from a JSON spec: box, sphere, cylinder, cone, torus, lathe and extrude parts with colors, metal, roughness and emissive, plus groups, mirror and array. Models are stored as assets, shown with a preview in Assets, editable by hand, placed in a 3D scene with a click and exported as GLB. Specs are data only; nothing is evaluated.
+
 ## MCP
 
 Vue Engine can be driven by AI apps over the Model Context Protocol. Stdio: start `VueEngine.exe --mcp` from the client config. HTTP: turn on Settings, Integrations, Allow AI tools to connect over HTTP. It is off by default, listens on 127.0.0.1 only and needs the token shown there. Copy setup writes the config for Claude Desktop, Claude Code, Cursor or VS Code. Project files must be inside Documents/Vue Engine, imports come from Downloads, Pictures, Desktop or that folder, and requests are rate limited. Tools: list_projects, open_project, new_project, save, get_scene, list_objects, get_object, create_object, update_object, delete_object, add_component, set_property, list_assets, import_asset, get_script, set_script, validate_script, run, stop, get_console_logs, screenshot, list_extensions, install_extension, export_html. Resources: vue://project, vue://api, vue://templates, vue://behaviors. run, stop, get_console_logs, screenshot and block compilation need the editor window, so use the HTTP mode for those. The web build shows this section as Desktop only.

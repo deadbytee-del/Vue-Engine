@@ -17,8 +17,8 @@ else e.setAttribute(k,v)
 for(const x of c)if(x!=null&&x!==false)e.append(x)
 return e
 }
-const CORES=[['vwr','VWR (fastest)'],['vwr-steady','VWR Steady'],['js','JavaScript']]
-const CORE_HINT={vwr:'C++ and Rust core compiled to WebAssembly. Bodies that are fully at rest are skipped, so settled scenes cost almost nothing. Same results as JavaScript.','vwr-steady':'WebAssembly core that simulates every body every step. Frame cost stays constant no matter what is moving.',js:'Reference JavaScript core. Use it to compare results or when debugging physics.'}
+const CORES=[['vwr','WASM VWR fast'],['vwr-steady','WASM VWR steady'],['js','JavaScript']]
+const CORE_HINT={vwr:'Fastest. Runs physics as WebAssembly and skips bodies that are resting. Best for most games.','vwr-steady':'WebAssembly that updates every body every frame. Pick it if you want the same cost every frame.',js:'Plain JavaScript. Slowest, but easy to debug and works everywhere.'}
 const icons=root=>{for(const s of(root||document).querySelectorAll('[data-ic]')){if(s.firstChild)continue;s.innerHTML=ic(s.dataset.ic,+s.dataset.s||16)}}
 const D=Math.PI/180
 const clone=o=>JSON.parse(JSON.stringify(o))
@@ -99,7 +99,7 @@ sv.classList.toggle('dirty',S.dirty)
 sv.querySelector('b').textContent=S.dirty?(S.path?'Unsaved changes':'Not saved to a file yet'):S.savedAt?'Saved · '+ago(S.savedAt):'Saved'
 const sc=scene(),d=selData()
 $('#stScene').textContent=sc.name+' · '+(is3()?'3D':'2D')+' · '+sc.entities.length+' entities'+(d?' · '+d.name+' selected':'')
-$('#stVer').textContent=(S.project.settings.core==='js'||!(window.VWR&&VWR.exports)?'JS core':S.project.settings.core==='vwr-steady'?'VWR Steady core':'VWR core')+' · Vue Engine '+S.version
+$('#stVer').replaceChildren(h('button',{class:'stcore',title:'Change the physics engine',text:S.project.settings.core==='js'||!(window.VWR&&VWR.exports)?'JavaScript engine':S.project.settings.core==='vwr-steady'?'WASM steady engine':'WASM fast engine',onclick:ev=>{const r=ev.currentTarget.getBoundingClientRect();coreMenu(r.right,r.top)}}),document.createTextNode(' · Vue Engine '+S.version))
 const e=S.logs.filter(l=>l.level==='error').reduce((a,l)=>a+l.count,0),w=S.logs.filter(l=>l.level==='warn').reduce((a,l)=>a+l.count,0)
 $('#stErr').innerHTML=(e?'<span class="e">'+e+' error'+(e>1?'s':'')+'</span>':'')+(w?'<span class="w">'+w+' warning'+(w>1?'s':'')+'</span>':'')
 $('#pname').textContent=S.project.name
@@ -1504,9 +1504,9 @@ row('Title',bind(p,'name','text',status)),
 row('Resolution',h('div',{class:'vec',style:'grid-template-columns:repeat(2,1fr)'},axIn(p.settings,'width','W'),axIn(p.settings,'height','H'))),
 row('Pixel art',bind(p.settings,'pixelArt','bool',()=>{S.game.pixel=p.settings.pixelArt;S.game.ctx.imageSmoothingEnabled=!S.game.pixel})),
 row('Start scene',ss),
-...advRows(row('Engine core',(()=>{const c=h('select');for(const[k,t]of CORES)c.append(h('option',{value:k,text:t}));c.value=CORES.some(x=>x[0]===p.settings.core)?p.settings.core:'vwr';c.addEventListener('change',()=>{snap();p.settings.core=c.value;status();buildInspector()});return c})()),
+row('Engine',(()=>{const c=h('select');for(const[k,t]of CORES)c.append(h('option',{value:k,text:t}));c.value=CORES.some(x=>x[0]===p.settings.core)?p.settings.core:'vwr';c.addEventListener('change',()=>{snap();p.settings.core=c.value;status();buildInspector()});return c})()),
 h('div',{class:'hint',text:window.VWR&&VWR.exports?(CORE_HINT[p.settings.core]||CORE_HINT.vwr):'WebAssembly is not available here, so the JavaScript core runs physics.'}),
-row('Smoothing',(()=>{const c=h('input',{type:'checkbox',class:'sw'});c.checked=p.settings.smooth!==false;c.addEventListener('change',()=>{snap();p.settings.smooth=c.checked});return c})()),
+...advRows(row('Smoothing',(()=>{const c=h('input',{type:'checkbox',class:'sw'});c.checked=p.settings.smooth!==false;c.addEventListener('change',()=>{snap();p.settings.smooth=c.checked});return c})()),
 h('div',{class:'hint',text:'Draws between physics steps so motion stays smooth on 120 and 144 Hz screens.'})),
 row('Extensions',h('div',{class:'xchips'},...(p.extensions||[]).map(id=>{const m=extMeta(id);return h('button',{class:'xchip',title:'Open '+(m?m.name:id),html:ic(m&&m.icon||'puzzle',12)+'<span>'+(m?m.name:id).replace(/[<>&]/g,'')+'</span>',onclick:()=>{S.extSel=id;setBTab('exts')}})}),h('button',{class:'xchip add',html:ic('plus',12)+'<span>Add</span>',onclick:()=>setBTab('exts')}))),
 ]))
@@ -1914,6 +1914,14 @@ return
 toast('No entity named '+name,'err')
 }
 function closePops(){for(const p of $$('.pop'))p.classList.remove('on');for(const b of $$('.mb'))b.classList.remove('on');S.menuOpen=null}
+function coreMenu(x,y){
+const wasm=!!(window.VWR&&VWR.exports)
+const items=[{head:'Physics engine for this project'}]
+for(const[k,t]of CORES)items.push({ic:k==='js'?'code':'cpu',label:t+(S.project.settings.core===k||(k==='vwr'&&!CORES.some(c=>c[0]===S.project.settings.core))?' (in use)':''),sub:k!=='js'&&!wasm?'WebAssembly is not available here':CORE_HINT[k],fn:()=>{snap();S.project.settings.core=k;status();buildInspector();toast('Engine set to '+t,'ok')}})
+const r=$('#ctx')
+showMenu(r,Math.max(8,x-260),Math.max(8,y-200),items,300)
+r.style.top='';r.style.left=Math.max(8,x-300)+'px';r.style.bottom=(innerHeight-y+6)+'px'
+}
 function showMenu(el,x,y,items,minW){
 closePops()
 el.innerHTML=''
@@ -2313,6 +2321,16 @@ if(p.settings.smooth==null)p.settings.smooth=PREFS.smooth
 setProject(p,null,true);hideHub();todo('project');toast('Created '+p.name,'ok')
 }
 function renderTpl(){
+const tc=$('#tplCore')
+if(tc){
+const wasm=!!(window.VWR&&VWR.exports)
+tc.innerHTML=''
+for(const[k,t]of CORES)tc.append(h('option',{value:k,text:t,disabled:k!=='js'&&!wasm}))
+tc.value=wasm?PREFS.core:'js'
+const hint=()=>{$('#tplCoreHint').textContent=wasm?CORE_HINT[tc.value]:'WebAssembly is not available here, so the JavaScript engine is used.'}
+tc.onchange=()=>{setPref('core',tc.value);hint()}
+hint()
+}
 const g=$('#tplGrid'),f=S.tplF||''
 g.innerHTML=''
 for(const t of VueSample.TEMPLATES)if(!f||t.kind===f)g.append(tplCard(t))
@@ -2752,6 +2770,7 @@ window.addEventListener('message',e=>{
 const m=e.data
 if(!m||m.vue!==1||e.source!==$('#frame').contentWindow)return
 if(m.type==='log')log(m.level,m.text,m.src)
+if(m.type==='notice')toast(String(m.text).slice(0,300),'warn')
 if(m.type==='fps')$('#fps').textContent=m.v+' fps, '+m.n+' entities'
 })
 let fq=0
