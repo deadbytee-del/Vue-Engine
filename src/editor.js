@@ -678,6 +678,7 @@ if(t3){d.z=0;d.y=d.shape==='light'?2:(par.h||1)/2+(d.h||1)/2}else d.x=(par.w||32
 const o=S.cam3
 d.x=gs(o.tx);d.z=gs(o.tz)
 d.y=d.shape==='light'?Math.max(4,o.ty+4):d.shape==='plane'?0:Math.max(d.h/2,gs(o.ty))
+if(d.shape!=='light'&&d.shape!=='plane')for(let n=0;n<20&&scene().entities.some(e=>e.shape&&(e.w||1)<20&&e.shape!=='plane'&&e.shape!=='light'&&Math.abs(e.x-d.x)<2&&Math.abs((e.z||0)-d.z)<2);n++)d.x+=3
 }else if(kind==='tilemap'){d.x=gs(S.cam.x-S.cam.x%32);d.y=gs(S.cam.y-S.cam.y%32)}
 else{d.x=gs(S.cam.x);d.y=gs(S.cam.y)}
 if(kind==='tilemap'){
@@ -1295,9 +1296,11 @@ snap()
 d.beh=(d.beh||[]).filter(x=>x.type!==type)
 d.beh.push(vals||BH.make(type,is3()))
 if((type==='Ball'||type==='Vehicle')&&(!d.body||d.body==='none'||d.body==='static'))d.body='dynamic'
+if(type==='Vehicle'&&!(d.tags||[]).length)d.tags=['player']
 afterEdit('body')
 buildInspector()
 renderHier()
+if(type==='Vehicle'&&!scene().entities.some(e=>(e.beh||[]).some(x=>x.type==='CameraRig')))toast('Tagged player. Add CameraRig to this car so the camera follows it.','ok')
 }
 const GD=VueGuide.create({h,ic,$,S,selData:()=>selData()})
 function behCard(d,b){
@@ -1928,7 +1931,7 @@ const scn=S.project.scenes.map(sc=>({label:'Open scene: '+sc.name,ic:'scene',kin
 const as=Object.keys(S.project.assets).map(k=>({label:'Asset: '+k,ic:S.project.assets[k].type==='image'?'image':'music',kind:'Asset',fn:()=>{setBTab('assets');useAsset(k)}}))
 const mk=(label,kind,icn,kw,fn)=>({label,kind,ic:icn,kw,fn})
 const need=f=>()=>{if(!selData()){toast('Select an object first','warn');return}f(selData())}
-const bhc=BH.NAMES.map(n=>mk('Add '+n+' behavior','Behavior','gamepad',BH.BEH[n].desc+' '+BH.BEH[n].cat,need(d=>addBeh(d,n))))
+const bhc=BH.NAMES.map(n=>mk('Add '+n+' behavior','Behavior','gamepad',BH.BEH[n].desc+' '+BH.BEH[n].cat+' '+(ALIAS[n]||''),need(d=>addBeh(d,n))))
 const how=BH.NAMES.concat(Object.keys(VueHelp.TOPICS)).map(n=>mk('How '+n+' works','Help','info','help explain learn teach example',()=>GD.showHelp(n)))
 const tut=GD.TUTS.map(t=>mk('Tutorial: '+t.title,'Tutorial','book',t.desc+' learn guide lesson',()=>{setTab('scene');GD.start(t.id)}))
 const blc=VueLib.LIST.map(d=>mk('Block: '+d.label.replace(/\s*%\d+/g,' ...').replace(/\s+/g,' ').trim(),'Block','blocks',d.doc+' '+d.cat+' block',()=>insertBlock('vue_a_'+d.n)))
@@ -1938,13 +1941,17 @@ const cnc=Object.keys(VueEvents.COND).map(k=>mk('Condition: '+VueEvents.COND[k].
 const sets=[['Interface mode (Beginner or Advanced)','mode beginner advanced simple'],['Autosave','save backup'],['Interface size','zoom bigger smaller scale'],['AI tools over MCP','integrations connect claude cursor']].map(x=>mk('Setting: '+x[0],'Setting','settings',x[1],()=>showHub('settings')))
 return cr.concat(C,bhc,how,tut,blc,evc,acc,cnc,sets,en,scn,as)
 }
+const ALIAS={Vehicle:'car truck drive driving',Ball:'football soccer sphere',Goal:'net score',Health:'hp life lives',EnemyAI:'enemy monster chase',Pickup:'coin collect item',Door:'key lock',BoostPad:'speed boost',Scoreboard:'points',MatchTimer:'clock countdown'}
+const FILL=new Set(['make','add','create','a','an','the','my','new','to','i','want','do','how','can','use','set','put','get','with','for','of','and'])
 function fuzzy(q,s){
 q=q.toLowerCase();s=s.toLowerCase()
 if(!q)return 1
-const w=q.split(/\s+/).filter(Boolean)
-if(w.length>1)return w.every(x=>s.indexOf(x)>=0)?50+w.length:0
+const w=q.split(/\s+/).filter(x=>x&&!FILL.has(x))
+if(w.length>1){const n=w.filter(x=>s.indexOf(x)>=0).length;return n===w.length?50+n:n?n*10:0}
+if(w.length===1)q=w[0]
 const i=s.indexOf(q)
 if(i>=0)return 100-i
+if(q.length<4)return 0
 let j=0,sc=0
 for(const ch of s){if(ch===q[j]){j++;sc++}if(j===q.length)return sc}
 return 0
