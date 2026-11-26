@@ -1993,7 +1993,7 @@ const close=()=>{p.classList.remove('on');inp.onkeydown=null;inp.oninput=null}
 const run=i=>{const c=items[i];close();if(c)c.fn()}
 const fill=()=>{
 const q=inp.value.trim()
-items=all.map(c=>({c,s:Math.max(fuzzy(q,c.label),fuzzy(q,c.label+' '+(c.kw||''))*0.5)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,60).map(x=>x.c)
+items=all.map(c=>({c,s:Math.max(fuzzy(q,c.label),fuzzy(q,c.label+' '+(c.kw||''))*0.5)+(c.kind==='Behavior'||c.kind==='Help'?8:0)})).filter(x=>x.s>8||x.s>0&&x.c.kind!=='Behavior'&&x.c.kind!=='Help').sort((a,b)=>b.s-a.s).slice(0,60).map(x=>x.c)
 cur=0
 list.innerHTML=''
 items.forEach((c,i)=>{
