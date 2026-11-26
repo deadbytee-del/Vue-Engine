@@ -170,7 +170,13 @@ if(!sheet.rows.length)body.append(h('div',{class:'empty'},h('h3',{text:'No event
 host.append(body)
 host.scrollTop=keep
 }
-return{load:s=>{sheet=s||E.empty();if(!sheet.rows)sheet.rows=[];if(!sheet.vars)sheet.vars=[];closePop();draw()},get:()=>sheet}
+const last=()=>{
+let r=null
+for(const q of sheet.rows)if(q.k==='event')r=q
+if(!r){r=newEvent('start');sheet.rows.push(r)}
+return r
+}
+return{addEvent:k=>{sheet.rows.push(newEvent(k));change()},addAction:k=>{last().acts.push({t:k,v:defaults(E.ACT[k])});change()},addCondition:k=>{last().conds.push({t:k,v:defaults(E.COND[k])});change()},load:s=>{sheet=s||E.empty();if(!sheet.rows)sheet.rows=[];if(!sheet.vars)sheet.vars=[];closePop();draw()},get:()=>sheet}
 }
 root.VueEventsUI={create}
 })(window)

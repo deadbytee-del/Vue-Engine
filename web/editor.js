@@ -1299,6 +1299,7 @@ afterEdit('body')
 buildInspector()
 renderHier()
 }
+const GD=VueGuide.create({h,ic,$,S,selData:()=>selData()})
 function behCard(d,b){
 const B=BH.BEH[b.type]
 Object.assign(b,BH.norm(b))
@@ -1322,7 +1323,7 @@ const pr=h('select',{title:'Load one of your saved presets'},h('option',{value:'
 pr.addEventListener('change',()=>{const v=pr.value;if(!v)return;snap();const i=d.beh.indexOf(b);d.beh[i]=v==='*'?BH.make(b.type,is3()):BH.norm(userBeh()[v]);markDirty();S.game.refresh();buildInspector()})
 const save=h('button',{class:'btn sm',html:ic('save',13)+'Save as preset',onclick:async()=>{const n=await dialog({title:'Preset name',input:d.name,buttons:[{label:'Cancel',value:null},{label:'Save',value:true,primary:true}]});if(n&&n.trim){const u=userBeh();u[n.trim()]=clone(b);ls.set('vue.beh.presets',u);toast('Saved preset '+n.trim(),'ok');buildInspector()}}})
 const adv=[...B.fields.filter(f=>f.adv).map(rw),row('Preset',pr),save]
-return card('beh'+b.type,b.type,'gamepad',[...basic,...advRows(adv)],h('button',{class:'ib',title:'Remove',html:ic('x',13),onclick:e=>{e.stopPropagation();snap();d.beh=d.beh.filter(x=>x!==b);if(!d.beh.length)delete d.beh;S.game.refresh();buildInspector();renderHier()}}))
+return card('beh'+b.type,b.type,'gamepad',[...basic,...advRows(adv)],h('span',{class:'cx'},h('button',{class:'ib',title:'How this works',html:ic('info',13),onclick:e=>{e.stopPropagation();GD.showHelp(b.type,{vals:clone(b)})}}),h('button',{class:'btn sm',title:'Run only this behavior in a small example, using your values',text:'Test this',onclick:e=>{e.stopPropagation();GD.showHelp(b.type,{vals:clone(b),test:true})}}),h('button',{class:'ib',title:'Remove',html:ic('x',13),onclick:e=>{e.stopPropagation();snap();d.beh=d.beh.filter(x=>x!==b);if(!d.beh.length)delete d.beh;S.game.refresh();buildInspector();renderHier()}})))
 }
 const userPresets=()=>ls.get('vue.player.presets',{})
 function attachPlayer(d,obj){
@@ -1846,6 +1847,8 @@ if(q&&(l.text+' '+l.src).toLowerCase().indexOf(q)<0)continue
 const r=h('div',{class:'cl '+l.level,html:ic(l.level==='error'?'err':l.level==='warn'?'alert':'info',14)})
 r.append(h('span',{class:'msg',text:l.text}))
 if(l.count>1)r.append(h('span',{class:'cnt',text:'×'+l.count}))
+const pl=l.level==='error'?VueHelp.plainError(l.text):''
+if(pl){r.append(h('span',{class:'plain',text:pl}));if(l.src)r.append(h('button',{class:'btn sm',text:'Open script',onclick:()=>{goEntity(l.src);setTab('script')}}))}
 if(l.src)r.append(h('span',{class:'src',text:l.src,title:'Select '+l.src,onclick:()=>goEntity(l.src)}))
 r.append(h('time',{text:l.t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})}))
 c.append(r)
@@ -1898,7 +1901,7 @@ return{
 file:[{ic:'plus',label:'New project',kbd:'Ctrl+N',fn:()=>showHub('templates')},{ic:'folder',label:'Open…',kbd:'Ctrl+O',fn:open},rec.length?{head:'Recent'}:null].concat(rec,[{sep:1},{ic:'save',label:'Save',kbd:'Ctrl+S',fn:()=>save(false)},{ic:'save',label:'Save as…',kbd:'Ctrl+Shift+S',fn:()=>save(true)},{ic:'export',label:'Port game…',kbd:'Ctrl+E',fn:openPort},{sep:1},{ic:'home',label:'Project hub',fn:()=>showHub('home')}]),
 edit:[{ic:'undo',label:'Undo',kbd:'Ctrl+Z',fn:undo,dis:!S.undo.length},{ic:'redo',label:'Redo',kbd:'Ctrl+Y',fn:redo,dis:!S.redo.length},{sep:1},{ic:'copy',label:'Copy',kbd:'Ctrl+C',fn:copyEntity,dis:!S.sel},{ic:'copy',label:'Paste',kbd:'Ctrl+V',fn:pasteEntity,dis:!S.clip},{ic:'copy',label:'Duplicate',kbd:'Ctrl+D',fn:dupEntity,dis:!S.sel},{ic:'edit',label:'Rename',kbd:'F2',fn:renameEntity,dis:!S.sel},{ic:'trash',label:'Delete',kbd:'Del',fn:delEntity,dis:!S.sel},{sep:1},{ic:'plus',label:'Add entity…',kbd:'Shift+A',fn:()=>palette('create ')},{ic:'scene',label:'New scene…',fn:addScene},{sep:1},{ic:'command',label:'Command palette',kbd:'Ctrl+P',fn:()=>palette('')}],
 view:[{ic:'scene',label:'Scene workspace',kbd:'Ctrl+1',fn:()=>setTab('scene')},{ic:'script',label:'Script workspace',kbd:'Ctrl+2',fn:()=>setTab('script')},{sep:1},{ic:'grid',label:(S.gridOn?'Hide':'Show')+' grid',kbd:'G',fn:toggleGrid},{ic:'magnet',label:(S.snapOn?'Disable':'Enable')+' snapping',fn:toggleSnap},{ic:'frame',label:'Frame selection',kbd:'F',fn:()=>frameSel()},{ic:'frame',label:'Frame all',kbd:'Shift+F',fn:()=>frameSel(true)},{ic:'target',label:'Reset camera',fn:resetView},{ic:'settings',label:isBeg()?'Switch to Advanced interface':'Switch to Beginner interface',fn:()=>{setPref('mode',isBeg()?'advanced':'beginner');onModeChange()}},{sep:1},{ic:'terminal',label:'Console',fn:()=>setBTab('console')},{ic:'assets',label:'Assets',fn:()=>setBTab('assets')},{ic:'map',label:'Tile painter',fn:()=>setBTab('tiles')},{ic:'film',label:'Animation editor',fn:()=>setBTab('anim')},{ic:'video',label:'Cutscene editor',fn:()=>setBTab('cuts')},{ic:'layers',label:'Reset layout',fn:resetLayout}],
-help:[{ic:'keyboard',label:'Keyboard shortcuts',kbd:'?',fn:showKeys},{ic:'book',label:'Guide',fn:()=>showHub('home')},{sep:1},{ic:'puzzle',label:'Extensions',fn:()=>setBTab('exts')},{ic:'info',label:'About Vue Engine',fn:()=>showHub('about')}]
+help:[{ic:'search',label:'What do you want to do?',kbd:'Ctrl+K',fn:()=>palette('')},{ic:'info',label:'How this works',fn:()=>{const d=selData(),b=d&&(d.beh||[])[0];GD.showHelp(b?b.type:d?'object':'scene')}},...GD.TUTS.map(t=>({ic:'book',label:'Tutorial: '+t.title,fn:()=>{setTab('scene');GD.start(t.id)}})),{sep:1},{ic:'keyboard',label:'Keyboard shortcuts',kbd:'?',fn:showKeys},{ic:'book',label:'Guide',fn:()=>showHub('home')},{sep:1},{ic:'puzzle',label:'Extensions',fn:()=>setBTab('exts')},{ic:'info',label:'About Vue Engine',fn:()=>showHub('about')}]
 }
 }
 function wireMenus(){
@@ -1923,16 +1926,56 @@ const en=[]
 for(const sc of S.project.scenes)for(const d of sc.entities)en.push({label:d.name,ic:SHAPE_IC[d.shape]||'square',kind:sc.name,fn:()=>{if(sc.id!==S.sceneId)switchScene(sc.id);select(d.id);if(S.tab==='scene')frameSel()}})
 const scn=S.project.scenes.map(sc=>({label:'Open scene: '+sc.name,ic:'scene',kind:'Scene',fn:()=>{setTab('scene');switchScene(sc.id)}}))
 const as=Object.keys(S.project.assets).map(k=>({label:'Asset: '+k,ic:S.project.assets[k].type==='image'?'image':'music',kind:'Asset',fn:()=>{setBTab('assets');useAsset(k)}}))
-return cr.concat(C,en,scn,as)
+const mk=(label,kind,icn,kw,fn)=>({label,kind,ic:icn,kw,fn})
+const need=f=>()=>{if(!selData()){toast('Select an object first','warn');return}f(selData())}
+const bhc=BH.NAMES.map(n=>mk('Add '+n+' behavior','Behavior','gamepad',BH.BEH[n].desc+' '+BH.BEH[n].cat,need(d=>addBeh(d,n))))
+const how=BH.NAMES.concat(Object.keys(VueHelp.TOPICS)).map(n=>mk('How '+n+' works','Help','info','help explain learn teach example',()=>GD.showHelp(n)))
+const tut=GD.TUTS.map(t=>mk('Tutorial: '+t.title,'Tutorial','book',t.desc+' learn guide lesson',()=>{setTab('scene');GD.start(t.id)}))
+const blc=VueLib.LIST.map(d=>mk('Block: '+d.label.replace(/\s*%\d+/g,' ...').replace(/\s+/g,' ').trim(),'Block','blocks',d.doc+' '+d.cat+' block',()=>insertBlock('vue_a_'+d.n)))
+const evc=Object.keys(VueEvents.EV).map(k=>mk('Event: '+VueEvents.EV[k].title,'Event sheet','events','when happens event trigger',()=>insertEvent('addEvent',k)))
+const acc=Object.keys(VueEvents.ACT).map(k=>mk('Action: '+VueEvents.ACT[k].title,'Event sheet','events','do action then '+VueEvents.ACT[k].cat,()=>insertEvent('addAction',k)))
+const cnc=Object.keys(VueEvents.COND).map(k=>mk('Condition: '+VueEvents.COND[k].title,'Event sheet','events','if check only when '+VueEvents.COND[k].cat,()=>insertEvent('addCondition',k)))
+const sets=[['Interface mode (Beginner or Advanced)','mode beginner advanced simple'],['Autosave','save backup'],['Interface size','zoom bigger smaller scale'],['AI tools over MCP','integrations connect claude cursor']].map(x=>mk('Setting: '+x[0],'Setting','settings',x[1],()=>showHub('settings')))
+return cr.concat(C,bhc,how,tut,blc,evc,acc,cnc,sets,en,scn,as)
 }
 function fuzzy(q,s){
 q=q.toLowerCase();s=s.toLowerCase()
 if(!q)return 1
+const w=q.split(/\s+/).filter(Boolean)
+if(w.length>1)return w.every(x=>s.indexOf(x)>=0)?50+w.length:0
 const i=s.indexOf(q)
 if(i>=0)return 100-i
 let j=0,sc=0
 for(const ch of s){if(ch===q[j]){j++;sc++}if(j===q.length)return sc}
 return 0
+}
+async function insertBlock(type){
+const d=selData()
+if(!d){toast('Select an object first','warn');return}
+if(!d.script)newScript(d,'blocks')
+else if(d.script.mode!=='blocks'){toast('This object uses '+MODE_NAME[d.script.mode]+'. Switch it to Blocks first.','warn');return}
+setTab('script')
+await showMode('blocks')
+await ensureBlockly()
+let st=null
+const find=l=>{for(const x of l||[]){if(x.type===type&&x.kind==='block'){st=x;return}if(x.contents)find(x.contents)}}
+find(S.toolboxAll.contents)
+const o=st?Object.assign({},st):{type}
+delete o.kind
+const b=Blockly.serialization.blocks.append(o,S.ws)
+const bb=S.ws.getBlocksBoundingBox()
+b.moveBy(40,40)
+S.ws.centerOnBlock(b.id)
+toast('Added the block. Drag it where you want it.','ok')
+}
+async function insertEvent(fn,k){
+const d=selData()
+if(!d){toast('Select an object first','warn');return}
+if(!d.script)newScript(d,'events')
+else if(d.script.mode!=='events'){toast('This object uses '+MODE_NAME[d.script.mode]+'. Switch it to Events first.','warn');return}
+setTab('script')
+await showMode('events')
+S.ev[fn](k)
 }
 function palette(init){
 const p=$('#palette'),inp=$('#palIn'),list=$('#palList')
@@ -1943,7 +1986,7 @@ const close=()=>{p.classList.remove('on');inp.onkeydown=null;inp.oninput=null}
 const run=i=>{const c=items[i];close();if(c)c.fn()}
 const fill=()=>{
 const q=inp.value.trim()
-items=all.map(c=>({c,s:fuzzy(q,c.label)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,60).map(x=>x.c)
+items=all.map(c=>({c,s:Math.max(fuzzy(q,c.label),fuzzy(q,c.label+' '+(c.kw||''))*0.5)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,60).map(x=>x.c)
 cur=0
 list.innerHTML=''
 items.forEach((c,i)=>{
@@ -2545,7 +2588,7 @@ if(k==='enter'){e.preventDefault();play();return}
 if(k==='o'){e.preventDefault();open();return}
 if(k==='n'){e.preventDefault();showHub('home');return}
 if(k==='e'){e.preventDefault();openPort();return}
-if(k==='p'){e.preventDefault();palette('');return}
+if(k==='p'||k==='k'){e.preventDefault();palette('');return}
 if(k==='1'){e.preventDefault();setTab('scene');return}
 if(k==='2'){e.preventDefault();setTab('script');return}
 if(ty)return

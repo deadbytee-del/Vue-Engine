@@ -1,8 +1,9 @@
 (function(root){
+const LIB=typeof module!=='undefined'&&module.exports?require('./apilib.js'):root.VueLib
 const BH=typeof module!=='undefined'&&module.exports?require('./behaviors.js'):root.VueBehaviors
 const tsType=f=>f.t==='num'?'number':f.t==='bool'?'boolean':f.t==='sel'?f.o.map(q=>JSON.stringify(q[0])).join('|'):'string'
 const behDts=Object.values(BH.BEH).map(b=>`/** ${b.desc} */\ndeclare interface ${b.name}Options{\n${b.fields.map(f=>`/** ${f.tip} */\n${f.k==='var'?'"var"':f.k}?:${tsType(f)};`).join('\n')}\n}`).join('\n')+`\ndeclare type BehaviorName=${BH.NAMES.map(n=>JSON.stringify(n)).join('|')};\ndeclare interface BehaviorOptionsMap{${BH.NAMES.map(n=>`${n}:${n}Options`).join(';')}}\n`
-const dts=behDts+`declare interface Entity{
+const dts=LIB.dts+behDts+`declare interface Entity{
 readonly id:string;name:string;x:number;y:number;z:number;w:number;h:number;d:number;rot:number;rx:number;ry:number;rz:number;
 vx:number;vy:number;vz:number;lx:number;ly:number;lz:number;lrot:number;
 color:string;image:string;text:string;fontSize:number;alpha:number;visible:boolean;flipX:boolean;readonly grounded:boolean;readonly alive:boolean;
@@ -32,7 +33,9 @@ player:PlayerController;readonly playerEntity:Entity|null;playerPreset(e:Entity|
 behavior<K extends BehaviorName>(e:Entity|string,type:K,options?:BehaviorOptionsMap[K]):void;behaviors():BehaviorName[];
 channel(name:string,on?:boolean):void;readonly scores:{[team:string]:number};score(team:string,by?:number):number;
 give(e:Entity|string,item:string,count?:number):void;take(e:Entity|string,item:string,count?:number):boolean;itemCount(e:Entity|string,item:string):number;
-respawn(e:Entity|string):void;shoot(e:Entity|string,weapon:{prefab:string;rate?:number;offset?:number;angle?:number}):Entity|null;
+respawn(e:Entity|string):void;
+${LIB.sigs()}
+shoot(e:Entity|string,weapon:{prefab:string;rate?:number;offset?:number;angle?:number}):Entity|null;
 readonly time:number;readonly dt:number;readonly width:number;readonly height:number;readonly inCutscene:boolean;readonly scene:string;
 key(k:string):boolean;pressed(k:string):boolean;anyKey():boolean;
 find(name:string):Entity|null;all(tag?:string):Entity[];count(tag?:string):number;nearest(from:Entity,tag?:string):Entity|null;

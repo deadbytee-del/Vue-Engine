@@ -39,6 +39,12 @@ return[Math.cos(a),Math.sin(a),0]
 const kick=(g,e,v,s)=>{e.vx=v[0]*s;e.vy=v[1]*s;if(g.is3d)e.vz=v[2]*s}
 const hurtE=(g,e,n)=>{if(e._hb||e._pcs)e.hurt(n)}
 const hasHp=e=>!!(e._hb||e._pcs)
+const obbPoint=(o,e)=>{
+const h=(o.ry||0)*DEG,c=Math.cos(h),sn=Math.sin(h)
+const dx=e.x-o.x,dz=e.z-o.z
+const lx=Math.max(-o.w/2,Math.min(o.w/2,dx*c-dz*sn)),lz=Math.max(-o.d/2,Math.min(o.d/2,dx*sn+dz*c))
+return[o.x+lx*c+lz*sn,Math.max(o.y-o.h/2,Math.min(o.y+o.h/2,e.y)),o.z-lx*sn+lz*c]
+}
 const rider=(g,p,r)=>{
 if(!r.alive||r===p||r.body!=='dynamic')return false
 const top=g.is3d?p.y+p.h/2:p.y-p.h/2,bot=g.is3d?r.y-r.h/2:r.y+r.h/2
@@ -238,7 +244,16 @@ e.vx*=k;if(g.is3d)e.vz*=k
 let sp=Math.hypot(e.vx,g.is3d?e.vz:0,e.vy)
 if(sp>b.maxSpeed){const q=b.maxSpeed/sp;e.vx*=q;e.vy*=q;if(g.is3d)e.vz*=q}
 each(g,o=>{
-if(o===e||!o._veh||!over(e,o,g,0))return
+if(o===e||!o._veh)return
+if(g.is3d){
+const c=obbPoint(o,e),dx=e.x-c[0],dy=e.y-c[1],dz=e.z-c[2],r=Math.min(e.w,e.h,e.d)/2,d=Math.hypot(dx,dy,dz)
+if(d>=r)return
+const rv=Math.hypot(o.vx,o.vz),p=(rv*1.1+4)/b.mass,n=d||1
+e.x+=dx/n*(r-d);e.z+=dz/n*(r-d)
+if(p>Math.hypot(e.vx,e.vz)*0.6||dx*o.vx+dz*o.vz>0){e.vx=dx/n*p;e.vz=dz/n*p;e.vy=Math.max(e.vy,p*0.15+dy/n*p*0.5)}
+return
+}
+if(!over(e,o,g,0))return
 const dx=e.x-o.x,dz=g.is3d?e.z-o.z:e.y-o.y,n=Math.hypot(dx,dz)||1
 const rv=Math.hypot(o.vx,g.is3d?o.vz:o.vy)
 const p=(rv*1.1+(g.is3d?4:120))/b.mass
@@ -248,6 +263,7 @@ if(g.is3d)e.vy=Math.max(e.vy,p*0.15)
 s.lx=e.vx;s.ly=e.vy;s.lz=g.is3d?e.vz:0
 },
 post(g,e,b){
+if(g.is3d&&e.shape==='sphere')return
 const s=b._s,th=g.is3d?1.5:60
 for(const[k,l]of[['vx','lx'],['vy','ly'],['vz','lz']]){
 if(k==='vz'&&!g.is3d)continue
