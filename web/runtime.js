@@ -523,6 +523,7 @@ if(!e.bh)e.bh=[]
 e.bh=e.bh.filter(x=>x.type!==t)
 e.bh.push(r)
 this.hasBh=true
+this.bhInit(e)
 return r
 }
 bhHurt(e,n){
@@ -538,16 +539,23 @@ if(b.onDeath==='destroy')e.destroy()
 else if(b.onDeath==='respawn'){this.vue.respawn(e);s.hp=b.max}
 }
 }
+bhInit(e){
+if(!e._st)e._st=[e.x,e.y,e.z]
+for(let j=0;j<e.bh.length;j++){const b=e.bh[j];if(!b._i){b._i=1;const B=BH.BEH[b.type];if(B.init)B.init(this,e,b)}}
+}
+bhInitAll(){
+const es=this.entities
+for(let i=0;i<es.length;i++)if(es[i].alive&&es[i].bh)this.bhInit(es[i])
+}
 bhUpdate(dt){
 const es=this.entities
 for(let i=0;i<es.length;i++){
 const e=es[i]
 if(!e.alive||!e.bh)continue
-if(!e._st)e._st=[e.x,e.y,e.z]
+this.bhInit(e)
 if(e._tp>0)e._tp-=dt
 for(let j=0;j<e.bh.length;j++){
 const b=e.bh[j],B=BH.BEH[b.type]
-if(!b._i){b._i=1;if(B.init)B.init(this,e,b)}
 if(B.upd)B.upd(this,e,b,dt)
 }
 }
@@ -698,6 +706,7 @@ c.y=b[3]-b[1]<=2*hh?(b[1]+b[3])/2:clamp(c.y,b[1]+hh,b[3]-hh)
 }
 startAll(){
 const es=this.entities.slice()
+if(this.hasBh)this.bhInitAll()
 for(const e of es){if(e.soundAuto)e.playSound();this.fire(e,'start')}
 const sc=this.scene
 const pv=this.project._preview

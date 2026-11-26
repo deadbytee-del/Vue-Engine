@@ -99,6 +99,7 @@ assert.deepStrictEqual(data(await call('get_console_logs',{limit:5})),['hello'])
 assert.ok(logs.includes('run')===false)
 await call('run',{})
 assert.ok(logs.includes('run'))
+await new Promise(r=>setTimeout(r,2200))
 r=await rpc('nope')
 assert.strictEqual(r.error.code,-32601)
 let limited=0
