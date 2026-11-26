@@ -1,14 +1,18 @@
-const fs=require('fs')
-const path=require('path')
-const http=require('http')
-const crypto=require('crypto')
-const BH=require('./behaviors.js')
-const EV=require('./events.js')
-const ND=require('./nodedefs.js')
-const DTS=require('./dts.js')
-const SAMPLE=require('./sample.js')
-const PLAYER=require('./player.js')
-const COMPILER=require('./compiler.js')
+(function(root){
+const NODE=typeof module!=='undefined'&&typeof require==='function'
+const req=(f,g)=>NODE?require(f):root[g]
+const fs=NODE?require('fs'):null
+const path=NODE?require('path'):null
+const http=NODE?require('http'):null
+const crypto=NODE?require('crypto'):null
+const BH=req('./behaviors.js','VueBehaviors')
+const EV=req('./events.js','VueEvents')
+const ND=req('./nodedefs.js','VueNodes')
+const DTS=req('./dts.js','VueDTS')
+const SAMPLE=req('./sample.js','VueSample')
+const PLAYER=req('./player.js','VuePlayer')
+const COMPILER=req('./compiler.js','VueCompiler')
+const MODEL=req('./model3d.js','VueModel')
 const PROPS=['name','x','y','z','w','h','d','rot','rx','ry','rz','color','text','fontSize','alpha','visible','flipX','body','gravityScale','shape','image','tags','z']
 const PROP_TYPES={name:'string',color:'string',text:'string',body:'string',shape:'string',image:'string',x:'number',y:'number',z:'number',w:'number',h:'number',d:'number',rot:'number',rx:'number',ry:'number',rz:'number',fontSize:'number',alpha:'number',gravityScale:'number',visible:'boolean',flipX:'boolean',tags:'array'}
 const BODIES=['none','static','dynamic','trigger']
@@ -68,11 +72,11 @@ function create(opt){
 const roots=(opt.roots||[]).map(r=>real(path.resolve(r)))
 const importRoots=(opt.importRoots||[]).map(r=>real(path.resolve(r)))
 const bridge=opt.bridge||null
-const ts=opt.ts||null
-const readRuntime=opt.runtimeSource||(()=>['vwr.js','behaviors.js','runtime.js','render3d.js'].map(f=>fs.readFileSync(path.join(__dirname,f),'utf8')).join('\n;\n'))
+let ts=opt.ts||null
+const readRuntime=opt.runtimeSource||(()=>['vwr.js','behaviors.js','apilib.js','runtime.js','model3d.js','render3d.js'].map(f=>fs.readFileSync(path.join(__dirname,f),'utf8')).join('\n;\n'))
 const readThree=opt.threeSource||(()=>{try{return fs.readFileSync(path.join(__dirname,'..','node_modules','three','build','three.min.js'),'utf8')}catch(e){return ''}})
 const extIndex=opt.extensionsIndex||(()=>{try{return JSON.parse(fs.readFileSync(path.join(__dirname,'..','extensions','index.json'),'utf8')).extensions}catch(e){return[]}})
-const cur={file:null,project:null,scene:0}
+const cur=opt.cur||{file:null,project:null,scene:0}
 let tokens=30,last=Date.now()
 const limit=()=>{
 const n=Date.now()
@@ -239,7 +243,7 @@ tool('add_component','Add a behavior preset or a player controller to an object.
 const{sc,e}=find(a)
 if(a.options!==undefined&&(typeof a.options!=='object'||a.options===null||Array.isArray(a.options)))throw new McpError('options must be an object')
 if(a.preset.startsWith('Player:')){
-const RT=require('./runtime.js')
+const RT=req('./runtime.js','VueRuntime')
 const n=a.preset.slice(7)
 if(!RT.PC_PRESETS[n])throw new McpError('Unknown player preset: '+n)
 e.player=RT.pcPreset(n)
@@ -267,6 +271,30 @@ const name=(a.name||path.basename(f)).replace(/[^\w.\- ]+/g,'')||'asset'
 p.assets=p.assets||{}
 p.assets[name]={type:mime.startsWith('audio')?'audio':'image',data:'data:'+mime+';base64,'+fs.readFileSync(f).toString('base64')}
 return{name,type:p.assets[name].type,bytes:st.size}
+})
+const putModel=(name,spec)=>{
+const p=need()
+const n=String(name||'').replace(/[^\w.\- ]+/g,'').slice(0,60)
+if(!n)throw new McpError('Give the model a name')
+const v=MODEL.validate(spec)
+p.assets=p.assets||{}
+if(p.assets[n]&&p.assets[n].type!=='model')throw new McpError('An asset with that name already exists and is not a model')
+p.assets[n]={type:'model',spec:v}
+return{name:n,bounds:MODEL.bounds(v)}
+}
+tool('create_model','Create or replace a 3D model asset from a procedural spec. '+MODEL.DOC,S({name:str('Model name',60),spec:anyv('The model spec')},['name','spec']),async a=>putModel(a.name,a.spec))
+tool('list_models','List the 3D model assets with their size.',S({}),async()=>Object.keys(need().assets||{}).filter(k=>need().assets[k].type==='model').map(k=>({name:k,bounds:MODEL.bounds(need().assets[k].spec)})),true)
+tool('get_model','Read the spec of a 3D model asset.',S({name:str('Model name',60)},['name']),async a=>{const m=(need().assets||{})[a.name];if(!m||m.type!=='model')throw new McpError('Model not found: '+a.name);return m.spec},true)
+tool('place_model','Put a 3D model asset into a 3D scene as an object.',S({name:str('Model name',60),scene:str('Scene name',200),properties:anyv('Properties such as x, y, z, w, h, d, ry')},['name']),async a=>{
+const m=(need().assets||{})[a.name]
+if(!m||m.type!=='model')throw new McpError('Model not found: '+a.name)
+const sc=scene(a.scene)
+if(sc.mode!=='3d')throw new McpError('Models can only be placed in 3D scenes')
+const e=SAMPLE.kinds3.box()
+e.shape='model';e.image=a.name;e.name=a.name;e.w=1;e.h=1;e.d=1;e.y=0
+applyProps(e,a.properties)
+sc.entities.push(e)
+return brief(e)
 })
 tool('get_script','Read the script on an object (events, blocks JSON or code).',ref,async a=>{const{e}=find(a);return e.script||null},true)
 tool('set_script','Set an object script. mode is events, blocks or code.',S({id:str('Object id or name',200),scene:str('Scene name',200),mode:{type:'string',enum:['events','blocks','code']},code:str('TypeScript source for code mode',500000),events:anyv('Event sheet JSON for events mode'),blocks:anyv('Blockly workspace JSON for blocks mode')},['id','mode']),async a=>{
@@ -321,6 +349,15 @@ const html=PLAYER.html(p,r.scripts,readRuntime(),p.name,p.scenes.some(s=>s.mode=
 fs.writeFileSync(out,html,'utf8')
 return{path:out,bytes:Buffer.byteLength(html),errors:r.errors}
 })
+tool('export_model_glb','Export a 3D model asset as a GLB file.',S({name:str('Model name',60),path:str('Output .glb path inside an allowed folder',1000)},['name','path']),async a=>{
+const m=(need().assets||{})[a.name]
+if(!m||m.type!=='model')throw new McpError('Model not found: '+a.name)
+const out=within(a.path,roots,'Output path')
+if(path.extname(out).toLowerCase()!=='.glb')throw new McpError('Output must end in .glb')
+const b=MODEL.toGLB(m.spec)
+fs.writeFileSync(out,b)
+return{path:out,bytes:b.length}
+})
 const resources=[
 {uri:'vue://project',name:'Open project',description:'The open project as JSON',mimeType:'application/json',read:()=>JSON.stringify(need())},
 {uri:'vue://api',name:'Script API',description:'The typed Vue scripting API (TypeScript declarations)',mimeType:'text/plain',read:()=>DTS.dts},
@@ -363,7 +400,8 @@ return bad(id,-32601,'Method not found: '+msg.method)
 return bad(id,x.code||-32603,x.message)
 }
 }
-return{handle,tools:T,state:cur}
+const NODE_ONLY=new Set(['list_projects','open_project','new_project','save','import_asset','export_html','list_extensions','install_extension','export_model_glb'])
+return{setTs:x=>{ts=x},handle,tools:T,state:cur,webTools:T.filter(t=>!NODE_ONLY.has(t.name)),check}
 }
 function startHttp(server,o){
 const token=o.token||crypto.randomBytes(24).toString('hex')
@@ -415,4 +453,6 @@ if(r)write(r)
 }
 })
 }
-module.exports={create,startHttp,runStdio,McpError}
+if(NODE)module.exports={create,startHttp,runStdio,McpError}
+else root.VueMcp={create,McpError}
+})(typeof window!=='undefined'?window:globalThis)

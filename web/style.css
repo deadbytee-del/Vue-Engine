@@ -728,3 +728,58 @@ body.playing .ph,body.playing #tb{background:var(--bg2)}
 .card small{color:var(--mute)}
 .pbox{background:transparent;border:0;padding:0}
 #app{height:calc(100vh / var(--zm))}
+#extCount{display:none}
+body.ai-open #app{width:calc(100% - 380px)}
+#ai{position:fixed;right:0;top:0;width:380px;height:calc(100vh / var(--zm));z-index:30;background:var(--bg1);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#ai.hide{display:none}
+.aihead{padding:12px 14px 10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.aitop{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.aitop b{font-size:15px;font-weight:600}
+.aiwho{color:var(--mute);font-size:13px;margin-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.aim1,.aim2{font-size:13px;color:var(--dim);line-height:1.4}
+.aibar{height:4px;background:var(--bg4);margin-top:4px}
+.aibar i{display:block;height:100%;width:0;background:var(--fill)}
+.aimain{flex:1;min-height:0;display:flex;flex-direction:column}
+.aimain.hide,.aiconn.hide,.aiconn .hide,.aibtns .hide,.airow .hide{display:none}
+.aichat{flex:1;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.aimsg{position:relative;max-width:92%;padding:8px 12px;line-height:1.5;white-space:pre-wrap;word-break:break-word;border-radius:2px}
+.aimsg.user{align-self:flex-end;background:var(--sel)}
+.aimsg.ai{align-self:flex-start;background:var(--bg2);padding-right:34px}
+.aimsg.err{background:#3a1d1b;color:#f0a09a}
+.aimsg.note{align-self:center;color:var(--mute);font-size:13px;text-align:center;background:transparent}
+.aicopy{position:absolute;right:2px;top:2px;opacity:.5}
+.aimsg:hover .aicopy{opacity:1}
+.aitool{font-size:13px;color:var(--dim);padding-left:4px}
+.aitool summary{cursor:pointer;list-style:none}
+.aitool summary::before{content:'+ ';color:var(--mute)}
+.aitool[open] summary::before{content:'- '}
+.aitool.bad summary{color:var(--bad)}
+.aitool pre{margin:6px 0 0;max-height:180px;overflow:auto;white-space:pre-wrap;word-break:break-all;font-family:var(--mono);font-size:13px;background:var(--bg2);padding:8px}
+.aishot{max-width:100%;margin-top:6px}
+.aifoot{border-top:1px solid var(--line);padding:10px 14px 14px;display:flex;flex-direction:column;gap:8px}
+.aiask{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim)}
+.aiin{width:100%;height:auto;min-height:56px;padding:8px 10px;resize:vertical;font:inherit;line-height:1.5}
+.airow{display:flex;gap:8px;align-items:center}
+.airow>input,.airow>select{flex:1}
+.aiconn{padding:14px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.aif{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--dim)}
+.aif.aichk{flex-direction:row;align-items:center;gap:8px}
+.aisub{margin:0;color:var(--dim);font-size:13px;line-height:1.5}
+.aimodal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55);display:grid;place-items:center}
+.aibox{width:min(460px,92vw);max-height:88vh;overflow:auto;background:var(--bg2);border:1px solid var(--line-hi);padding:20px;display:flex;flex-direction:column;gap:12px}
+.aibox.wide{width:min(720px,94vw)}
+.aibox h3{margin:0;font-size:15px;font-weight:600}
+.ailist{display:flex;flex-direction:column;gap:6px}
+.aiopt{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);cursor:pointer}
+.aiopt input[type=text]{flex:1}
+.aiopt span{min-width:0}
+.aibtns{display:flex;justify-content:flex-end;gap:8px}
+.ailines{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.aiprices{display:flex;flex-direction:column;gap:4px}
+.aiprow{display:grid;grid-template-columns:1.6fr repeat(4,1fr) 30px;gap:6px;align-items:center;font-size:13px}
+.aiprow.head{color:var(--mute)}
+.aiprow input{width:100%}
+.mjson{width:100%;height:320px;font-family:var(--mono);font-size:13px;line-height:1.4;padding:8px;resize:vertical;height:320px}
+.merr{color:var(--bad);font-size:13px}
+.asset .edt,.asset .exp{position:absolute;top:4px;right:30px}
+.asset .exp{right:56px}

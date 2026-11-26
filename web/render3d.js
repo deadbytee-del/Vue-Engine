@@ -104,6 +104,8 @@ if(this.editor){
 const s=new T.Mesh(new T.SphereGeometry(0.3,12,8),new T.MeshBasicMaterial({color:0xffe066}))
 m.add(s)
 }
+}else if(e.shape==='model'){
+m=new T.Group()
 }else{
 m=new T.Mesh(this.geo[e.shape]||this.geo.box,new T.MeshStandardMaterial({color:0xffffff,roughness:0.7,metalness:0.05}))
 m.castShadow=e.shape!=='plane'
@@ -143,6 +145,18 @@ if(e.shape==='light'){
 if(m.userData.c!==e.color){m.color.set(e.color);m.userData.c=e.color}
 m.intensity=e.alpha*1.6
 m.distance=e.w||20
+continue
+}
+if(e.shape==='model'){
+const as=game.project&&game.project.assets&&game.project.assets[e.image]
+const sp=as&&as.type==='model'?JSON.stringify(as.spec):''
+if(m.userData.sp!==sp){
+for(const c of m.children.slice()){m.remove(c);c.geometry.dispose();c.material.dispose()}
+m.userData.sp=sp
+if(sp){try{const g=root.VueModel.build(this.T,as.spec);for(const c of g.children.slice())m.add(c)}catch(x){}}
+}
+m.scale.set(e.w,e.h,e.d)
+m.visible=e.visible||this.editor
 continue
 }
 m.scale.set(e.w,e.shape==='plane'?1:e.h,e.d)

@@ -154,6 +154,7 @@ S.sceneId=S.project.startScene
 S.sel=null
 S.dirty=!!dirty
 S.savedAt=path&&!dirty?Date.now():0
+if(window.VueAssist)VueAssist.projectChanged()
 stopGame()
 makeGame()
 resetView()
@@ -974,17 +975,54 @@ const box=$('#assets')
 box.innerHTML=''
 const a=S.project.assets,ks=Object.keys(a)
 for(const k of ks){
-const im=a[k].type==='image'
-const wv=im?null:h('canvas',{class:'wave',width:160,height:160})
-const it=h('div',{class:'asset',title:im?k+'\nClick to apply to the selected entity':k+'\nClick to play, click again to stop',onclick:()=>useAsset(k)},
-h('div',{class:'at'},im?h('img',{src:a[k].data}):wv,im?null:h('span',{class:'aplay',html:ic(S.preview&&S.preview.k===k?'stop':'play',18)})),
+const im=a[k].type==='image',md=a[k].type==='model'
+const wv=im||md?null:h('canvas',{class:'wave',width:160,height:160})
+const it=h('div',{class:'asset',title:md?k+'\nClick to add this model to the scene':im?k+'\nClick to apply to the selected entity':k+'\nClick to play, click again to stop',onclick:()=>useAsset(k)},
+h('div',{class:'at'},im?h('img',{src:a[k].data}):md?h('img',{src:modelThumb(a[k])}):wv,im||md?null:h('span',{class:'aplay',html:ic(S.preview&&S.preview.k===k?'stop':'play',18)})),
 h('span',{text:k}),
-h('i',{class:'badge',text:im?'IMG':'SFX'}),
+h('i',{class:'badge',text:im?'IMG':md?'3D':'SFX'}),md?h('button',{class:'ib edt',title:'Edit the model by hand',html:ic('edit',12),onclick:ev=>{ev.stopPropagation();editModel(k)}}):null,md?h('button',{class:'ib exp',title:'Export as GLB',html:ic('download',12),onclick:ev=>{ev.stopPropagation();exportModel(k)}}):null,
 h('button',{class:'ib del',title:'Delete asset',html:ic('trash',12),onclick:ev=>{ev.stopPropagation();delete S.project.assets[k];S.game.loadAssets().then(redraw);renderAssets();markDirty()}}))
 box.append(it)
 }
 requestAnimationFrame(()=>{for(const cv of box.querySelectorAll('canvas.wave'))waveOf(cv,cv.closest('.asset').querySelector('span:not(.aplay)').textContent)})
 box.append(h('div',{class:'adrop'},h('span',{html:ic('upload',26)}),h('b',{text:ks.length?'Drop more files here':'No images or sounds yet'}),h('span',{text:'Drag in PNG, JPG, GIF, WebP, SVG, WAV, MP3 or OGG files, or'}),h('button',{class:'btn sm',html:ic('folder',14)+'Import files',onclick:importAssets})))
+}
+const thumbs=new Map()
+function modelThumb(a){
+const j=JSON.stringify(a.spec)
+if(!thumbs.has(j)){try{thumbs.set(j,VueModel.preview(a.spec,160))}catch(x){thumbs.set(j,'')}}
+return thumbs.get(j)
+}
+function exportModel(k){
+const b=VueModel.toGLB(S.project.assets[k].spec)
+const u=URL.createObjectURL(new Blob([b],{type:'model/gltf-binary'}))
+const a=h('a',{href:u,download:k.replace(/[^\w.\- ]+/g,'')+'.glb'})
+document.body.append(a);a.click();a.remove()
+setTimeout(()=>URL.revokeObjectURL(u),2000)
+toast('Exported '+k+'.glb','ok')
+}
+async function editModel(k){
+const a=S.project.assets[k]
+const ta=h('textarea',{class:'mjson',spellcheck:'false'})
+ta.value=JSON.stringify(a.spec,null,1)
+const err=h('div',{class:'merr'})
+const back=h('div',{class:'aimodal'}),box=h('div',{class:'aibox wide'})
+const done=()=>back.remove()
+box.append(h('h3',{text:'Edit model: '+k}),h('p',{class:'aisub',text:VueModel.DOC}),ta,err,h('div',{class:'aibtns'},h('button',{class:'btn',text:'Cancel',onclick:done}),h('button',{class:'btn primary',text:'Save',onclick:()=>{try{const v=VueModel.validate(JSON.parse(ta.value));VueModel.bake(v);snap();a.spec=v;done();renderAssets();redraw();markDirty()}catch(x){err.textContent=x.message}}})))
+back.append(box)
+document.body.append(back)
+}
+function addModelToScene(k){
+if(!is3()){toast('Models can only be placed in 3D scenes','warn');return}
+snap()
+const d=VueSample.kinds3.box()
+d.shape='model';d.image=k;d.name=uniqueName(k);d.w=1;d.h=1;d.d=1
+const o=S.cam3
+d.x=gs(o.tx);d.z=gs(o.tz);d.y=0
+scene().entities.push(d)
+S.sel=d.id
+reloadScene();renderAll();markDirty()
+toast('Added '+d.name,'ok')
 }
 function waveOf(cv,k){
 const b=S.game.buffers[k]
@@ -1007,6 +1045,7 @@ return nm
 }
 function useAsset(k){
 const a=S.project.assets[k]
+if(a.type==='model'){addModelToScene(k);return}
 if(a.type!=='image'){
 const was=S.preview&&S.preview.k===k
 if(S.preview){S.preview.h.stop();S.preview=null}
@@ -1904,7 +1943,7 @@ const rec=recent().slice(0,6).map(r=>({ic:'file',label:r.name+'  ·  '+r.path.sp
 return{
 file:[{ic:'plus',label:'New project',kbd:'Ctrl+N',fn:()=>showHub('templates')},{ic:'folder',label:'Open…',kbd:'Ctrl+O',fn:open},rec.length?{head:'Recent'}:null].concat(rec,[{sep:1},{ic:'save',label:'Save',kbd:'Ctrl+S',fn:()=>save(false)},{ic:'save',label:'Save as…',kbd:'Ctrl+Shift+S',fn:()=>save(true)},{ic:'export',label:'Port game…',kbd:'Ctrl+E',fn:openPort},{sep:1},{ic:'home',label:'Project hub',fn:()=>showHub('home')}]),
 edit:[{ic:'undo',label:'Undo',kbd:'Ctrl+Z',fn:undo,dis:!S.undo.length},{ic:'redo',label:'Redo',kbd:'Ctrl+Y',fn:redo,dis:!S.redo.length},{sep:1},{ic:'copy',label:'Copy',kbd:'Ctrl+C',fn:copyEntity,dis:!S.sel},{ic:'copy',label:'Paste',kbd:'Ctrl+V',fn:pasteEntity,dis:!S.clip},{ic:'copy',label:'Duplicate',kbd:'Ctrl+D',fn:dupEntity,dis:!S.sel},{ic:'edit',label:'Rename',kbd:'F2',fn:renameEntity,dis:!S.sel},{ic:'trash',label:'Delete',kbd:'Del',fn:delEntity,dis:!S.sel},{sep:1},{ic:'plus',label:'Add entity…',kbd:'Shift+A',fn:()=>palette('create ')},{ic:'scene',label:'New scene…',fn:addScene},{sep:1},{ic:'command',label:'Command palette',kbd:'Ctrl+P',fn:()=>palette('')}],
-view:[{ic:'scene',label:'Scene workspace',kbd:'Ctrl+1',fn:()=>setTab('scene')},{ic:'script',label:'Script workspace',kbd:'Ctrl+2',fn:()=>setTab('script')},{sep:1},{ic:'grid',label:(S.gridOn?'Hide':'Show')+' grid',kbd:'G',fn:toggleGrid},{ic:'magnet',label:(S.snapOn?'Disable':'Enable')+' snapping',fn:toggleSnap},{ic:'frame',label:'Frame selection',kbd:'F',fn:()=>frameSel()},{ic:'frame',label:'Frame all',kbd:'Shift+F',fn:()=>frameSel(true)},{ic:'target',label:'Reset camera',fn:resetView},{ic:'settings',label:isBeg()?'Switch to Advanced interface':'Switch to Beginner interface',fn:()=>{setPref('mode',isBeg()?'advanced':'beginner');onModeChange()}},{sep:1},{ic:'terminal',label:'Console',fn:()=>setBTab('console')},{ic:'assets',label:'Assets',fn:()=>setBTab('assets')},{ic:'map',label:'Tile painter',fn:()=>setBTab('tiles')},{ic:'film',label:'Animation editor',fn:()=>setBTab('anim')},{ic:'video',label:'Cutscene editor',fn:()=>setBTab('cuts')},{ic:'layers',label:'Reset layout',fn:resetLayout}],
+view:[{ic:'sparkles',label:'AI assistant',fn:()=>VueAssist.toggle()},{ic:'scene',label:'Scene workspace',kbd:'Ctrl+1',fn:()=>setTab('scene')},{ic:'script',label:'Script workspace',kbd:'Ctrl+2',fn:()=>setTab('script')},{sep:1},{ic:'grid',label:(S.gridOn?'Hide':'Show')+' grid',kbd:'G',fn:toggleGrid},{ic:'magnet',label:(S.snapOn?'Disable':'Enable')+' snapping',fn:toggleSnap},{ic:'frame',label:'Frame selection',kbd:'F',fn:()=>frameSel()},{ic:'frame',label:'Frame all',kbd:'Shift+F',fn:()=>frameSel(true)},{ic:'target',label:'Reset camera',fn:resetView},{ic:'settings',label:isBeg()?'Switch to Advanced interface':'Switch to Beginner interface',fn:()=>{setPref('mode',isBeg()?'advanced':'beginner');onModeChange()}},{sep:1},{ic:'terminal',label:'Console',fn:()=>setBTab('console')},{ic:'assets',label:'Assets',fn:()=>setBTab('assets')},{ic:'map',label:'Tile painter',fn:()=>setBTab('tiles')},{ic:'film',label:'Animation editor',fn:()=>setBTab('anim')},{ic:'video',label:'Cutscene editor',fn:()=>setBTab('cuts')},{ic:'layers',label:'Reset layout',fn:resetLayout}],
 help:[{ic:'search',label:'What do you want to do?',kbd:'Ctrl+K',fn:()=>palette('')},{ic:'info',label:'How this works',fn:()=>{const d=selData(),b=d&&(d.beh||[])[0];GD.showHelp(b?b.type:d?'object':'scene')}},...GD.TUTS.map(t=>({ic:'book',label:'Tutorial: '+t.title,fn:()=>{setTab('scene');GD.start(t.id)}})),{sep:1},{ic:'keyboard',label:'Keyboard shortcuts',kbd:'?',fn:showKeys},{ic:'book',label:'Guide',fn:()=>showHub('home')},{sep:1},{ic:'puzzle',label:'Extensions',fn:()=>setBTab('exts')},{ic:'info',label:'About Vue Engine',fn:()=>showHub('about')}]
 }
 }
@@ -2300,6 +2339,7 @@ it('Open last project on launch','Skip Home and return to your last project.',sw
 it('Autosave','Keeps a copy of your work so nothing is lost if the app closes.',sw('autosave')),
 h('h3',{text:'Integrations'}),
 mcpRow(it),
+it('AI assistant','Chat with an AI provider using your own API key. It builds through the same tools as MCP. Status: '+VueAssist.status()+'.',h('span',{class:'mcprow'},h('button',{class:'btn sm',text:'Open assistant',onclick:()=>{hideHub();if(document.getElementById('ai')&&!document.getElementById('ai').classList.contains('hide'))return;VueAssist.toggle()}}),h('button',{class:'btn sm',text:'Prices and limits',onclick:()=>VueAssist.limits()}))),
 h('h3',{text:'Extensions'}),
 it('Download from','Where extensions are fetched from. Switch if one is blocked.',sel('extSrc',[['github','GitHub'],['jsdelivr','jsDelivr mirror']],()=>{X.fresh=false;loadExt(true)})),
 it('Downloaded extensions',Object.keys(X.inst).length+' installed, '+(Object.keys(X.inst).reduce((a,k)=>a+((extCodeOf(k)||'').length),0)/1024).toFixed(0)+' KB on this computer.',h('button',{class:'btn sm ghost',html:ic('trash',13)+'Remove all',onclick:async()=>{if(!await dialog({title:'Remove all extensions?',msg:'Projects that use them will download them again when you play.',buttons:[{label:'Cancel',value:false},{label:'Remove all',value:true,primary:true}]}))return;for(const k of Object.keys(X.inst))extRemove(k);renderSettings()}}))
@@ -2397,7 +2437,7 @@ const p=await host.saveProject(data,null)
 if(p)toast('Saved a copy','ok')
 }
 function recRow(r){
-const th=h('div',{class:'rth',style:r.thumb?'background-image:url('+r.thumb+')':null},h('span',{class:'badge b'+(r.kind||'2D')[0],text:r.kind||'2D'}))
+const th=h('div',{class:'rth',style:r.thumb?'background-image:url('+r.thumb+')':null},)
 const path=r.auto?'Browser storage':r.path
 const row=h('div',{class:'rrow',tabindex:'0',onclick:()=>recOpen(r),oncontextmenu:e=>{e.preventDefault();recMenu(e,r)},onkeydown:e=>{if(e.key==='Enter')recOpen(r)}},th,h('div',{class:'rmeta'},h('b',{text:r.name}),h('small',{text:path,title:path})),h('span',{class:'rtime',text:r.time?ago(r.time):'',title:r.time?new Date(r.time).toLocaleString():''}),h('button',{class:'ib',title:'Actions',html:ic('dots',14),onclick:e=>{e.stopPropagation();const b=e.currentTarget.getBoundingClientRect();recMenu({clientX:b.left,clientY:b.bottom+4},r)}}))
 return row
@@ -2738,12 +2778,14 @@ screenshot:async()=>{S.game.render&&S.game.render();return $('#cv').toDataURL('i
 compileBlocks:async a=>{await loadBlockly();return VueBlocks.compile(a.blocks,Blockly,Blockly.JavaScript)},
 reload:async a=>{await openPath(a.path);return true}
 }
+VueAssist.init(window.VueEd)
+$('#bAi').onclick=()=>VueAssist.toggle()
 $('#bConvert').onclick=convertNodes
 $('#bAdvModes').onclick=()=>{S.advOpen=true;ls.set('vue.advopen',true);loadScriptView()}
 $('#bAddFirst').onclick=()=>addEntity(is3()?'box':'sprite')
 initTips()
 }
-window.VueEd={S,h,ic,scene,is3,selData,entOf,snap,snapAll:snap,markDirty,scheduleSave,reloadScene,renderAll,renderHier,buildInspector,redraw,toast,dialog,setBTab,setTab,setTool,select,addEntity,addAsset,worldOf:wd,setW,scr,uid:()=>VueSample.uid(),refresh:()=>{S.game.refresh();redraw();buildInspector();markDirty()},showMenu:(x,y,items)=>showMenu($('#ctx'),x,y,items),play:n=>play(n)}
+window.VueEd={toast,reloadScene,renderAll,S,h,ic,scene,is3,selData,entOf,snap,snapAll:snap,markDirty,scheduleSave,reloadScene,renderAll,renderHier,buildInspector,redraw,toast,dialog,setBTab,setTab,setTool,select,addEntity,addAsset,worldOf:wd,setW,scr,uid:()=>VueSample.uid(),refresh:()=>{S.game.refresh();redraw();buildInspector();markDirty()},showMenu:(x,y,items)=>showMenu($('#ctx'),x,y,items),play:n=>play(n)}
 window.vueBoot=async function(){
 VuePanels.init(window.VueEd)
 splitters()

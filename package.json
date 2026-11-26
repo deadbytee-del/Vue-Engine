@@ -8,7 +8,7 @@
  "license": "MIT",
  "scripts": {
   "start": "electron .",
-  "test": "node test/engine.test.js && node test/features.test.js && node test/vwr.test.js && node test/ext.test.js && node test/zip.test.js && node test/player.test.js && node test/events.test.js && node test/behaviors.test.js && node test/mcp.test.js && node test/lib.test.js && node test/help.test.js",
+  "test": "node test/engine.test.js && node test/features.test.js && node test/vwr.test.js && node test/ext.test.js && node test/zip.test.js && node test/player.test.js && node test/events.test.js && node test/behaviors.test.js && node test/mcp.test.js && node test/assistant.test.js && node test/lib.test.js && node test/help.test.js",
   "dist": "electron-builder --win portable --publish never",
   "build:info": "node tools/build-info.js",
   "build:icons": "node tools/build-icons.js",
