@@ -370,7 +370,7 @@ body.playing .panel{background:var(--bg1)}
 .mi:hover kbd{color:rgba(255,255,255,.75)}
 .mi.dis{opacity:.4;pointer-events:none}
 .msep{height:1px;background:var(--line);margin:4px 6px}
-.mh{padding:6px 10px 3px;font-size:13px;color:var(--mute);font-weight:600;text-transform:uppercase}
+.mh{padding:6px 10px 3px;font-size:13px;color:var(--mute);font-weight:600}
 #palette,#dialog,#keys,#port{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.6);display:none}
 #palette.on{display:block}
 #dialog.on,#keys.on,#port.on{display:grid;place-items:center}
@@ -430,7 +430,7 @@ kbd{font:10.5px var(--mono);background:var(--bg3);border:1px solid var(--line-hi
 .ne-pal-s{display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid var(--line);color:var(--accent-hi)}
 .ne-pal-s input{flex:1;border:0;background:transparent;height:36px;padding:0;box-shadow:none!important}
 .ne-pal-l{overflow:auto;padding:4px}
-.ne-pc{padding:6px 8px 2px;font-size:13px;color:var(--mute);font-weight:600;text-transform:uppercase}
+.ne-pc{padding:6px 8px 2px;font-size:13px;color:var(--mute);font-weight:600}
 .ne-pi{display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;border-radius:2px;cursor:pointer}
 .ne-pi i{width:8px;height:8px;border-radius:2px;flex:none}
 .ne-pi span{flex:1}
