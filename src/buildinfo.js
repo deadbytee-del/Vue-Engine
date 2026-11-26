@@ -1,1 +1,1 @@
-window.VUE_BUILD={"date":"2026-11-26","news":[{"d":"2026-11-25","t":"Steady the MCP run test"},{"d":"2026-11-25","t":"Sentence case menu headings"},{"d":"2026-11-25","t":"Version 1.8.0: engine picker, hybrid WASM physics for balls and cars, readme"}]}
+window.VUE_BUILD={"date":"2026-11-26","news":[{"d":"2026-11-25","t":"Fix Home layout on narrow windows"},{"d":"2026-11-25","t":"Steady the MCP run test"},{"d":"2026-11-25","t":"Sentence case menu headings"}]}

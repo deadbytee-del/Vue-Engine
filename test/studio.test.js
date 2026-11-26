@@ -1,0 +1,6 @@
+const fs=require('fs')
+const s=fs.readFileSync(__dirname+'/../src/studio.js','utf8')
+new Function('window',s)
+const html=fs.readFileSync(__dirname+'/../src/index.html','utf8')
+if(!html.includes('studio.js')||!html.includes('viewModel'))throw new Error('studio not wired')
+console.log('studio tests passed')

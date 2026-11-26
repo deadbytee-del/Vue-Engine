@@ -84,6 +84,7 @@
 <div class="ws">
 <button data-tab="scene"><span data-ic="scene"></span>Scene</button>
 <button data-tab="script"><span data-ic="script"></span>Script</button>
+<button data-tab="model"><span data-ic="studio"></span>Model</button>
 </div>
 </div>
 <div class="transport">
@@ -130,6 +131,7 @@
 </div>
 <div id="cvwrap"><canvas id="cv"></canvas><div id="vEmpty" class="empty hide"><h3>This scene is empty</h3><p>Add something to start building.</p><button class="btn primary" id="bAddFirst"><span data-ic="plus"></span><span id="vEmptyBtn">Add a sprite</span></button></div><div id="dropHint"><span data-ic="upload"></span>Drop images or audio to import them</div></div>
 </div>
+<div id="viewModel" class="view"></div>
 <div id="viewScript" class="view">
 <div class="vt">
 <div class="crumb" id="crumb"></div>
@@ -225,6 +227,7 @@
 <script src="icons.js"></script>
 <script src="buildinfo.js"></script>
 <script src="vwr.js"></script>
+<script src="mesh.js"></script>
 <script src="model3d.js"></script>
 <script src="render3d.js"></script>
 <script src="behaviors.js"></script>
@@ -246,6 +249,7 @@
 <script src="autocomplete.js"></script>
 <script src="panels.js"></script>
 <script src="assistui.js"></script>
+<script src="studio.js"></script>
 <script src="editor.js"></script>
 <script type="module">
 import*as T from'three'

@@ -980,7 +980,7 @@ const wv=im||md?null:h('canvas',{class:'wave',width:160,height:160})
 const it=h('div',{class:'asset',title:md?k+'\nClick to add this model to the scene':im?k+'\nClick to apply to the selected entity':k+'\nClick to play, click again to stop',onclick:()=>useAsset(k)},
 h('div',{class:'at'},im?h('img',{src:a[k].data}):md?h('img',{src:modelThumb(a[k])}):wv,im||md?null:h('span',{class:'aplay',html:ic(S.preview&&S.preview.k===k?'stop':'play',18)})),
 h('span',{text:k}),
-h('i',{class:'badge',text:im?'IMG':md?'3D':'SFX'}),md?h('button',{class:'ib edt',title:'Edit the model by hand',html:ic('edit',12),onclick:ev=>{ev.stopPropagation();editModel(k)}}):null,md?h('button',{class:'ib exp',title:'Export as GLB',html:ic('download',12),onclick:ev=>{ev.stopPropagation();exportModel(k)}}):null,
+h('i',{class:'badge',text:im?'IMG':md?'3D':'SFX'}),md?h('button',{class:'ib stu',title:'Open in the Model Studio',html:ic('studio',12),onclick:ev=>{ev.stopPropagation();openInStudio(k)}}):null,md?h('button',{class:'ib edt',title:'Edit the model by hand',html:ic('edit',12),onclick:ev=>{ev.stopPropagation();editModel(k)}}):null,md?h('button',{class:'ib exp',title:'Export as GLB',html:ic('download',12),onclick:ev=>{ev.stopPropagation();exportModel(k)}}):null,
 h('button',{class:'ib del',title:'Delete asset',html:ic('trash',12),onclick:ev=>{ev.stopPropagation();delete S.project.assets[k];S.game.loadAssets().then(redraw);renderAssets();markDirty()}}))
 box.append(it)
 }
@@ -1772,11 +1772,22 @@ if(selData()===d&&d.script.mode==='code'){S.code.set(s.code||'');S.code.layout()
 }
 if(!quiet){renderHier();buildInspector()}
 }
+let studioUp=false
+function showStudio(){
+if(!studioUp){
+studioUp=true
+VueStudio.init({assets:()=>S.project.assets,changed:()=>{renderAssets();markDirty()},toast,thumb:modelThumb,place:k=>{setTab('scene');addModelToScene(k)}},$('#viewModel'))
+}
+VueStudio.show()
+}
+function openInStudio(k){setTab('model');VueStudio.open(k)}
 function setTab(t){
 S.tab=t
 for(const b of $$('.ws button'))b.classList.toggle('on',b.dataset.tab===t)
 $('#viewScene').classList.toggle('on',t==='scene')
 $('#viewScript').classList.toggle('on',t==='script')
+$('#viewModel').classList.toggle('on',t==='model')
+if(t==='model')showStudio();else if(studioUp)VueStudio.hide()
 if(t==='scene'){
 const w=$('#cvwrap').clientWidth,hh=$('#cvwrap').clientHeight
 if(w>0&&hh>0)S.game.resize(w,hh)
@@ -2647,6 +2658,7 @@ function keys(){
 window.addEventListener('keydown',e=>{
 const t=e.target,ty=typing(t),k=e.key.toLowerCase()
 if($('#dialog').classList.contains('on')||$('#palette').classList.contains('on'))return
+if(S.tab==='model'&&!((e.ctrlKey||e.metaKey)&&'12pkon'.includes(k)))return
 if($('#keys').classList.contains('on')){if(k==='escape'||e.key==='?')$('#keys').classList.remove('on');return}
 if($('#hub').classList.contains('on')){if(k==='escape'&&S.project)hideHub();if((e.ctrlKey||e.metaKey)&&k==='o'){e.preventDefault();open()}return}
 if(S.drag&&S.drag.k==='orbit'&&k.length===1&&'wasdqe'.indexOf(k)>=0){S.fly.add(k);if(e.shiftKey)S.fly.add('shift');e.preventDefault();return}

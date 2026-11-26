@@ -1,5 +1,5 @@
 (function(root){
-const TYPES=['box','sphere','cylinder','cone','torus','lathe','extrude','group']
+const TYPES=['box','sphere','cylinder','cone','torus','lathe','extrude','group','mesh']
 const MAXP=500,MAXT=200000
 const D=Math.PI/180
 const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d
@@ -23,6 +23,12 @@ if(p.array!==undefined){
 const a=p.array
 if(!a||typeof a!=='object'||!(a.count>=1&&a.count<=100))throw new Error('array needs count from 1 to 100')
 o.array={count:Math.floor(a.count),offset:vec(a.offset,[1,0,0]),rot:vec(a.rot,[0,0,0])}
+}
+if(p.type==='mesh'){
+const VM=root.VueMesh
+if(!VM)throw new Error('Mesh support is not loaded')
+o.mesh=VM.sanitize(p.mesh)
+o.mods=VM.sanitizeMods(p.mods)
 }
 if(p.type==='group'){
 if(!Array.isArray(p.children))throw new Error('group needs children')
@@ -125,6 +131,10 @@ return latheM(pr,seg*2)
 if(p.type==='lathe')return latheM(p.profile,seg)
 return extrudeM(p.profile,p.depth||1)
 }
+function meshLocals(p){
+const gr=root.VueMesh.groups(root.VueMesh.evaluate(p))
+return gr.map(g=>({p:g.pos,n:g.nrm,i:g.pos.map((_,k)=>k).filter(k=>k%3===0).map(k=>k/3),color:g.mat.color,metal:g.mat.metal,rough:g.mat.rough,emissive:g.mat.emissive}))
+}
 function normals(p,i){
 const n=new Array(p.length).fill(0)
 for(let t=0;t<i.length;t+=3){
@@ -148,11 +158,16 @@ const m0=mul(ar,base)
 const ms=p.mirror?[m0,mul(trs([0,0,0],[0,0,0],[p.mirror==='x'?-1:1,p.mirror==='y'?-1:1,p.mirror==='z'?-1:1]),m0)]:[m0]
 for(const m of ms){
 if(p.type==='group'){walk(p.children,m);continue}
-const g=local(p),flip=det3(m)<0,idx=g.i.slice()
+const gs=p.type==='mesh'?meshLocals(p):[Object.assign(local(p),{color:p.color,metal:p.metal,rough:p.rough,emissive:p.emissive})]
+for(const g of gs){
+const flip=det3(m)<0,idx=g.i.slice()
 if(flip)for(let t=0;t<idx.length;t+=3){const x=idx[t+1];idx[t+1]=idx[t+2];idx[t+2]=x}
 const pos=[]
 for(let k=0;k<g.p.length;k+=3){const x=g.p[k],y=g.p[k+1],z=g.p[k+2];pos.push(m[0]*x+m[4]*y+m[8]*z+m[12]-s.pivot[0],m[1]*x+m[5]*y+m[9]*z+m[13]-s.pivot[1],m[2]*x+m[6]*y+m[10]*z+m[14]-s.pivot[2])}
-out.push({name:p.name,pos,idx,nrm:normals(pos,idx),color:p.color,metal:p.metal,rough:p.rough,emissive:p.emissive})
+let nr
+if(g.n){nr=[];for(let k=0;k<g.n.length;k+=3){const x=g.n[k],y=g.n[k+1],z=g.n[k+2],a=m[0]*x+m[4]*y+m[8]*z,b=m[1]*x+m[5]*y+m[9]*z,c=m[2]*x+m[6]*y+m[10]*z,l=Math.hypot(a,b,c)||1;nr.push(a/l,b/l,c/l)}}else nr=normals(pos,idx)
+out.push({name:p.name,pos,idx,nrm:nr,color:g.color,metal:g.metal,rough:g.rough,emissive:g.emissive})
+}
 }
 }
 }

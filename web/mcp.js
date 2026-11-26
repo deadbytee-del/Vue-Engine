@@ -12,6 +12,7 @@ const DTS=req('./dts.js','VueDTS')
 const SAMPLE=req('./sample.js','VueSample')
 const PLAYER=req('./player.js','VuePlayer')
 const COMPILER=req('./compiler.js','VueCompiler')
+req('./mesh.js','VueMesh')
 const MODEL=req('./model3d.js','VueModel')
 const PROPS=['name','x','y','z','w','h','d','rot','rx','ry','rz','color','text','fontSize','alpha','visible','flipX','body','gravityScale','shape','image','tags','z']
 const PROP_TYPES={name:'string',color:'string',text:'string',body:'string',shape:'string',image:'string',x:'number',y:'number',z:'number',w:'number',h:'number',d:'number',rot:'number',rx:'number',ry:'number',rz:'number',fontSize:'number',alpha:'number',gravityScale:'number',visible:'boolean',flipX:'boolean',tags:'array'}
@@ -73,7 +74,7 @@ const roots=(opt.roots||[]).map(r=>real(path.resolve(r)))
 const importRoots=(opt.importRoots||[]).map(r=>real(path.resolve(r)))
 const bridge=opt.bridge||null
 let ts=opt.ts||null
-const readRuntime=opt.runtimeSource||(()=>['vwr.js','behaviors.js','apilib.js','runtime.js','model3d.js','render3d.js'].map(f=>fs.readFileSync(path.join(__dirname,f),'utf8')).join('\n;\n'))
+const readRuntime=opt.runtimeSource||(()=>['vwr.js','behaviors.js','apilib.js','runtime.js','mesh.js','model3d.js','render3d.js'].map(f=>fs.readFileSync(path.join(__dirname,f),'utf8')).join('\n;\n'))
 const readThree=opt.threeSource||(()=>{try{return fs.readFileSync(path.join(__dirname,'..','node_modules','three','build','three.min.js'),'utf8')}catch(e){return ''}})
 const extIndex=opt.extensionsIndex||(()=>{try{return JSON.parse(fs.readFileSync(path.join(__dirname,'..','extensions','index.json'),'utf8')).extensions}catch(e){return[]}})
 const cur=opt.cur||{file:null,project:null,scene:0}

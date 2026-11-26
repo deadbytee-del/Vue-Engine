@@ -2,6 +2,7 @@ const assert=require('assert')
 const SAMPLE=require('../src/sample.js')
 const MCP=require('../src/mcp.js')
 const A=require('../src/assistant.js')
+require('../src/mesh.js')
 const MODEL=require('../src/model3d.js')
 const t3=SAMPLE.TEMPLATES.find(t=>t.id==='empty3')
 const mk=()=>{const cur={file:null,project:t3.make(),scene:0};return{cur,server:MCP.create({cur})}}
